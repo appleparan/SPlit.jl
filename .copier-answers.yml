@@ -1,0 +1,12 @@
+# Changes here will be overwritten by Copier
+AnswerStrategy: recommended
+AuthorEmail: jongsukim8@gmail.com
+AuthorName: Jongsu Kim
+Indentation: 2
+JuliaMinVersion: '1.10'
+License: Apache-2.0
+PackageName: SPlit
+PackageOwner: appleparan
+PackageUUID: 6b22f1a1-5f68-5715-9b23-279ae752cb98
+_commit: v0.9.1
+_src_path: https://github.com/abelsiqueira/BestieTemplate.jl
