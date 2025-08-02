@@ -4,7 +4,7 @@ CurrentModule = SPlit
 
 # SPlit.jl
 
-**Julia-native implementation** of optimal data splitting using support points, based on [Joseph and Vakayil (2021)](https://doi.org/10.1080/00401706.2021.1921037).
+**Julia-native implementation** of optimal data splitting using support points, based on [Joseph and Vakayil (2021)](https://arxiv.org/abs/2012.10945).
 
 ✨ **Now featuring a modern Julia API with type safety, multiple dispatch, and energy distance support!**
 
@@ -121,7 +121,7 @@ For large datasets, stochastic optimization can be enabled using the `kappa` par
 
 ## References
 
-1. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502. [DOI](https://doi.org/10.1080/00401706.2021.1921037)
+1. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502. [DOI](https://arxiv.org/abs/2012.10945)
 
 2. Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 
