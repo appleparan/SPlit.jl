@@ -1,6 +1,3 @@
 [submodule "SPlit"]
 	path = SPlit
 	url = https://github.com/cran/SPlit
-[submodule "SPlit.R"]
-	path = SPlit.R
-	url = https://github.com/cran/SPlit
