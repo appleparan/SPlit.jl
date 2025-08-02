@@ -159,8 +159,8 @@ using SPlit
     X_close = X_base .+ 1e-10 * randn(length(axes(X_base, 1)), length(axes(X_base, 2)))
 
     distance_close = energy_distance(X_base, X_close)
-    @test distance_close >= 0
-    @test distance_close < 1e-6  # Should be very small
+    @test distance_close >= -eps(Float64)
+    @test distance_close < 1e-8  # Should be very small
   end
 
   @testset "Mathematical Properties" begin
