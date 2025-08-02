@@ -1,6 +1,7 @@
 # Energy distances between two samples
 using Distances
 using Distances: Euclidean, Cityblock, PreMetric
+using StatsBase: pairwise
 using LinearAlgebra
 using Statistics: mean
 using Random
@@ -29,44 +30,23 @@ end
 """
     compute_pairwise_distances(metric, X, Y)
 
-Compute pairwise distances between vectors in X and Y using the given metric.
+Compute pairwise distances between vectors in X and Y using StatsBase.pairwise.
 """
 function compute_pairwise_distances(metric, X::AbstractMatrix, Y::AbstractMatrix)
-  n_x, n_y = size(X, 2), size(Y, 2)
-  distances = Matrix{Float64}(undef, n_x, n_y)
-
-  for i = 1:n_x
-    for j = 1:n_y
-      distances[i, j] = metric(X[:, i], Y[:, j])
-    end
-  end
-
-  return distances
+  return pairwise(metric, X, Y, dims = 2)
 end
 
 """
     compute_pairwise_distances(metric, X)
 
-Compute pairwise distances within vectors in X using the given metric.
+Compute pairwise distances within vectors in X using StatsBase.pairwise.
 """
 function compute_pairwise_distances(metric, X::AbstractMatrix)
-  n = size(X, 2)
-  distances = Matrix{Float64}(undef, n, n)
-
-  for i = 1:n
-    distances[i, i] = 0.0  # Distance to self is zero
-    for j = (i+1):n
-      d = metric(X[:, i], X[:, j])
-      distances[i, j] = d
-      distances[j, i] = d  # Symmetric
-    end
-  end
-
-  return distances
+  return pairwise(metric, X, dims = 2)
 end
 
 function (dist::EnergyDistance)(X::AbstractMatrix, Y::AbstractMatrix)
-  # X and Y should be matrices where each column is a sample
+  # X and Y should be matrices where each column is a sample (for StatsBase pairwise)
   mean_XY = mean(compute_pairwise_distances(dist.metric, X, Y))
   mean_XX = mean(compute_pairwise_distances(dist.metric, X))
   mean_YY = mean(compute_pairwise_distances(dist.metric, Y))
@@ -74,11 +54,15 @@ function (dist::EnergyDistance)(X::AbstractMatrix, Y::AbstractMatrix)
 end
 
 function (dist::EnergyDistance)(X::AbstractVector, Y::AbstractVector)
-  # For 1D vectors, we need to compute distances between scalar values
-  # Convert to column vectors (each element as a separate 1D observation)
-  X_mat = reshape(X, 1, length(X))  # 1×n matrix
-  Y_mat = reshape(Y, 1, length(Y))  # 1×m matrix
-  return dist(X_mat, Y_mat)
+  # For 1D vectors, convert to matrices where each column is a scalar observation
+  X_mat = reshape(X, 1, length(X))  # 1×n matrix (each column is a sample)
+  Y_mat = reshape(Y, 1, length(Y))  # 1×m matrix (each column is a sample)
+
+  # Use pairwise directly since matrices are already in correct format
+  mean_XY = mean(compute_pairwise_distances(dist.metric, X_mat, Y_mat))
+  mean_XX = mean(compute_pairwise_distances(dist.metric, X_mat))
+  mean_YY = mean(compute_pairwise_distances(dist.metric, Y_mat))
+  return 2 * mean_XY - mean_XX - mean_YY
 end
 
 """
@@ -108,8 +92,8 @@ end
 Compute energy distance between two samples X and Y.
 
 # Arguments
-- `X`: First sample as a matrix (each column is an observation)
-- `Y`: Second sample as a matrix (each column is an observation)
+- `X`: First sample as a matrix (each row is an observation)
+- `Y`: Second sample as a matrix (each row is an observation)
 - `metric`: Distance metric to use (default: Euclidean())
 
 # Returns
@@ -117,7 +101,8 @@ Compute energy distance between two samples X and Y.
 """
 function energy_distance(X::AbstractMatrix, Y::AbstractMatrix; metric = Euclidean())
   dist = EnergyDistance(metric)
-  return dist(X, Y)
+  # Input matrices have rows as observations, convert to columns for StatsBase pairwise
+  return dist(Matrix(X'), Matrix(Y'))
 end
 
 """

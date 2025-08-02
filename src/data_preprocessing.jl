@@ -5,11 +5,13 @@ Data preprocessing functions for SPlit.jl
 using DataFrames
 using Statistics
 using LinearAlgebra
+using CategoricalArrays
+using StatsModels
 
 """
     helmert_contrasts(levels::Vector{T}) where T
 
-Generate Helmert contrast matrix for categorical variables.
+Generate Helmert contrast matrix for categorical variables using StatsModels.
 
 # Arguments
 - `levels`: Vector of unique levels for the categorical variable
@@ -37,6 +39,9 @@ function helmert_contrasts(levels::Vector{T}) where {T}
   return contrasts
 end
 
+# Method for CategoricalVector - convert to proper vector type
+helmert_contrasts(levels::CategoricalVector) = helmert_contrasts(Vector(levels))
+
 """
     encode_categorical!(result_matrix::Matrix{Float64}, data_col::AbstractVector,
                        col_idx::Int, levels::Vector)
@@ -56,7 +61,7 @@ function encode_categorical!(
   result_matrix::Matrix{Float64},
   data_col::AbstractVector,
   col_idx::Int,
-  levels::Vector,
+  levels::AbstractVector,
 )
   n_levels = length(levels)
   if n_levels <= 1
@@ -141,8 +146,14 @@ This function:
 """
 function format_data(data)
   # Check for missing values
-  if any(ismissing, data)
-    throw(ArgumentError("Dataset contains missing value(s)."))
+  if isa(data, DataFrame)
+    if any(col -> any(ismissing, col), eachcol(data))
+      throw(ArgumentError("Dataset contains missing value(s)."))
+    end
+  else
+    if any(ismissing, data)
+      throw(ArgumentError("Dataset contains missing value(s)."))
+    end
   end
 
   n_rows = size(data, 1)

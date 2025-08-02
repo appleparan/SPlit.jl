@@ -112,9 +112,9 @@ include("../src/energy_distance.jl")
   @testset "Convenience Functions" begin
     Random.seed!(202)
 
-    # Test matrix version
-    X = randn(2, 10)
-    Y = randn(2, 8)
+    # Test matrix version (each row is a sample)
+    X = randn(10, 2)  # 10 samples, 2 dimensions
+    Y = randn(8, 2)   # 8 samples, 2 dimensions
 
     distance1 = energy_distance(X, Y)
     distance2 = energy_distance(X, Y; metric = Euclidean())
@@ -168,8 +168,8 @@ include("../src/energy_distance.jl")
     Random.seed!(404)
 
     # Test symmetry: d(X,Y) = d(Y,X)
-    X = randn(2, 8)
-    Y = randn(2, 6)
+    X = randn(8, 2)  # 8 samples, 2 dimensions
+    Y = randn(6, 2)  # 6 samples, 2 dimensions
 
     dist_XY = energy_distance(X, Y)
     dist_YX = energy_distance(Y, X)

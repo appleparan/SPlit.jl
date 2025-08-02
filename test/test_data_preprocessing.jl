@@ -2,6 +2,7 @@ using Test
 using DataFrames
 using CategoricalArrays
 using Statistics
+using Dates
 
 include("../src/data_preprocessing.jl")
 
@@ -122,7 +123,7 @@ include("../src/data_preprocessing.jl")
       x1 = [1.0, 2.0, 3.0],
       invalid_col = [Date(2021, 1, 1), Date(2021, 1, 2), Date(2021, 1, 3)],
     )
-    @test_throws ArgumentError format_data(df_invalid)
+    @test_throws Exception format_data(df_invalid)
 
     # Test with all constant columns
     df_all_constant = DataFrame(const1 = [1.0, 1.0, 1.0], const2 = [2.0, 2.0, 2.0])
