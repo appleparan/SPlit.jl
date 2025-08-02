@@ -1,0 +1,57 @@
+name: Test Python Package
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ["splitiq/**"]
+  pull_request:
+    branches: [main]
+    paths: ["splitiq/**"]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        julia-version: ["1.10", "1.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Julia ${{ matrix.julia-version }}
+        uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+
+      - name: Install Julia dependencies
+        run: |
+          julia --project=. -e "using Pkg; Pkg.instantiate()"
+
+      - name: Install Python dependencies
+        working-directory: splitiq
+        run: |
+          uv sync --dev
+
+      - name: Run Python tests
+        working-directory: splitiq
+        run: |
+          uv run pytest tests/ -v --cov=splitiq --cov-report=xml
+
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v3
+        with:
+          file: splitiq/coverage.xml
+          flags: python
+          name: python-${{ matrix.python-version }}
+          fail_ci_if_error: false
