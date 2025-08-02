@@ -145,9 +145,69 @@ julia --project=. -e "using JuliaFormatter; format(\".\")"
 - Type annotations for public APIs
 - Consistent error handling with informative messages
 
+## Python Bindings Project
+
+### splitiq Package
+
+A separate Python package called **splitiq** provides Python bindings to the Julia backend using PythonCall.jl. This allows Python users to access SPlit.jl functionality seamlessly.
+
+#### Package Details
+
+- **Package Name**: splitiq
+- **Build Tool**: uv (modern Python package manager)
+- **Backend**: SPlit.jl (Julia)
+- **Distribution**: PyPI
+- **Architecture**: Python frontend → PythonCall.jl → SPlit.jl
+
+#### Python API Design
+
+The Python API mirrors the Julia interface with Pythonic naming conventions:
+
+```python
+import splitiq
+
+# Main splitting function
+train_idx, test_idx = splitiq.split_data(X, split_ratio=0.2)
+
+# Optimal ratio determination
+optimal_ratio = splitiq.optimal_split_ratio(X, method="simple")
+
+# Support points computation
+support_points = splitiq.compute_support_points(X, kappa=100)
+```
+
+#### Development Setup
+
+```bash
+# Julia side - add PythonCall.jl dependency
+julia -e "using Pkg; Pkg.add(\"PythonCall\")"
+
+# Python side - use uv for package management
+cd splitiq/
+uv sync
+uv run python -m pytest tests/
+```
+
+#### Integration Requirements
+
+1. **PythonCall.jl Integration**: Expose Julia functions to Python
+2. **Type Conversion**: Handle NumPy arrays ↔ Julia arrays
+3. **Error Handling**: Translate Julia exceptions to Python exceptions
+4. **Documentation**: Sphinx docs with examples
+5. **CI/CD**: Automated testing and PyPI deployment
+
+#### Deployment Strategy
+
+1. **Julia Package**: Register SPlit.jl on Julia General registry
+2. **Python Package**: Build wheels and publish to PyPI
+3. **Dependencies**: Ensure Julia installation requirements are clear
+4. **Documentation**: Cross-reference between Julia and Python docs
+
 ## Integration Notes
 
 - Maintain compatibility with DataFrames.jl ecosystem
 - Support both Matrix and DataFrame inputs
 - Provide clear migration path from R package usage
 - Consider MLJ.jl integration for machine learning workflows
+- **Python interop**: Design Julia API with Python binding considerations
+- **Cross-language testing**: Verify consistency between Julia and Python outputs
