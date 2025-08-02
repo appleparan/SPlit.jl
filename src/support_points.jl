@@ -21,8 +21,8 @@ function jitter_data!(data::Matrix{Float64}, bounds::Matrix{Float64})
   n, p = length(axes(data, 1)), length(axes(data, 2))
 
   for j = 1:p
-    # Add small jitter
-    jitter_amount = (bounds[j, 2] - bounds[j, 1]) * 1e-6
+    # Add small jitter (use larger factor for detectability)
+    jitter_amount = (bounds[j, 2] - bounds[j, 1]) * 1e-3
     data[:, j] .+= jitter_amount .* (2 .* rand(n) .- 1)
 
     # Ensure bounds are respected
@@ -46,8 +46,17 @@ function compute_bounds(data::Matrix{Float64})
   bounds = Matrix{Float64}(undef, p, 2)
 
   for j = 1:p
-    bounds[j, 1] = minimum(data[:, j])  # min
-    bounds[j, 2] = maximum(data[:, j])  # max
+    min_val = minimum(data[:, j])
+    max_val = maximum(data[:, j])
+
+    # If all values are identical, expand bounds slightly for jittering
+    if min_val == max_val
+      bounds[j, 1] = min_val - 1e-3
+      bounds[j, 2] = max_val + 1e-3
+    else
+      bounds[j, 1] = min_val
+      bounds[j, 2] = max_val
+    end
   end
 
   return bounds

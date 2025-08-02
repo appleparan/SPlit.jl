@@ -4,6 +4,7 @@ using Distances: Euclidean, Cityblock, PreMetric
 using StatsBase: pairwise
 using LinearAlgebra
 using Statistics: mean
+import StatsAPI: pairwise, pairwise!
 using Random
 
 """
