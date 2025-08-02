@@ -7,21 +7,24 @@ This document provides context for Claude Code when working on the SPlit.jl proj
 SPlit.jl is a Julia port of the original SPlit R package, implementing optimal data splitting procedures based on the method of support points as described in Joseph and Vakayil (2021).
 
 ### Original R Package Details
+
 - **Package**: SPlit
 - **Version**: 1.2 (2022-03-22)
 - **Authors**: Akhil Vakayil, Roshan Joseph, Simon Mak
 - **License**: GPL (>= 2)
-- **CRAN**: https://CRAN.R-project.org/package=SPlit
+- **CRAN**: <https://CRAN.R-project.org/package=SPlit>
 
 ## Core Functionality
 
 ### Main Functions (R → Julia mapping)
+
 1. **`SPlit()` → `split_data()`**: Main splitting function
 2. **`splitratio()` → `optimal_split_ratio()`**: Optimal ratio determination
 3. **`subsample()` → `subsample()`**: Nearest neighbor subsampling (C++ → Julia)
 4. **`sp_cpp()` → `compute_support_points()`**: Support points computation (C++ → Julia)
 
 ### Key Parameters
+
 - `splitRatio`/`split_ratio`: Split proportion (default 0.2)
 - `kappa`: Stochastic optimization subsample size
 - `maxIterations`/`max_iterations`: Max iterations (default 500)
@@ -31,7 +34,8 @@ SPlit.jl is a Julia port of the original SPlit R package, implementing optimal d
 ## Implementation Status
 
 ### Current Structure
-```
+
+```text
 src/
 ├── SPlit.jl              # Main module file
 ├── energy_distance.jl    # Energy distance calculations
@@ -42,6 +46,7 @@ src/
 ```
 
 ### Dependencies
+
 - DataFrames.jl: DataFrame support
 - Distances.jl: Distance calculations
 - LinearAlgebra.jl: Matrix operations
@@ -54,12 +59,14 @@ src/
 ## Algorithm Implementation Notes
 
 ### Data Preprocessing (`data_format` in R)
+
 1. Handle missing values (error if found)
 2. Convert factors to Helmert contrasts
 3. Remove constant columns
 4. Standardize all columns (mean 0, variance 1)
 
 ### Support Points Computation (`compute_sp` + `sp_cpp` in R)
+
 1. Initialize with jittered random sample
 2. Apply bounds constraints
 3. Use stochastic majorization-minimization if `kappa < n`
@@ -67,6 +74,7 @@ src/
 5. Convergence based on point-wise distance tolerance
 
 ### Nearest Neighbor Subsampling (`subsample` in R)
+
 - C++ implementation using nanoflann library for k-d tree
 - Find nearest support point for each data point
 - Return indices of smaller subset
@@ -74,6 +82,7 @@ src/
 ## Testing Strategy
 
 ### Test Cases to Implement
+
 1. **Basic functionality**: Simple numeric data splitting
 2. **Categorical data**: Factor handling with Helmert contrasts
 3. **Mixed data types**: Numeric + categorical combinations
@@ -83,6 +92,7 @@ src/
 7. **Parallel execution**: Multi-threading verification
 
 ### Reference Results
+
 - Compare against R package outputs for identical datasets
 - Verify split quality using energy distance metrics
 - Check convergence behavior and iteration counts
@@ -114,12 +124,14 @@ julia --project=. -e "using JuliaFormatter; format(\".\")"
 ## Performance Considerations
 
 ### Optimization Targets
+
 - **Memory efficiency**: Minimize allocations in inner loops
 - **Parallel scaling**: Effective multi-threading for large datasets
 - **Numerical stability**: Proper handling of edge cases and floating-point precision
 - **Stochastic optimization**: Balanced quality vs. speed trade-offs
 
 ### Known Challenges
+
 1. **Helmert contrasts**: Efficient categorical variable encoding
 2. **k-d tree implementation**: Fast nearest neighbor search (consider NearestNeighbors.jl)
 3. **Convergence criteria**: Robust stopping conditions
