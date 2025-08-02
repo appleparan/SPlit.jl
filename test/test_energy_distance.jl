@@ -1,53 +1,183 @@
+using Test
+using Random
+using LinearAlgebra
+using Distances
 
-struct FooDist <: PreMetric end # Julia 1.0 Compat: struct definition must be put in global scope
+include("../src/energy_distance.jl")
 
-@testset "result_type" begin
-    foodist(a, b) = a + b
-    (::FooDist)(a, b) = foodist(a, b)
-    for (Ta, Tb) in [
-        (Int, Int),
-        (Int, Float64),
-        (Float32, Float32),
-        (Float32, Float64),
-    ]
-        A, B = rand(Ta, 2, 3), rand(Tb, 2, 3)
-        @test result_type(FooDist(), A, B) == result_type(FooDist(), Ta, Tb)
-        @test result_type(foodist, A, B) == result_type(foodist, Ta, Tb) == typeof(foodist(oneunit(Ta), oneunit(Tb)))
+@testset "Energy Distance Tests" begin
 
-        a, b = rand(Ta), rand(Tb)
-        @test result_type(FooDist(), a, b) == result_type(FooDist(), Ta, Tb)
-        @test result_type(foodist, a, b) == result_type(foodist, Ta, Tb) == typeof(foodist(oneunit(Ta), oneunit(Tb)))
-    end
-end
+  @testset "EnergyDistance Construction" begin
+    # Test construction with different metrics
+    ed_euclidean = EnergyDistance(Euclidean())
+    @test ed_euclidean.metric isa Euclidean
 
-@testset "Wasserstein (Earth mover's) distance" begin
+    ed_manhattan = EnergyDistance(Cityblock())
+    @test ed_manhattan.metric isa Cityblock
+  end
+
+  @testset "Pairwise Distance Computation" begin
+    # Test pairwise distances between matrices
+    X = [1.0 2.0; 3.0 4.0]  # 2x2 matrix (2 dimensions, 2 samples)
+    Y = [0.0 1.0; 1.0 2.0]  # 2x2 matrix (2 dimensions, 2 samples)
+
+    metric = Euclidean()
+    distances_XY = compute_pairwise_distances(metric, X, Y)
+
+    @test size(distances_XY) == (2, 2)
+    # Check specific distances
+    @test distances_XY[1, 1] ≈ euclidean([1.0, 3.0], [0.0, 1.0])
+    @test distances_XY[1, 2] ≈ euclidean([1.0, 3.0], [1.0, 2.0])
+
+    # Test pairwise distances within matrix
+    distances_XX = compute_pairwise_distances(metric, X)
+    @test size(distances_XX) == (2, 2)
+    @test distances_XX[1, 1] == 0.0  # Distance to self
+    @test distances_XX[2, 2] == 0.0  # Distance to self
+    @test distances_XX[1, 2] == distances_XX[2, 1]  # Symmetry
+  end
+
+  @testset "Energy Distance - Matrix Input" begin
     Random.seed!(123)
-    for T in [Float64]
-    # for T in [Float32, Float64]
-        N = 5
-        u = rand(T, N)
-        v = rand(T, N)
-        u_weights = rand(T, N)
-        v_weights = rand(T, N)
 
-        dist = Wasserstein(u_weights, v_weights)
+    # Create simple test data
+    X = randn(3, 10)  # 3 dimensions, 10 samples
+    Y = randn(3, 8)   # 3 dimensions, 8 samples
 
-        test_pairwise(dist, u, v, T)
+    ed = EnergyDistance(Euclidean())
+    distance = ed(X, Y)
 
-        @test evaluate(dist, u, v) === wasserstein(u, v, u_weights, v_weights)
-        @test dist(u, v) === wasserstein(u, v, u_weights, v_weights)
+    @test isa(distance, Float64)
+    @test distance >= 0  # Energy distance should be non-negative
 
-        @test_throws ArgumentError wasserstein([], [])
-        @test_throws ArgumentError wasserstein([], v)
-        @test_throws ArgumentError wasserstein(u, [])
-        @test_throws DimensionMismatch wasserstein(u, v, u_weights[1:end-1], v_weights)
-        @test_throws DimensionMismatch wasserstein(u, v, u_weights, v_weights[1:end-1])
-        @test_throws ArgumentError wasserstein(u, v, -u_weights, v_weights)
-        @test_throws ArgumentError wasserstein(u, v, u_weights, -v_weights)
+    # Test with identical samples (should be zero)
+    X_same = randn(2, 5)
+    distance_same = ed(X_same, X_same)
+    @test distance_same ≈ 0.0 atol = 1e-12
+  end
 
-        # # TODO: Needs better/more correctness tests
-        # @test wasserstein(u, v)                       ≈ 0.2826796049559892
-        # @test wasserstein(u, v, u_weights, v_weights) ≈ 0.28429147575475444
-    end
+  @testset "Energy Distance - Vector Input" begin
+    Random.seed!(456)
 
+    # Test 1D vectors
+    x = randn(20)
+    y = randn(15)
+
+    ed = EnergyDistance(Euclidean())
+    distance = ed(x, y)
+
+    @test isa(distance, Float64)
+    @test distance >= 0
+
+    # Test with identical vectors
+    distance_same = ed(x, x)
+    @test distance_same ≈ 0.0 atol = 1e-12
+  end
+
+  @testset "Sample Without Replacement" begin
+    Random.seed!(789)
+
+    X = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    # Test normal sampling
+    sampled = sample_without_replacement(X, 5)
+    @test length(sampled) == 5
+    @test length(unique(sampled)) == 5  # No duplicates
+    @test all(s in X for s in sampled)  # All samples from original
+
+    # Test sampling all elements
+    sampled_all = sample_without_replacement(X, 10)
+    @test length(sampled_all) == 10
+    @test Set(sampled_all) == Set(X)
+
+    # Test error for over-sampling
+    @test_throws ArgumentError sample_without_replacement(X, 15)
+  end
+
+  @testset "Energy Distance with Sampling" begin
+    Random.seed!(101)
+
+    # Create larger vectors for sampling test
+    P = randn(100)
+    Q = randn(80)
+
+    ed = EnergyDistance(Euclidean())
+
+    # Test sampling version
+    distance_sampled = ed(P, Q, 20)
+    @test isa(distance_sampled, Float64)
+    @test distance_sampled >= 0
+  end
+
+  @testset "Convenience Functions" begin
+    Random.seed!(202)
+
+    # Test matrix version
+    X = randn(2, 10)
+    Y = randn(2, 8)
+
+    distance1 = energy_distance(X, Y)
+    distance2 = energy_distance(X, Y; metric = Euclidean())
+
+    @test distance1 ≈ distance2
+    @test distance1 >= 0
+
+    # Test vector version
+    x = randn(15)
+    y = randn(12)
+
+    distance_vec = energy_distance(x, y)
+    @test isa(distance_vec, Float64)
+    @test distance_vec >= 0
+  end
+
+  @testset "Different Metrics" begin
+    Random.seed!(303)
+
+    X = randn(2, 5)
+    Y = randn(2, 5)
+
+    # Test with different metrics
+    dist_euclidean = energy_distance(X, Y; metric = Euclidean())
+    dist_manhattan = energy_distance(X, Y; metric = Cityblock())
+
+    @test dist_euclidean >= 0
+    @test dist_manhattan >= 0
+    # Different metrics should generally give different results
+    # (though they could be equal by chance)
+  end
+
+  @testset "Edge Cases" begin
+    # Test with single sample
+    X_single = randn(3, 1)
+    Y_single = randn(3, 1)
+
+    distance_single = energy_distance(X_single, Y_single)
+    @test isa(distance_single, Float64)
+
+    # Test with very small differences
+    X_base = randn(2, 5)
+    X_close = X_base .+ 1e-10 * randn(size(X_base))
+
+    distance_close = energy_distance(X_base, X_close)
+    @test distance_close >= 0
+    @test distance_close < 1e-8  # Should be very small
+  end
+
+  @testset "Mathematical Properties" begin
+    Random.seed!(404)
+
+    # Test symmetry: d(X,Y) = d(Y,X)
+    X = randn(2, 8)
+    Y = randn(2, 6)
+
+    dist_XY = energy_distance(X, Y)
+    dist_YX = energy_distance(Y, X)
+
+    @test dist_XY ≈ dist_YX atol = 1e-12
+
+    # Test self-distance is zero: d(X,X) = 0
+    dist_XX = energy_distance(X, X)
+    @test dist_XX ≈ 0.0 atol = 1e-12
+  end
 end

@@ -1,10 +1,9 @@
 # Energy distances between two samples
 using Distances
-
+using Distances: Euclidean, Cityblock, PreMetric
 using LinearAlgebra
 using Statistics: mean
-import StatsAPI: pairwise
-import StatsBase: sample
+using Random
 
 """
     EnergyDistance(metric::T)
@@ -23,59 +22,110 @@ d(P, Q) = 2 \\mathbb{E}_{X, Y \\sim P, Q} [d(X, Y)] - \\mathbb{E}_{X, X' \\sim P
 julia> dist = EnergyDistance(Euclidean())
 ```
 """
-struct EnergyDistance{T<:Prematric} <: PreMetric
+struct EnergyDistance{T<:PreMetric} <: PreMetric
   metric::T
 end
 
-# Constructor
-EnergyDistance(metric::T) where {T<:PreMetric} = EnergyDistance{T}(metric)
+"""
+    compute_pairwise_distances(metric, X, Y)
 
-function (dist::EnergyDistance)(X::AbstractVector, Y::AbstractVector)
-  mean_XY = mean(pairwise(dist.metric, X, Y))
-  mean_XX = mean(pairwise(dist.metric, X, X))
-  mean_YY = mean(pairwise(dist.metric, Y, Y))
+Compute pairwise distances between vectors in X and Y using the given metric.
+"""
+function compute_pairwise_distances(metric, X::AbstractMatrix, Y::AbstractMatrix)
+  n_x, n_y = size(X, 2), size(Y, 2)
+  distances = Matrix{Float64}(undef, n_x, n_y)
+
+  for i = 1:n_x
+    for j = 1:n_y
+      distances[i, j] = metric(X[:, i], Y[:, j])
+    end
+  end
+
+  return distances
+end
+
+"""
+    compute_pairwise_distances(metric, X)
+
+Compute pairwise distances within vectors in X using the given metric.
+"""
+function compute_pairwise_distances(metric, X::AbstractMatrix)
+  n = size(X, 2)
+  distances = Matrix{Float64}(undef, n, n)
+
+  for i = 1:n
+    distances[i, i] = 0.0  # Distance to self is zero
+    for j = (i+1):n
+      d = metric(X[:, i], X[:, j])
+      distances[i, j] = d
+      distances[j, i] = d  # Symmetric
+    end
+  end
+
+  return distances
+end
+
+function (dist::EnergyDistance)(X::AbstractMatrix, Y::AbstractMatrix)
+  # X and Y should be matrices where each column is a sample
+  mean_XY = mean(compute_pairwise_distances(dist.metric, X, Y))
+  mean_XX = mean(compute_pairwise_distances(dist.metric, X))
+  mean_YY = mean(compute_pairwise_distances(dist.metric, Y))
   return 2 * mean_XY - mean_XX - mean_YY
 end
 
-function (dist::EnergyDistance)(P::Distribution, Q::Distribution, num_samples::Int)
-  # Sample from the distributions
-  X = rand(P, num_samples)
-  Y = rand(Q, num_samples)
-
-  return dist(X, Y)
+function (dist::EnergyDistance)(X::AbstractVector, Y::AbstractVector)
+  # For 1D vectors, we need to compute distances between scalar values
+  # Convert to column vectors (each element as a separate 1D observation)
+  X_mat = reshape(X, 1, length(X))  # 1×n matrix
+  Y_mat = reshape(Y, 1, length(Y))  # 1×m matrix
+  return dist(X_mat, Y_mat)
 end
 
-function (dist::EnergyDistance)(X::AbstractVector, Y::AbstractVector, num_samples::Int)
-  # Sample from the distributions
-  X_sampled = sample(X, num_samples)
-  Y_sampled = sample(Y, num_samples)
+"""
+    sample_without_replacement(X, n)
+
+Sample n elements from X without replacement.
+"""
+function sample_without_replacement(X::AbstractVector, n::Int)
+  if n > length(X)
+    throw(ArgumentError("Cannot sample $n elements from vector of length $(length(X))"))
+  end
+  indices = randperm(length(X))[1:n]
+  return X[indices]
+end
+
+function (dist::EnergyDistance)(P::AbstractVector, Q::AbstractVector, num_samples::Int)
+  # Sample from the vectors
+  X_sampled = sample_without_replacement(P, min(num_samples, length(P)))
+  Y_sampled = sample_without_replacement(Q, min(num_samples, length(Q)))
 
   return dist(X_sampled, Y_sampled)
 end
 
-function (dist::EnergyDistance)(P::Distribution, Y::AbstractVector, num_samples::Int)
-  # Sample from the distributions
-  P_sampled = rand(P, num_samples)
-  Y_sampled = sample(Y, num_samples)
+"""
+    energy_distance(X::AbstractMatrix, Y::AbstractMatrix; metric=Euclidean())
 
-  return dist(P_sampled, Y_sampled)
+Compute energy distance between two samples X and Y.
+
+# Arguments
+- `X`: First sample as a matrix (each column is an observation)
+- `Y`: Second sample as a matrix (each column is an observation)
+- `metric`: Distance metric to use (default: Euclidean())
+
+# Returns
+- Energy distance between the two samples
+"""
+function energy_distance(X::AbstractMatrix, Y::AbstractMatrix; metric = Euclidean())
+  dist = EnergyDistance(metric)
+  return dist(X, Y)
 end
 
-function (dist::EnergyDistance)(X::AbstractVector, Q::Distribution, num_samples::Int)
-  # Sample from the distributions
-  X_sampled = sample(X, num_samples)
-  Q_sampled = rand(Q, num_samples)
+"""
+    energy_distance(X::AbstractVector, Y::AbstractVector; metric=Euclidean())
 
-  return dist(X_sampled, Q_sampled)
-end
-
-function result_type(d::EnergyDistance, ::Type{T1}, ::Type{T2}) where {T1,T2}
-  return typeof(dist(zero(T1), zero(T2)))
-end
-
-function _colwise!(dist, r, a, b)
-  Q = dist.qmat
-  get_colwise_dims(size(Q, 1), r, a, b)
-  z = a .- b
-  dot_percol!(r, Q * z, z)
+Compute energy distance between two 1D samples X and Y.
+"""
+function energy_distance(X::AbstractVector, Y::AbstractVector; metric = Euclidean())
+  dist = EnergyDistance(metric)
+  return dist(X, Y)
 end

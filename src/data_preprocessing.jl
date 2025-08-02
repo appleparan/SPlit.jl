@@ -4,7 +4,6 @@ Data preprocessing functions for SPlit.jl
 
 using DataFrames
 using Statistics
-using StatsAPI
 using LinearAlgebra
 
 """
