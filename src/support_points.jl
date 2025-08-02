@@ -1,6 +1,89 @@
+"""
+Support points computation for optimal data splitting.
+"""
+
 using LinearAlgebra
 using Random
-using NearestNeighbors
+using Statistics
+using Base.Threads
+using StatsBase
+
+"""
+    jitter_data!(data::Matrix{Float64}, bounds::Matrix{Float64})
+
+Add small random noise to data to handle duplicates, ensuring values stay within bounds.
+
+# Arguments
+- `data`: Data matrix to jitter (modified in-place)
+- `bounds`: Bounds matrix with min/max for each dimension
+"""
+function jitter_data!(data::Matrix{Float64}, bounds::Matrix{Float64})
+  n, p = size(data)
+
+  for j = 1:p
+    # Add small jitter
+    jitter_amount = (bounds[j, 2] - bounds[j, 1]) * 1e-6
+    data[:, j] .+= jitter_amount .* (2 .* rand(n) .- 1)
+
+    # Ensure bounds are respected
+    data[:, j] = clamp.(data[:, j], bounds[j, 1], bounds[j, 2])
+  end
+end
+
+"""
+    compute_bounds(data::Matrix{Float64})
+
+Compute min/max bounds for each dimension of the data.
+
+# Arguments
+- `data`: Input data matrix
+
+# Returns
+- Matrix with bounds (p×2) where p is number of dimensions
+"""
+function compute_bounds(data::Matrix{Float64})
+  p = size(data, 2)
+  bounds = Matrix{Float64}(undef, p, 2)
+
+  for j = 1:p
+    bounds[j, 1] = minimum(data[:, j])  # min
+    bounds[j, 2] = maximum(data[:, j])  # max
+  end
+
+  return bounds
+end
+
+"""
+    initialize_support_points(n::Int, p::Int, data::Matrix{Float64}, bounds::Matrix{Float64})
+
+Initialize support points by sampling from data with jitter.
+
+# Arguments
+- `n`: Number of support points to generate
+- `p`: Number of dimensions
+- `data`: Data matrix to sample from
+- `bounds`: Bounds for each dimension
+
+# Returns
+- Matrix of initialized support points (n×p)
+"""
+function initialize_support_points(
+  n::Int,
+  p::Int,
+  data::Matrix{Float64},
+  bounds::Matrix{Float64},
+)
+  n_data = size(data, 1)
+
+  # Sample indices without replacement
+  indices = sample(1:n_data, n, replace = false)
+  points = data[indices, :]
+
+  # Add jitter and apply bounds
+  jitter_data!(points, bounds)
+
+  return points
+end
 
 # Function to print progress
 function print_progress(percent::Int, num_threads::Int)
@@ -10,122 +93,154 @@ function print_progress(percent::Int, num_threads::Int)
 end
 
 """
-    sp_julia(des_num::Int, dim_num::Int, ini::Matrix{Float64}, distsamp::Matrix{Float64}, 
-             bd::Matrix{Float64}, point_num::Int, it_max::Int, tol::Float64, 
-             num_proc::Int, n0::Float64, wts::Vector{Float64}, rnd_flg::Bool; tree_type=:KDTree)
+    compute_support_points(n::Int, p::Int, data::Matrix{Float64},
+                          subsample_size::Int; max_iterations::Int=500,
+                          tolerance::Float64=1e-10, n_threads::Int=Threads.nthreads(),
+                          weights::Vector{Float64}=ones(size(data, 1)),
+                          use_stochastic::Bool=false)
 
-Optimizes a space-filling design using an iterative algorithm. The optimization process uses 
-either a KDTree or BallTree for nearest neighbor searches to ensure the design points are well distributed.
+Compute support points for optimal data representation using iterative optimization.
 
 # Arguments
-- `des_num::Int`: Number of design points to be optimized.
-- `dim_num::Int`: Number of dimensions for each design point.
-- `ini::Matrix{Float64}`: Initial design points matrix of size (`des_num`, `dim_num`).
-- `distsamp::Matrix{Float64}`: A matrix of sampled points for distance calculation.
-- `bd::Matrix{Float64}`: Boundary conditions for each dimension in the form of a matrix with two columns, where each row corresponds to a dimension.
-- `point_num::Int`: Number of random points to be used in each iteration.
-- `it_max::Int`: Maximum number of iterations for the optimization process.
-- `tol::Float64`: Tolerance level to determine convergence.
-- `num_proc::Int`: Number of parallel threads to use for computation.
-- `n0::Float64`: A parameter controlling the influence of current iteration in the optimization process.
-- `wts::Vector{Float64}`: Weights for each sampled point.
-- `rnd_flg::Bool`: If true, enables random sampling of points.
-- `tree_type::Symbol`: The type of tree to use for nearest neighbor search; either `:KDTree` or `:BallTree`.
+- `n`: Number of support points to compute
+- `p`: Number of dimensions
+- `data`: Input data matrix
+- `subsample_size`: Size of subsample for stochastic optimization
+- `max_iterations`: Maximum number of iterations
+- `tolerance`: Convergence tolerance
+- `n_threads`: Number of threads for parallel computation
+- `weights`: Weights for data points
+- `use_stochastic`: Whether to use stochastic optimization
 
 # Returns
-- `Matrix{Float64}`: A matrix of optimized design points of size (`des_num`, `dim_num`).
+- Matrix of computed support points (n×p)
 """
-function sp_julia(
-  des_num::Int,
-  dim_num::Int,
-  ini::Matrix{Float64},
-  distsamp::Matrix{Float64},
-  bd::Matrix{Float64},
-  point_num::Int,
-  it_max::Int,
-  tol::Float64,
-  num_proc::Int,
-  n0::Float64,
-  wts::Vector{Float64},
-  rnd_flg::Bool;
-  tree_type::Symbol = :KDTree,
+function compute_support_points(
+  n::Int,
+  p::Int,
+  data::Matrix{Float64},
+  subsample_size::Int;
+  max_iterations::Int = 500,
+  tolerance::Float64 = 1e-10,
+  n_threads::Int = Threads.nthreads(),
+  weights::Vector{Float64} = ones(size(data, 1)),
+  use_stochastic::Bool = false,
 )
+  n_data = size(data, 1)
 
-  Threads.nthreads() == num_proc || Threads.@threads :num_proc
+  # Compute bounds
+  bounds = compute_bounds(data)
 
-  # Initialization
-  it_num = 0
-  des = copy(ini)
-  nug = 0.0
-  rng = MersenneTwister()
+  # Handle duplicates by adding jitter
+  data_copy = copy(data)
+  if length(unique(eachrow(data))) < n_data
+    jitter_data!(data_copy, bounds)
+  end
+
+  # Initialize support points
+  points = initialize_support_points(n, p, data_copy, bounds)
+
+  # Initialize parameters
+  running_const = zeros(n)
+  n0 = Float64(n * 0.2)  # Regularization parameter
+
+  iteration = 0
+  converged = false
   percent_complete = 0
 
-  # Iterative Optimization
-  while it_num < it_max
-    percent = Int(100 * (it_num + 1) / it_max)
+  while !converged && iteration < max_iterations
+    iteration += 1
+
+    # Show progress
+    percent = round(Int, 100 * iteration / max_iterations)
     if percent > percent_complete
-      print_progress(percent, num_proc)
+      print_progress(percent, n_threads)
       percent_complete = percent
     end
 
-    # Random sampling
-    rnd_indices = rnd_flg ? rand(rng, 1:size(distsamp, 1), point_num) : 1:point_num
-    rnd = distsamp[rnd_indices, :]
-    rnd_wts = wts[rnd_indices]
+    # Store previous points for convergence check
+    prev_points = copy(points)
 
-    # Create KDTree or BallTree
-    tree = tree_type == :KDTree ? KDTree(rnd) : BallTree(rnd)
+    # Choose subsample
+    if use_stochastic && subsample_size < n_data
+      subsample_indices = sample(1:n_data, subsample_size, replace = false)
+    else
+      subsample_indices = 1:n_data
+    end
 
-    # Parallel Update
-    des_up = copy(des)
-    Threads.@threads for m = 1:des_num
-      xprime = zeros(dim_num)
+    subsample_data = data_copy[subsample_indices, :]
+    subsample_weights = weights[subsample_indices]
+    n_subsample = length(subsample_indices)
 
-      # Contributions from other design points
-      for o = 1:des_num
+    # Update support points
+    current_const = zeros(n)
+    new_points = similar(points)
+
+    @threads for m = 1:n
+      xprime = zeros(p)
+
+      # Repulsion from other support points
+      for o = 1:n
         if o != m
-          tmpvec = des[m, :] - des[o, :]
-          tmptol = norm(tmpvec) + nug * eps()
-          xprime .+= tmpvec ./ tmptol
+          diff = points[m, :] - points[o, :]
+          dist = norm(diff) + eps(Float64)
+          xprime .+= diff ./ dist
         end
       end
 
-      xprime .*= point_num / des_num
+      # Scale by ratio
+      xprime .*= (n_subsample / n)
 
-      # Nearest neighbor interactions
-      indices, distances = inrange(tree, des[m, :], tol)
+      # Attraction to data points
+      for i = 1:n_subsample
+        diff = subsample_data[i, :] - points[m, :]
+        dist = norm(diff) + eps(Float64)
 
-      curconst = 0.0
-      for i in eachindex(indices)
-        tmptol = distances[i] + nug * eps()
-        curconst += rnd_wts[i] / tmptol
-        xprime .+= rnd_wts[i] .* rnd[indices[i], :] ./ tmptol
+        current_const[m] += subsample_weights[i] / dist
+        xprime .+= subsample_weights[i] .* subsample_data[i, :] ./ dist
       end
 
-      denom = (1.0 - (n0 / (it_num + n0))) + (n0 / (it_num + n0)) * curconst
-      xprime .=
-        ((1.0 - (n0 / (it_num + n0))) .* des[m, :] .+ (n0 / (it_num + n0)) .* xprime) ./
-        denom
+      # Update using running average
+      alpha = n0 / (iteration + n0)
+      denom = (1 - alpha) * running_const[m] + alpha * current_const[m]
 
-      # Enforce boundary conditions
-      xprime .= clamp.(xprime, bd[:, 1], bd[:, 2])
+      if denom > 0
+        xprime = ((1 - alpha) * running_const[m] * points[m, :] + alpha * xprime) ./ denom
+      else
+        xprime = points[m, :]
+      end
 
-      # Update the design point
-      des_up[m, :] = xprime
+      # Apply bounds
+      for j = 1:p
+        xprime[j] = clamp(xprime[j], bounds[j, 1], bounds[j, 2])
+      end
+
+      new_points[m, :] = xprime
     end
+
+    # Update points and running constants
+    points .= new_points
+    alpha = n0 / (iteration + n0)
+    running_const = (1 - alpha) .* running_const .+ alpha .* current_const
 
     # Check convergence
-    maxdiff = maximum(norm.(des_up .- des, dims = 2))
-    des .= des_up
-
-    if maxdiff < tol
-      println("\nTolerance level reached.")
-      break
+    max_diff = 0.0
+    for i = 1:n
+      diff = norm(points[i, :] - prev_points[i, :])^2
+      max_diff = max(max_diff, diff)
     end
 
-    it_num += 1
+    if max_diff < tolerance
+      converged = true
+      println("\nTolerance level reached.")
+    end
   end
 
-  println()
-  return des
+  if !converged
+    println("\nMaximum iterations reached.")
+  else
+    println()
+  end
+
+  return points
 end
