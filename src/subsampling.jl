@@ -6,18 +6,24 @@ using LinearAlgebra
 using Distances
 
 """
-    find_nearest_neighbors(data::Matrix{Float64}, support_points::Matrix{Float64})
+    find_nearest_neighbors(data::Matrix{Float64}, support_points::Matrix{Float64};
+                           metric::PreMetric=Euclidean())
 
-Find the nearest support point for each data point using Euclidean distance.
+Find the nearest support point for each data point using specified distance metric.
 
 # Arguments
 - `data`: Data matrix (n×p)
 - `support_points`: Support points matrix (k×p)
+- `metric`: Distance metric to use (default: Euclidean())
 
 # Returns
 - Vector of indices indicating which support point each data point is closest to
 """
-function find_nearest_neighbors(data::Matrix{Float64}, support_points::Matrix{Float64})
+function find_nearest_neighbors(
+  data::Matrix{Float64},
+  support_points::Matrix{Float64};
+  metric::PreMetric = Euclidean(),
+)
   n_data = length(axes(data, 1))
   n_support = length(axes(support_points, 1))
 
@@ -28,7 +34,7 @@ function find_nearest_neighbors(data::Matrix{Float64}, support_points::Matrix{Fl
     nearest_idx = 1
 
     for j = 1:n_support
-      dist = euclidean(data[i, :], support_points[j, :])
+      dist = metric(data[i, :], support_points[j, :])
       if dist < min_dist
         min_dist = dist
         nearest_idx = j
@@ -42,7 +48,8 @@ function find_nearest_neighbors(data::Matrix{Float64}, support_points::Matrix{Fl
 end
 
 """
-    subsample_by_support_points(data::Matrix{Float64}, support_points::Matrix{Float64})
+    subsample_by_support_points(data::Matrix{Float64}, support_points::Matrix{Float64};
+                               metric::PreMetric=Euclidean())
 
 Perform subsampling by finding the nearest data point to each support point.
 This implements a greedy approach where each support point "claims" its nearest data point,
@@ -51,11 +58,16 @@ with removal to ensure no data point is selected twice.
 # Arguments
 - `data`: Data matrix (n×p)
 - `support_points`: Support points matrix (k×p)
+- `metric`: Distance metric to use (default: Euclidean())
 
 # Returns
 - Vector of indices of the selected data points (length k)
 """
-function subsample_by_support_points(data::Matrix{Float64}, support_points::Matrix{Float64})
+function subsample_by_support_points(
+  data::Matrix{Float64},
+  support_points::Matrix{Float64};
+  metric::PreMetric = Euclidean(),
+)
   n_data = length(axes(data, 1))
   n_support = length(axes(support_points, 1))
 
@@ -68,7 +80,7 @@ function subsample_by_support_points(data::Matrix{Float64}, support_points::Matr
     nearest_idx = -1
 
     for i in available_indices
-      dist = euclidean(data[i, :], support_points[j, :])
+      dist = metric(data[i, :], support_points[j, :])
       if dist < min_dist
         min_dist = dist
         nearest_idx = i
@@ -85,7 +97,8 @@ function subsample_by_support_points(data::Matrix{Float64}, support_points::Matr
 end
 
 """
-    subsample_indices(data::Matrix{Float64}, support_points::Matrix{Float64})
+    subsample_indices(data::Matrix{Float64}, support_points::Matrix{Float64};
+                     metric::PreMetric=Euclidean())
 
 Main subsampling function that returns indices of data points corresponding to support points.
 This is the Julia equivalent of the `subsample` function from the R package.
@@ -93,11 +106,16 @@ This is the Julia equivalent of the `subsample` function from the R package.
 # Arguments
 - `data`: Data matrix (n×p)
 - `support_points`: Support points matrix (k×p) where k ≤ n
+- `metric`: Distance metric to use (default: Euclidean())
 
 # Returns
 - Vector of indices of the subsampled data points
 """
-function subsample_indices(data::Matrix{Float64}, support_points::Matrix{Float64})
+function subsample_indices(
+  data::Matrix{Float64},
+  support_points::Matrix{Float64};
+  metric::PreMetric = Euclidean(),
+)
   if length(axes(data, 2)) != length(axes(support_points, 2))
     throw(ArgumentError("Data and support points must have the same number of dimensions"))
   end
@@ -106,5 +124,5 @@ function subsample_indices(data::Matrix{Float64}, support_points::Matrix{Float64
     throw(ArgumentError("Cannot have more support points than data points"))
   end
 
-  return subsample_by_support_points(data, support_points)
+  return subsample_by_support_points(data, support_points; metric = metric)
 end

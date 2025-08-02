@@ -197,6 +197,39 @@ using SPlit
     @test length(unique(indices_large)) == length(indices_large)
   end
 
+  @testset "Distance Metric Options" begin
+    Random.seed!(888)
+
+    data = randn(30, 2)
+
+    # Test with different distance metrics
+    using Distances
+
+    # Default Euclidean
+    indices_eucl = split_data(data; split_ratio = 0.2, max_iterations = 5)
+    @test length(indices_eucl) == 6
+
+    # Manhattan distance
+    indices_manhattan =
+      split_data(data; split_ratio = 0.2, max_iterations = 5, metric = Cityblock())
+    @test length(indices_manhattan) == 6
+
+    # Energy distance (should work but may give different results)
+    using SPlit: EnergyDistance
+    indices_energy = split_data(
+      data;
+      split_ratio = 0.2,
+      max_iterations = 5,
+      metric = EnergyDistance(Euclidean()),
+    )
+    @test length(indices_energy) == 6
+
+    # Results may differ but all should be valid indices
+    @test all(1 .<= indices_eucl .<= 30)
+    @test all(1 .<= indices_manhattan .<= 30)
+    @test all(1 .<= indices_energy .<= 30)
+  end
+
   @testset "Integration Test - Complete Workflow" begin
     Random.seed!(777)
 

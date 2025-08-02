@@ -7,6 +7,7 @@ using Random
 using Statistics
 using Base.Threads
 using StatsBase
+using Distances
 
 """
     jitter_data!(data::Matrix{Float64}, bounds::Matrix{Float64})
@@ -106,7 +107,7 @@ end
                           subsample_size::Int; max_iterations::Int=500,
                           tolerance::Float64=1e-10, n_threads::Int=Threads.nthreads(),
                           weights::Vector{Float64}=ones(length(axes(data, 1))),
-                          use_stochastic::Bool=false)
+                          use_stochastic::Bool=false, metric::PreMetric=Euclidean())
 
 Compute support points for optimal data representation using iterative optimization.
 
@@ -120,6 +121,7 @@ Compute support points for optimal data representation using iterative optimizat
 - `n_threads`: Number of threads for parallel computation
 - `weights`: Weights for data points
 - `use_stochastic`: Whether to use stochastic optimization
+- `metric`: Distance metric to use (default: Euclidean())
 
 # Returns
 - Matrix of computed support points (n×p)
@@ -134,6 +136,7 @@ function compute_support_points(
   n_threads::Int = Threads.nthreads(),
   weights::Vector{Float64} = ones(length(axes(data, 1))),
   use_stochastic::Bool = false,
+  metric::PreMetric = Euclidean(),
 )
   n_data = length(axes(data, 1))
 

@@ -8,6 +8,7 @@ using Base.Threads
 using Random
 using Polynomials
 using StatsModels
+using Distances
 
 include("data_preprocessing.jl")
 include("support_points.jl")
@@ -16,7 +17,7 @@ include("subsampling.jl")
 """
     split_data(data; split_ratio::Float64=0.2, kappa::Union{Nothing,Int}=nothing,
                max_iterations::Int=500, tolerance::Float64=1e-10,
-               n_threads::Int=Threads.nthreads())
+               n_threads::Int=Threads.nthreads(), metric::PreMetric=Euclidean())
 
 Split a dataset optimally for training and testing using the support points method.
 
@@ -29,6 +30,7 @@ This is the main function of SPlit.jl, equivalent to the `SPlit()` function in t
 - `max_iterations`: Maximum iterations for support points optimization
 - `tolerance`: Convergence tolerance for optimization
 - `n_threads`: Number of threads for parallel computation
+- `metric`: Distance metric to use (default: Euclidean(), can use EnergyDistance())
 
 # Returns
 - Vector of indices for the smaller subset
@@ -37,6 +39,7 @@ This is the main function of SPlit.jl, equivalent to the `SPlit()` function in t
 ```julia
 using SPlit
 using Random
+using Distances
 
 # Generate sample data
 Random.seed!(123)
@@ -45,10 +48,17 @@ X = randn(n, 2)
 Y = X[:, 1] .+ X[:, 2].^2 .+ 0.1 * randn(n)
 data = hcat(X, Y)
 
-# Split data with default 80-20 ratio
+# Split data with default Euclidean distance
 test_indices = split_data(data)
 train_data = data[setdiff(1:n, test_indices), :]
 test_data = data[test_indices, :]
+
+# Use Energy Distance for splitting (better for complex distributions)
+using SPlit: EnergyDistance
+test_indices_energy = split_data(data; metric=EnergyDistance(Euclidean()))
+
+# Use Manhattan distance
+test_indices_manhattan = split_data(data; metric=Cityblock())
 ```
 """
 function split_data(
@@ -58,6 +68,7 @@ function split_data(
   max_iterations::Int = 500,
   tolerance::Float64 = 1e-10,
   n_threads::Int = Threads.nthreads(),
+  metric::PreMetric = Euclidean(),
 )
 
   # Validate split_ratio
@@ -95,11 +106,12 @@ function split_data(
     tolerance = tolerance,
     n_threads = n_threads,
     use_stochastic = use_stochastic,
+    metric = metric,
   )
 
   # Perform subsampling to get indices
   println("Performing subsampling...")
-  indices = subsample_indices(processed_data, support_points)
+  indices = subsample_indices(processed_data, support_points; metric = metric)
 
   return indices
 end
@@ -108,7 +120,7 @@ end
 """
     split_data_r(data; splitRatio::Float64=0.2, kappa::Union{Nothing,Int}=nothing,
                  maxIterations::Int=500, tolerance::Float64=1e-10,
-                 nThreads::Int=Threads.nthreads())
+                 nThreads::Int=Threads.nthreads(), metric::PreMetric=Euclidean())
 
 Alias for `split_data` with R-style parameter naming for compatibility.
 """
@@ -119,6 +131,7 @@ function split_data_r(
   maxIterations::Int = 500,
   tolerance::Float64 = 1e-10,
   nThreads::Int = Threads.nthreads(),
+  metric::PreMetric = Euclidean(),
 )
   return split_data(
     data;
@@ -127,6 +140,7 @@ function split_data_r(
     max_iterations = maxIterations,
     tolerance = tolerance,
     n_threads = nThreads,
+    metric = metric,
   )
 end
 
