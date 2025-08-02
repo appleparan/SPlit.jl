@@ -166,7 +166,7 @@ function format_data(data)
 
     # Remove constant columns
     result_cols = Vector{Vector{Float64}}()
-    for j = 1:size(data, 2)
+    for j in axes(data, 2)
       col = data[:, j]
       if length(unique(col)) > 1  # Not constant
         push!(result_cols, Float64.(col))
@@ -215,7 +215,7 @@ function format_data(data)
 
   # Standardize columns (mean 0, variance 1)
   result_standardized = similar(result)
-  for j = 1:size(result, 2)
+  for j in axes(result, 2)
     col = result[:, j]
     μ = mean(col)
     σ = std(col)

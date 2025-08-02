@@ -18,7 +18,7 @@ Add small random noise to data to handle duplicates, ensuring values stay within
 - `bounds`: Bounds matrix with min/max for each dimension
 """
 function jitter_data!(data::Matrix{Float64}, bounds::Matrix{Float64})
-  n, p = size(data)
+  n, p = length(axes(data, 1)), length(axes(data, 2))
 
   for j = 1:p
     # Add small jitter
@@ -42,7 +42,7 @@ Compute min/max bounds for each dimension of the data.
 - Matrix with bounds (p×2) where p is number of dimensions
 """
 function compute_bounds(data::Matrix{Float64})
-  p = size(data, 2)
+  p = length(axes(data, 2))
   bounds = Matrix{Float64}(undef, p, 2)
 
   for j = 1:p
@@ -73,7 +73,7 @@ function initialize_support_points(
   data::Matrix{Float64},
   bounds::Matrix{Float64},
 )
-  n_data = size(data, 1)
+  n_data = length(axes(data, 1))
 
   # Sample indices without replacement
   indices = sample(1:n_data, n, replace = false)
@@ -96,7 +96,7 @@ end
     compute_support_points(n::Int, p::Int, data::Matrix{Float64},
                           subsample_size::Int; max_iterations::Int=500,
                           tolerance::Float64=1e-10, n_threads::Int=Threads.nthreads(),
-                          weights::Vector{Float64}=ones(size(data, 1)),
+                          weights::Vector{Float64}=ones(length(axes(data, 1))),
                           use_stochastic::Bool=false)
 
 Compute support points for optimal data representation using iterative optimization.
@@ -123,10 +123,10 @@ function compute_support_points(
   max_iterations::Int = 500,
   tolerance::Float64 = 1e-10,
   n_threads::Int = Threads.nthreads(),
-  weights::Vector{Float64} = ones(size(data, 1)),
+  weights::Vector{Float64} = ones(length(axes(data, 1))),
   use_stochastic::Bool = false,
 )
-  n_data = size(data, 1)
+  n_data = length(axes(data, 1))
 
   # Compute bounds
   bounds = compute_bounds(data)

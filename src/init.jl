@@ -4,11 +4,11 @@ using LinearAlgebra
 using Base.Threads
 
 """
-    compute_support_points(num_points::Int, dimensions::Int, sample_points::Matrix{Float64}, 
-                           num_subsamples::Int, max_iterations::Int=500, tolerance::Float64=1e-10, 
+    compute_support_points(num_points::Int, dimensions::Int, sample_points::Matrix{Float64},
+                           num_subsamples::Int, max_iterations::Int=500, tolerance::Float64=1e-10,
                            num_threads::Int=nthreads())
 
-Compute support points for a given sample of data points. This function aims to find a set of `num_points` 
+Compute support points for a given sample of data points. This function aims to find a set of `num_points`
 in `dimensions`-dimensional space that approximates the distribution of the given `sample_points`.
 
 # References
@@ -38,14 +38,14 @@ function compute_support_points(
   n_threads::Int = nthreads(),
 )
   # from data, determine the number of points and dimensions
-  n_samples = size(data, 1)
-  n_features = size(data, 2)
+  n_samples = length(axes(data, 1))
+  n_features = length(axes(data, 2))
 
   # Determine if random sampling is needed
   random_sampling_flag = num_subsamples < n_samples
 
   # Initialize weights and compute n0(large N in the paper)
-  weights = ones(size(data, 1))
+  weights = ones(length(axes(data, 1)))
   n0 = num_data * num_dims
 
   # Check the number of threads specified and ensure it's valid
@@ -56,7 +56,7 @@ function compute_support_points(
 
   # Apply jittering if there are duplicate points in the sample
   if any(count(x -> count(==(x), data), unique(data)) .> 1)
-    data .= data .+ 1e-10 * randn(size(data))
+    data .= data .+ 1e-10 * randn(length(axes(data, 1)), length(axes(data, 2)))
     # Ensure jittered points are within bounds
     for i = 1:dimensions
       data[:, i] .= clamp.(data[:, i], bounds[i]...)
@@ -64,7 +64,7 @@ function compute_support_points(
   end
 
   # Initialize the points to optimize with jittering and clamping
-  initial_indices = randperm(size(data, 1))[1:num_points]
+  initial_indices = randperm(length(axes(data, 1)))[1:num_points]
   initial_points = sample_points[initial_indices, :] .+ 1e-10 * randn(n_samples, n_features)
   for i = 1:dimensions
     initial_points[:, i] .= clamp.(initial_points[:, i], bounds[i]...)

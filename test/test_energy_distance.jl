@@ -157,7 +157,7 @@ include("../src/energy_distance.jl")
 
     # Test with very small differences
     X_base = randn(2, 5)
-    X_close = X_base .+ 1e-10 * randn(size(X_base))
+    X_close = X_base .+ 1e-10 * randn(length(axes(X_base, 1)), length(axes(X_base, 2)))
 
     distance_close = energy_distance(X_base, X_close)
     @test distance_close >= 0

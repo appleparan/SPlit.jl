@@ -27,7 +27,7 @@ function convert_categorical_to_numerical(
   schema = StatsModels.schema(f, df, Dict(column => coding))
   mm = modelmatrix(schema, df)
 
-  new_columns = [Symbol("$(column)_$i") for i = 1:size(mm, 2)]
+  new_columns = [Symbol("$(column)_$i") for i in axes(mm, 2)]
 
   for (i, col) in enumerate(new_columns)
     df[!, col] = mm[:, i]

@@ -67,7 +67,7 @@ function split_data(
 
   # Preprocess data
   processed_data = format_data(data)
-  n_total, p = size(processed_data)
+  n_total, p = length(axes(processed_data, 1)), length(axes(processed_data, 2))
 
   # Determine number of points for smaller subset
   n_subset = round(Int, min(split_ratio, 1 - split_ratio) * n_total)
@@ -161,19 +161,19 @@ function optimal_split_ratio(x, y; method::String = "simple", degree::Int = 2)
   if method == "regression"
     if !all(isa.(y, Number)) || any(ismissing, y)
       @warn "Using method='simple' for non-numeric response"
-      p = sqrt(size(unique(x, dims = 1), 1))
+      p = sqrt(length(axes(unique(x, dims = 1), 1)))
     else
       # For simplicity in this implementation, we'll use the simple method
       # A full stepwise regression implementation would be quite complex
       @warn "Regression method not fully implemented, using simple method"
-      p = sqrt(size(unique(x, dims = 1), 1))
+      p = sqrt(length(axes(unique(x, dims = 1), 1)))
     end
   else
     # Simple method: use square root of unique rows
     if isa(x, Vector)
       x = reshape(x, :, 1)
     end
-    p = sqrt(size(unique(x, dims = 1), 1))
+    p = sqrt(length(axes(unique(x, dims = 1), 1)))
   end
 
   γ = 1 / (sqrt(p) + 1)

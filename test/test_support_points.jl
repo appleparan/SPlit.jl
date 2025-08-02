@@ -72,7 +72,7 @@ include("../src/support_points.jl")
       n_points,
       p,
       data,
-      size(data, 1);
+      length(axes(data, 1));
       max_iterations = 10,  # Keep short for testing
       tolerance = 1e-6,
       use_stochastic = false,
@@ -100,7 +100,7 @@ include("../src/support_points.jl")
       n_points,
       2,
       data,
-      size(data, 1);
+      length(axes(data, 1));
       max_iterations = 100,
       tolerance = 1e-12,
       use_stochastic = false,
@@ -155,7 +155,7 @@ include("../src/support_points.jl")
       n_points,
       2,
       data,
-      size(data, 1);
+      length(axes(data, 1));
       max_iterations = 10,
       tolerance = 1e-8,
       use_stochastic = false,
@@ -176,7 +176,7 @@ include("../src/support_points.jl")
       1,
       2,
       data,
-      size(data, 1);
+      length(axes(data, 1));
       max_iterations = 5,
       tolerance = 1e-6,
       use_stochastic = false,
@@ -190,7 +190,7 @@ include("../src/support_points.jl")
       3,
       2,
       small_data,
-      size(small_data, 1);
+      length(axes(small_data, 1));
       max_iterations = 5,
       tolerance = 1e-6,
       use_stochastic = false,
@@ -209,7 +209,7 @@ include("../src/support_points.jl")
         15,
         2,
         data,
-        size(data, 1);
+        length(axes(data, 1));
         max_iterations = 5,
         tolerance = 1e-6,
         use_stochastic = false,
