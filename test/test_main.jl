@@ -2,8 +2,7 @@ using Test
 using Random
 using DataFrames
 using CategoricalArrays
-
-include("../src/main.jl")
+using SPlit
 
 @testset "Main SPlit Function Tests" begin
 
@@ -117,7 +116,7 @@ include("../src/main.jl")
 
     # Test simple method
     X = randn(100, 3)
-    Y = X[:, 1] + X[:, 2]^2 + 0.1 * randn(100)
+    Y = X[:, 1] + X[:, 2] .^ 2 + 0.1 * randn(100)
 
     ratio = optimal_split_ratio(X, Y)
 
@@ -207,7 +206,7 @@ include("../src/main.jl")
     X2 = randn(n)
     X3 = X1 + 0.5 * X2 + 0.1 * randn(n)  # Correlated feature
     category = categorical(rand(["Type1", "Type2", "Type3"], n))
-    Y = X1 + X2^2 + 0.2 * randn(n)  # Nonlinear relationship
+    Y = X1 + X2 .^ 2 + 0.2 * randn(n)  # Nonlinear relationship
 
     df = DataFrame(X1 = X1, X2 = X2, X3 = X3, category = category, Y = Y)
 

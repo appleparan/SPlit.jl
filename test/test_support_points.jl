@@ -2,8 +2,7 @@ using Test
 using Random
 using LinearAlgebra
 using Statistics
-
-include("../src/support_points.jl")
+using SPlit
 
 @testset "Support Points Tests" begin
 

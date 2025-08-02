@@ -2,8 +2,7 @@ using Test
 using Random
 using LinearAlgebra
 using Distances
-
-include("../src/energy_distance.jl")
+using SPlit
 
 @testset "Energy Distance Tests" begin
 

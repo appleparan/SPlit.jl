@@ -1,8 +1,7 @@
 using Test
 using Random
 using LinearAlgebra
-
-include("../src/subsampling.jl")
+using SPlit
 
 @testset "Subsampling Tests" begin
 

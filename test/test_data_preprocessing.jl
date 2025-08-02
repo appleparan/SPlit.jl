@@ -3,8 +3,7 @@ using DataFrames
 using CategoricalArrays
 using Statistics
 using Dates
-
-include("../src/data_preprocessing.jl")
+using SPlit
 
 @testset "Data Preprocessing Tests" begin
 
