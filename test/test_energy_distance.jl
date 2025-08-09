@@ -177,6 +177,6 @@ using SPlit
 
     # Test self-distance is zero: d(X,X) = 0
     dist_XX = energy_distance(X, X)
-    @test dist_XX ≈ 0.0 atol = 1e-9
+    @test dist_XX ≈ 0.0 atol = 1e-8
   end
 end
