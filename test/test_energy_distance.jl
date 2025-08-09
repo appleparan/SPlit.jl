@@ -52,7 +52,7 @@ using SPlit
     # Test with identical samples (should be zero)
     X_same = randn(2, 5)
     distance_same = ed(X_same, X_same)
-    @test distance_same ≈ 0.0 atol = 1e-9
+    @test distance_same ≈ 0.0 atol = 1e-12
   end
 
   @testset "Energy Distance - Vector Input" begin
@@ -70,7 +70,7 @@ using SPlit
 
     # Test with identical vectors
     distance_same = ed(x, x)
-    @test distance_same ≈ 0.0 atol = 1e-9
+    @test distance_same ≈ 0.0 atol = 1e-12
   end
 
   @testset "Sample Without Replacement" begin
@@ -177,6 +177,6 @@ using SPlit
 
     # Test self-distance is zero: d(X,X) = 0
     dist_XX = energy_distance(X, X)
-    @test dist_XX ≈ 0.0 atol = 1e-8
+    @test dist_XX ≈ 0.0 atol = 1e-12
   end
 end
