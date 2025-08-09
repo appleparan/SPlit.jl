@@ -25,9 +25,12 @@ jobs:
           - "1"
         os:
           - ubuntu-latest
-          - macOS-latest
+          - macos-13
           - windows-latest
         arch:
           - x64
+        include:
+          - os: macos-latest
+            arch: aarch64
 
         allow_failure: [false]
