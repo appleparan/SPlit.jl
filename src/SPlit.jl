@@ -5,6 +5,9 @@ include("types.jl")
 include("interface.jl")
 include("comparison.jl")
 
+# Internal preprocessing path
+include("preprocessing.jl")
+
 # Legacy functionality (for backward compatibility)
 include("main.jl")
 include("energy_distance.jl")

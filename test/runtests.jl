@@ -5,6 +5,9 @@ using Test
   # Test new Julia-native API first
   include("test_julia_native_api.jl")
 
+  # New preprocessing path
+  include("test_preprocessing.jl")
+
   # Legacy API tests
   include("test_data_preprocessing.jl")
   include("test_support_points.jl")
