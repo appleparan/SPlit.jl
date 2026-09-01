@@ -113,6 +113,12 @@ end
 Compute `n` support points for `data` (rows are observations) under `kernel`.
 Returns the points, whether the point-movement tolerance was reached, and the
 number of iterations actually used.
+
+In stochastic mode (`kappa !== nothing`), the running-average weight for
+iteration `i` is `n0 / (i + n0)` with `n0 = 0.2n`; this factor is an
+implementation constant, not from the papers, chosen by a small convergence
+experiment (see `_n0_factor`, an internal tuning knob not exposed on
+`SupportPointSplitter`).
 """
 function support_points(
   ::EnergyKernel,
@@ -124,6 +130,7 @@ function support_points(
   n_threads::Int = Threads.nthreads(),
   rng::AbstractRNG = Random.default_rng(),
   verbose::Bool = false,
+  _n0_factor::Float64 = 0.2,
 )
   N = size(data, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
@@ -144,7 +151,9 @@ function support_points(
   running_const = zeros(n)
   current_const = zeros(n)
   stochastic = kappa !== nothing && kappa < N
-  n0 = 0.2 * n
+  # Implementation constant (not from the papers): running-average weight
+  # n0 = 0.2n, chosen by a small convergence experiment; see docstring.
+  n0 = _n0_factor * n
 
   iteration = 0
   converged = false
