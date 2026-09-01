@@ -63,25 +63,41 @@ function _mm_sweep!(
   @sync for chunk in chunks
     Threads.@spawn for m in chunk
       xprime = zeros(p)
-      @views for o = 1:n
+      for o = 1:n
         o == m && continue
-        d = norm(points[m, :] .- points[o, :]) + eps(Float64)
-        xprime .+= (points[m, :] .- points[o, :]) ./ d
+        s = 0.0
+        for j = 1:p
+          s += (points[m, j] - points[o, j])^2
+        end
+        d = sqrt(s) + eps(Float64)
+        for j = 1:p
+          xprime[j] += (points[m, j] - points[o, j]) / d
+        end
       end
       xprime .*= n_sub / n
       c = 0.0
-      @views for i = 1:n_sub
-        d = norm(subsample_data[i, :] .- points[m, :]) + eps(Float64)
+      for i = 1:n_sub
+        s = 0.0
+        for j = 1:p
+          s += (subsample_data[i, j] - points[m, j])^2
+        end
+        d = sqrt(s) + eps(Float64)
         c += 1.0 / d
-        xprime .+= subsample_data[i, :] ./ d
+        for j = 1:p
+          xprime[j] += subsample_data[i, j] / d
+        end
       end
       current_const[m] = c
       denom = (1 - alpha) * running_const[m] + alpha * c
-      @views if denom > 0
-        xprime .=
-          ((1 - alpha) * running_const[m] .* points[m, :] .+ alpha .* xprime) ./ denom
+      if denom > 0
+        for j = 1:p
+          xprime[j] =
+            ((1 - alpha) * running_const[m] * points[m, j] + alpha * xprime[j]) / denom
+        end
       else
-        xprime .= points[m, :]
+        for j = 1:p
+          xprime[j] = points[m, j]
+        end
       end
       for j = 1:p
         new_points[m, j] = clamp(xprime[j], bounds[j, 1], bounds[j, 2])
