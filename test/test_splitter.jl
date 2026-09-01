@@ -14,6 +14,12 @@ using DataFrames
     @test SupportPointSplitter().kernel isa EnergyKernel
   end
 
+  @testset "accepts non-Float64 Real ratio and tolerance" begin
+    s = SupportPointSplitter(ratio = 1 // 5, tolerance = 1.0f-8)
+    @test s.ratio === 0.2
+    @test s.tolerance === Float64(1.0f-8)
+  end
+
   @testset "matrix split: sizes, partition, honest report" begin
     rng = MersenneTwister(1)
     data = randn(rng, 200, 3)

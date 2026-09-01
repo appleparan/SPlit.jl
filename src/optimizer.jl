@@ -114,11 +114,14 @@ Compute `n` support points for `data` (rows are observations) under `kernel`.
 Returns the points, whether the point-movement tolerance was reached, and the
 number of iterations actually used.
 
-In stochastic mode (`kappa !== nothing`), the running-average weight for
-iteration `i` is `n0 / (i + n0)` with `n0 = 0.2n`; this factor is an
-implementation constant, not from the papers, chosen by a small convergence
-experiment (see `_n0_factor`, an internal tuning knob not exposed on
-`SupportPointSplitter`).
+Convergence compares the largest *squared* displacement of any support point
+in one iteration to `tolerance`. In stochastic mode (`kappa !== nothing`),
+the running-average weight for iteration `i` is `n0 / (i + n0)` with
+`n0 = 0.2n`, which decays toward zero as iterations proceed, so convergence
+there partly reflects this step-size decay rather than the objective
+flattening out. `n0 = 0.2n` is an implementation constant, not from the
+papers, chosen by a small convergence experiment (see `_n0_factor`, an
+internal tuning knob not exposed on `SupportPointSplitter`).
 """
 function support_points(
   ::EnergyKernel,

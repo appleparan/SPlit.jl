@@ -17,6 +17,11 @@ Configuration for optimal data splitting via support points
 - `ratio`: fraction of rows assigned to the test set, in (0, 1).
 - `kappa`: absolute per-iteration subsample size for stochastic optimization;
   `nothing` uses all rows every iteration.
+- `tolerance`: convergence when the largest squared displacement of any
+  support point in one iteration is below this value. In stochastic mode
+  the running-average weight decays with the iteration count, so
+  convergence there partly reflects that step-size decay rather than the
+  objective flattening out.
 - `rng`: source of all randomness (initialization, jitter, stochastic
   subsampling); pass a seeded RNG for reproducible splits.
 - `verbose`: print per-iteration progress.
@@ -34,14 +39,16 @@ end
 
 function SupportPointSplitter(;
   kernel::SplitKernel = EnergyKernel(),
-  ratio::Float64 = 0.2,
+  ratio::Real = 0.2,
   kappa::Union{Nothing,Int} = nothing,
   max_iterations::Int = 500,
-  tolerance::Float64 = 1e-10,
+  tolerance::Real = 1e-10,
   n_threads::Int = Threads.nthreads(),
   rng::AbstractRNG = Random.default_rng(),
   verbose::Bool = false,
 )
+  ratio = Float64(ratio)
+  tolerance = Float64(tolerance)
   0 < ratio < 1 || throw(ArgumentError("ratio must be in (0, 1), got $ratio"))
   kappa === nothing ||
     kappa > 0 ||
