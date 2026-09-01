@@ -68,8 +68,8 @@ energy distance of Mak & Joseph, 2018), the test `ratio`, an optional `kappa`
 for stochastic majorization-minimization on large datasets, iteration and
 tolerance limits, and the `rng` that drives every random choice. `datasplit`
 runs it on a `Matrix`, `DataFrame`, or `Vector` and returns a `SplitResult`,
-whose `train_indices` and `test_indices` (also reachable via `result[data,
-:train]`/`result[data, :test]` indexing or `train, test = result`
+whose `train_indices` and `test_indices` (also reachable via `data[result,
+:train]`/`data[result, :test]` indexing or `train, test = result`
 destructuring) partition the input rows.
 
 ### Quality diagnostics

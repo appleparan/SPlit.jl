@@ -138,7 +138,7 @@ train_view = data[result, :train]    # getindex sugar retained
 
 ```julia
 energydistance(X, Y)                                   # exact
-energydistance(X, Y; subsample = 2_000, repeats = 8, rng)  # U-statistic estimate
+energydistance(X, Y; subsample = 2_000, repeats = 8, rng)  # V-statistic estimate
 splitquality(data, result; kwargs...)                  # preprocess like the
                                                        # splitter, then ED
 ```
@@ -146,11 +146,14 @@ splitquality(data, result; kwargs...)                  # preprocess like the
 - `splitquality` applies the same preprocessing as `datasplit` (fixes the
   DataFrame/categorical breakage), computes exactly when
   `n ≤ exact_threshold` (default 4,000, keyword-tunable), otherwise averages
-  `repeats` subsampled U-statistic estimates of size `subsample`.
+  `repeats` subsampled V-statistic estimates of size `subsample`.
 - Exact computation accumulates block-wise; no n×n matrix is materialized.
-- Estimator is unbiased for the population energy distance between the two
-  empirical distributions; tests check agreement with the exact value at
-  moderate n.
+- The estimator is a V-statistic: within-sample means include the zero
+  diagonal (matching the optimizer's objective), so the subsampled estimate
+  carries a positive bias of order `1/subsample`. This makes it suitable for
+  comparing splits rather than as an absolute value; tests check agreement
+  with the exact value at moderate n within a tolerance that accounts for
+  the bias.
 
 ### Comparison
 
