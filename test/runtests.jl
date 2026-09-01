@@ -11,6 +11,9 @@ using Test
   # Quality metrics
   include("test_quality.jl")
 
+  # Kernel types and MM optimizer
+  include("test_optimizer.jl")
+
   # Legacy API tests
   include("test_data_preprocessing.jl")
   include("test_support_points.jl")
