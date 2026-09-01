@@ -80,7 +80,9 @@ energydistance(X::AbstractVector, Y::AbstractVector; kwargs...) = energydistance
 Energy distance between the train and test rows of `data` under the same
 preprocessing `datasplit` applied. Smaller is better. Computed exactly when
 the total row count is at most `exact_threshold`; otherwise estimated from
-`repeats` random size-`subsample` subsets.
+`repeats` random size-`subsample` subsets. The subsampled estimate carries a
+positive bias of order `1/subsample`, so use it to compare splits rather than
+as an absolute value.
 """
 function splitquality(
   data,

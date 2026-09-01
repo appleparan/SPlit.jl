@@ -73,18 +73,25 @@ end
   end
 
   @testset "auto-switches to estimation above exact_threshold" begin
+    # A skewed split (test = rows with the largest first coordinate) has a large
+    # energy distance, so the subsampled estimate — which carries a positive
+    # bias of order 1/subsample — can be compared to the exact value with a
+    # relative tolerance. Near-zero exact values would make that comparison
+    # meaningless.
     data = randn(MersenneTwister(24), 400, 2)
-    r =
-      datasplit(SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(25)), data)
-    exact = splitquality(data, r)
+    order = sortperm(data[:, 1])
+    method = SupportPointSplitter(max_iterations = 1, rng = MersenneTwister(25))
+    skewed = SPlit.SplitResult(order[1:320], order[321:400], true, 1, method)
+    exact = splitquality(data, skewed)
     est = splitquality(
       data,
-      r;
+      skewed;
       exact_threshold = 10,
       subsample = 100,
       repeats = 20,
       rng = MersenneTwister(26),
     )
+    @test exact > 0.1
     @test isapprox(est, exact; rtol = 0.5)
     @test est != exact   # estimation path actually taken
   end
