@@ -34,7 +34,7 @@ function find_nearest_neighbors(
     nearest_idx = 1
 
     for j = 1:n_support
-      dist = metric(data[i, :], support_points[j, :])
+      dist = @views metric(data[i, :], support_points[j, :])
       if dist < min_dist
         min_dist = dist
         nearest_idx = j
@@ -80,7 +80,7 @@ function subsample_by_support_points(
     nearest_idx = -1
 
     for i in available_indices
-      dist = metric(data[i, :], support_points[j, :])
+      dist = @views metric(data[i, :], support_points[j, :])
       if dist < min_dist
         min_dist = dist
         nearest_idx = i

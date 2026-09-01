@@ -1,0 +1,3 @@
+[default.extend-words]
+# "Mak" is a surname (Simon Mak, co-author of the SPlit paper), not a typo.
+Mak = "Mak"

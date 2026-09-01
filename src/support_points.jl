@@ -194,7 +194,7 @@ function compute_support_points(
       # Repulsion from other support points
       for o = 1:n
         if o != m
-          diff = points[m, :] - points[o, :]
+          diff = @views points[m, :] .- points[o, :]
           dist = norm(diff) + eps(Float64)
           xprime .+= diff ./ dist
         end
@@ -205,11 +205,11 @@ function compute_support_points(
 
       # Attraction to data points
       for i = 1:n_subsample
-        diff = subsample_data[i, :] - points[m, :]
+        diff = @views subsample_data[i, :] .- points[m, :]
         dist = norm(diff) + eps(Float64)
 
         current_const[m] += subsample_weights[i] / dist
-        xprime .+= subsample_weights[i] .* subsample_data[i, :] ./ dist
+        @views xprime .+= subsample_weights[i] .* subsample_data[i, :] ./ dist
       end
 
       # Update using running average
@@ -217,7 +217,8 @@ function compute_support_points(
       denom = (1 - alpha) * running_const[m] + alpha * current_const[m]
 
       if denom > 0
-        xprime = ((1 - alpha) * running_const[m] * points[m, :] + alpha * xprime) ./ denom
+        @views xprime .=
+          ((1 - alpha) * running_const[m] .* points[m, :] .+ alpha .* xprime) ./ denom
       else
         xprime = points[m, :]
       end
@@ -238,7 +239,7 @@ function compute_support_points(
     # Check convergence
     max_diff = 0.0
     for i = 1:n
-      diff = norm(points[i, :] - prev_points[i, :])^2
+      diff = @views norm(points[i, :] .- prev_points[i, :])^2
       max_diff = max(max_diff, diff)
     end
 

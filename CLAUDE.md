@@ -106,8 +106,8 @@ julia --project=. -e "using Pkg; Pkg.test()"
 # Build documentation
 julia --project=docs/ docs/make.jl
 
-# Format code
-julia --project=. -e "using JuliaFormatter; format(\".\")"
+# Format code (JuliaFormatter runs via pre-commit; it is not a package dependency)
+pre-commit run julia-formatter -a
 
 # Benchmark against R
 # (implement comparative benchmarking scripts)
