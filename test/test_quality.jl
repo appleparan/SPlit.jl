@@ -40,7 +40,7 @@ using DataFrames
     X = randn(rng, 600, 2)
     Y = randn(rng, 600, 2) .+ 0.5
     exact = energydistance(X, Y)
-    est = energydistance(X, Y; subsample = 150, repeats = 30, rng = MersenneTwister(1))
+    est = energydistance(X, Y; subsample = 300, repeats = 30, rng = MersenneTwister(1))
     @test isapprox(est, exact; rtol = 0.25)
   end
 
