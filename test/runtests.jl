@@ -14,6 +14,9 @@ using Test
   # Kernel types and MM optimizer
   include("test_optimizer.jl")
 
+  # k-d tree selection
+  include("test_kdtree_selection.jl")
+
   # Legacy API tests
   include("test_data_preprocessing.jl")
   include("test_support_points.jl")

@@ -10,6 +10,7 @@ include("preprocessing.jl")
 include("kernels.jl")
 include("quality.jl")
 include("optimizer.jl")
+include("kdtree_selection.jl")
 
 # Legacy functionality (for backward compatibility)
 include("main.jl")
