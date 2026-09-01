@@ -9,4 +9,5 @@ using Test
   include("test_splitter.jl")
   include("test_ratio.jl")
   include("test_comparison.jl")
+  include("test_properties.jl")
 end
