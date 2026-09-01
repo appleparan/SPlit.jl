@@ -57,6 +57,25 @@ using Statistics
     @test_throws ArgumentError SPlit.preprocess(df)
   end
 
+  @testset "Union{Missing,T} columns with no actual missings are accepted" begin
+    plain =
+      DataFrame(x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], g = ["a", "b", "c", "a", "b", "c"])
+    unioned = DataFrame(
+      x = Vector{Union{Missing,Float64}}(plain.x),
+      g = Vector{Union{Missing,String}}(plain.g),
+    )
+    @test SPlit.preprocess(unioned) == SPlit.preprocess(plain)
+  end
+
+  @testset "canonical Helmert level order is independent of row order" begin
+    df = DataFrame(x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], g = ["c", "a", "b", "c", "a", "b"])
+    P = SPlit.preprocess(df)
+    perm = [4, 1, 6, 2, 5, 3]
+    shuffled = df[perm, :]
+    P_shuffled = SPlit.preprocess(shuffled)
+    @test P_shuffled[invperm(perm), :] == P
+  end
+
   @testset "helmert_matrix" begin
     H = SPlit.helmert_matrix(3)
     @test size(H) == (3, 2)

@@ -55,7 +55,16 @@ end
 
 preprocess(data::AbstractVector) = preprocess(reshape(collect(data), :, 1))
 
-_is_categorical(col) = eltype(col) <: AbstractString || col isa CategoricalVector
+_is_categorical(col) =
+  Base.nonmissingtype(eltype(col)) <: AbstractString || col isa CategoricalVector
+
+# Canonical level order, independent of row order: declaration order (filtered
+# to levels actually present) for a `CategoricalVector`, sorted order for
+# plain string columns.
+function _canonical_levels(col)
+  col isa CategoricalVector && return filter(in(unique(col)), levels(col))
+  return sort(unique(col))
+end
 
 function preprocess(data::DataFrame)
   for col in eachcol(data)
@@ -66,14 +75,14 @@ function preprocess(data::DataFrame)
   for name in names(data)
     col = data[!, name]
     if _is_categorical(col)
-      levels_ = unique(col)
+      levels_ = _canonical_levels(col)
       length(levels_) <= 1 && continue
       H = helmert_matrix(length(levels_))
       index = Dict(l => i for (i, l) in enumerate(levels_))
       for j in axes(H, 2)
         push!(columns, [H[index[v], j] for v in col])
       end
-    elseif eltype(col) <: Number
+    elseif Base.nonmissingtype(eltype(col)) <: Number
       _is_constant(col) && continue
       push!(columns, Float64.(col))
     else
