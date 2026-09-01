@@ -7,6 +7,7 @@ include("comparison.jl")
 
 # Internal preprocessing path
 include("preprocessing.jl")
+include("quality.jl")
 
 # Legacy functionality (for backward compatibility)
 include("main.jl")
@@ -35,6 +36,7 @@ export find_nearest_neighbors, subsample_by_support_points
 # Energy distance functions
 export EnergyDistance,
   energy_distance, compute_pairwise_distances, sample_without_replacement
+export energydistance
 
 # Legacy split quality functions
 export evaluate_split_quality, compare_split_methods, split_data_with_quality

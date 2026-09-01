@@ -8,6 +8,9 @@ using Test
   # New preprocessing path
   include("test_preprocessing.jl")
 
+  # Quality metrics
+  include("test_quality.jl")
+
   # Legacy API tests
   include("test_data_preprocessing.jl")
   include("test_support_points.jl")
