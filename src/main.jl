@@ -26,7 +26,9 @@ This is the main function of SPlit.jl, equivalent to the `SPlit()` function in t
 # Arguments
 - `data`: Input dataset (Matrix or DataFrame)
 - `split_ratio`: Ratio for the smaller subset (default: 0.2 for 80-20 split)
-- `kappa`: Subsample size for stochastic optimization (default: use all data)
+- `kappa`: Multiplier for stochastic optimization; the per-iteration subsample size is
+  `ceil(kappa * n_subset)` capped at `n` (default: use all data). Note this differs from
+  `SupportPointSplitter`'s `kappa`, which is an absolute subsample size.
 - `max_iterations`: Maximum iterations for support points optimization
 - `tolerance`: Convergence tolerance for optimization
 - `n_threads`: Number of threads for parallel computation
@@ -152,8 +154,11 @@ Find the optimal splitting ratio by estimating the number of model parameters.
 # Arguments
 - `x`: Input matrix or vector
 - `y`: Response variable
-- `method`: "simple" (uses √n rule) or "regression" (stepwise regression)
-- `degree`: Polynomial degree for regression method
+- `method`: "simple" (uses √n rule) or "regression". Note: the "regression" (stepwise
+  regression) method is not implemented yet; it currently falls back to the simple
+  method and emits a warning.
+- `degree`: Polynomial degree for the regression method (currently unused; reserved
+  for the future regression implementation)
 
 # Returns
 - Optimal split ratio for testing set
@@ -164,7 +169,7 @@ using Random
 
 Random.seed!(123)
 X = randn(100, 3)
-Y = X[:, 1] + X[:, 2]^2 + 0.1 * randn(100)
+Y = X[:, 1] .+ X[:, 2].^2 .+ 0.1 * randn(100)
 optimal_ratio = optimal_split_ratio(X, Y)
 ```
 

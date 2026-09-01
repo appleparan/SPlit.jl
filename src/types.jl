@@ -10,7 +10,7 @@ abstract type SplittingMethod end
 abstract type SplittingResult end
 
 """
-    SupportPointSplitter{M<:PreMetric} <: SplittingMethod
+    SupportPointSplitter{M<:PreMetric,R<:AbstractRNG} <: SplittingMethod
 
 A splitting method based on support points optimization.
 
@@ -19,18 +19,24 @@ A splitting method based on support points optimization.
 - `ratio::Float64`: Split ratio (0 < ratio < 1)
 - `max_iterations::Int`: Maximum optimization iterations
 - `tolerance::Float64`: Convergence tolerance
-- `n_threads::Int`: Number of threads for parallel computation
-- `kappa::Union{Nothing,Int}`: Subsample size for stochastic optimization
-- `rng::AbstractRNG`: Random number generator for reproducibility
+- `n_threads::Int`: Number of threads for parallel computation. Currently only shown in
+  the progress display; the optimization loop uses Julia's active thread pool
+  (`Threads.nthreads()`).
+- `kappa::Union{Nothing,Int}`: Absolute per-iteration subsample size for stochastic
+  optimization; `nothing` uses all data. Note the legacy `split_data`'s `kappa` is a
+  multiplier of the subset size instead.
+- `rng::R`: Random number generator for reproducibility. Currently the optimization
+  reseeds this RNG (and relies on the global RNG stream internally), so reproducibility
+  is only guaranteed with the default global RNG.
 """
-struct SupportPointSplitter{M<:PreMetric} <: SplittingMethod
+struct SupportPointSplitter{M<:PreMetric,R<:AbstractRNG} <: SplittingMethod
   metric::M
   ratio::Float64
   max_iterations::Int
   tolerance::Float64
   n_threads::Int
   kappa::Union{Nothing,Int}
-  rng::AbstractRNG
+  rng::R
 
   function SupportPointSplitter(
     metric::M = Euclidean();
@@ -39,8 +45,8 @@ struct SupportPointSplitter{M<:PreMetric} <: SplittingMethod
     tolerance::Float64 = 1e-10,
     n_threads::Int = Threads.nthreads(),
     kappa::Union{Nothing,Int} = nothing,
-    rng::AbstractRNG = Random.GLOBAL_RNG,
-  ) where {M<:PreMetric}
+    rng::R = Random.GLOBAL_RNG,
+  ) where {M<:PreMetric,R<:AbstractRNG}
 
     if !(0 < ratio < 1)
       throw(ArgumentError("ratio must be in (0, 1), got $ratio"))
@@ -62,7 +68,7 @@ struct SupportPointSplitter{M<:PreMetric} <: SplittingMethod
       throw(ArgumentError("kappa must be positive when specified, got $kappa"))
     end
 
-    new{M}(metric, ratio, max_iterations, tolerance, n_threads, kappa, rng)
+    new{M,R}(metric, ratio, max_iterations, tolerance, n_threads, kappa, rng)
   end
 end
 
