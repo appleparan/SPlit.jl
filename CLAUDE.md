@@ -66,7 +66,7 @@ Exported from `SPlit`, grouped by role:
 
 ```text
 src/
-├── SPlit.jl              # Module entry point: includes source files, defines exports
+├── SPlit.jl               # Module entry point: includes source files, defines exports
 ├── kernels.jl             # SplitKernel hierarchy (EnergyKernel)
 ├── preprocessing.jl       # Helmert encoding, constant-column removal, standardization
 ├── optimizer.jl           # Support-point MM optimization (full-data and stochastic)
