@@ -4,120 +4,56 @@ CurrentModule = SPlit
 
 # SPlit.jl
 
-**Julia-native implementation** of optimal data splitting using support points, based on [Joseph and Vakayil (2021)](https://arxiv.org/abs/2012.10945).
-
-✨ **Now featuring a modern Julia API with type safety, multiple dispatch, and energy distance support!**
+A Julia implementation of optimal data splitting via support points, based on
+[Joseph and Vakayil (2021)](https://arxiv.org/abs/2012.10945).
 
 ## Overview
 
-SPlit provides an optimal method for splitting datasets into training and testing sets based on the method of support points. Unlike traditional random splitting, SPlit ensures that both subsets are representative of the original data distribution, leading to more reliable model evaluation and better generalization performance.
+SPlit.jl splits a dataset into training and test sets so that both subsets
+represent the original data distribution as closely as possible. It does so
+by computing *support points* — the sample of a given size that minimizes
+the energy distance to the full data (Mak & Joseph, 2018) — and mapping each
+support point to its nearest unclaimed data row (Joseph & Vakayil, 2021).
+Unlike random splitting, this makes both the train and test distributions
+close to the population distribution, which improves the reliability of
+model evaluation.
 
-### Key Features
-
-#### 🚀 **Modern Julia API**
-
-- **Type-safe splitting**: Parameterized types with compile-time dispatch
-- **Multiple dispatch**: Specialized methods for Matrix, DataFrame, Vector inputs
-- **Composable design**: Iterator and indexing protocols for seamless integration
-
-#### 🎯 **Advanced Distance Metrics**
-
-- **Energy distance**: Superior splits for complex data distributions
-- **Flexible metrics**: Support for any `Distances.jl` metric (Euclidean, Manhattan, etc.)
-- **Quality assessment**: Built-in split quality evaluation and comparison
-
-#### 💪 **Robust Implementation**
-
-- **Model-independent**: Works with both regression and classification problems
-- **Categorical support**: Automatic Helmert contrast encoding
-- **Performance optimized**: Multi-threaded with stochastic optimization for large data
-- **Backward compatible**: Full R-style API preserved for migration
+The package also implements the optimal split ratio result of Joseph (2022):
+for a linear model with `p` parameters, the test fraction that minimizes
+the variance of the fitted model is `γ = 1 / (√p + 1)`.
 
 ## Quick Start
 
-### Modern Julia API (Recommended)
-
 ```julia
-using SPlit, Distances
-using Random
+using SPlit, Random
 
-# Generate sample data
-Random.seed!(123)
-data = randn(100, 3)
-
-# Create a splitter with energy distance for better complex data handling
-splitter = SupportPointSplitter(EnergyDistance(Euclidean()); ratio=0.2)
-
-# Split the data
+data = randn(MersenneTwister(1), 1_000, 3)
+splitter = SupportPointSplitter(ratio = 0.2, rng = MersenneTwister(2))
 result = datasplit(splitter, data)
 
-# Access train/test data using intuitive indexing
-train_data = data[result, :train]
-test_data = data[result, :test]
-
-# Or use iterator interface
-train_indices, test_indices = result
-
-println("Training: $(size(train_data))")
-println("Test: $(size(test_data))")
-```
-
-### Legacy API (For R users)
-
-```julia
-using SPlit
-
-# Traditional function-style API (still fully supported)
-test_indices = split_data(data; split_ratio=0.2)
-train_data = data[setdiff(1:size(data,1), test_indices), :]
-test_data = data[test_indices, :]
+train = data[result, :train]
+test = data[result, :test]
+splitquality(data, result)                 # energy distance, lower is better
+optimal_split_ratio(data[:, 1:2], data[:, 3])
 ```
 
 ## API Reference
 
 See the [Reference](@ref reference) section for complete API documentation.
 
-## Examples
-
-### Method Comparison & Quality Assessment
-
-```julia
-using SPlit, DataFrames, CategoricalArrays
-
-# Mixed-type dataset
-df = DataFrame(
-    x1 = randn(150),
-    x2 = randn(150),
-    category = categorical(rand(["A", "B", "C"], 150)),
-    target = randn(150)
-)
-
-# Compare different distance metrics
-methods = [
-    SupportPointSplitter(Euclidean(); ratio=0.2),
-    SupportPointSplitter(Cityblock(); ratio=0.2),
-    SupportPointSplitter(EnergyDistance(Euclidean()); ratio=0.2)
-]
-
-comparison = compare(methods, df; quality=true)
-println(summary(comparison))
-
-# Select best method by quality
-best_method, best_result = best(comparison; by=:Quality)
-train_df = df[best_result, :train]
-test_df = df[best_result, :test]
-```
-
 ## Algorithm Details
 
-SPlit uses the method of support points to create optimal data splits:
-
-1. **Data preprocessing**: Categorical variables are encoded using Helmert contrasts, and all variables are standardized
-2. **Support points computation**: Iteratively optimizes support points to minimize energy distance
-3. **Nearest neighbor assignment**: Each data point is assigned to its nearest support point
-4. **Subset selection**: Returns indices of the smaller subset based on support point assignments
-
-For large datasets, stochastic optimization can be enabled using the `kappa` parameter to improve computational efficiency.
+1. **Preprocessing**: categorical columns are Helmert-encoded, constant
+   columns are dropped, and every remaining column is standardized to mean 0
+   and variance 1.
+2. **Support-point computation**: the kernel's majorization-minimization
+   update iteratively moves a candidate point set to minimize its energy
+   distance to the data (Mak & Joseph, 2018); `kappa` switches to the
+   stochastic variant that resamples rows each iteration for large `n`.
+3. **Nearest-neighbor assignment**: each support point claims its nearest
+   not-yet-claimed data row via a k-d tree (Joseph & Vakayil, 2021).
+4. **Partitioning**: the claimed rows form the smaller subset; the rest form
+   the larger one, split into train/test according to `ratio`.
 
 ## References
 

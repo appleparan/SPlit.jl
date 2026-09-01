@@ -4,32 +4,61 @@ This document provides context for Claude Code when working on the SPlit.jl proj
 
 ## Project Overview
 
-SPlit.jl is a Julia port of the original SPlit R package, implementing optimal data splitting procedures based on the method of support points as described in Joseph and Vakayil (2021).
+SPlit.jl implements optimal data splitting via the method of support points,
+based on three papers:
 
-### Original R Package Details
+- Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data
+  Splitting. *Technometrics*, 63(4), 492-502.
+- Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of
+  Statistics*, 46(6A), 2562-2592.
+- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical
+  Analysis and Data Mining*, 15(4), 537-546.
 
-- **Package**: SPlit
-- **Version**: 1.2 (2022-03-22)
-- **Authors**: Akhil Vakayil, Roshan Joseph, Simon Mak
-- **License**: GPL (>= 2)
-- **CRAN**: <https://CRAN.R-project.org/package=SPlit>
+Given a dataset, SPlit computes support points — the sample of a chosen size
+that minimizes the energy distance to the full data — and maps each support
+point to its nearest unclaimed data row via a k-d tree. The claimed rows form
+the smaller subset, the rest form the larger one; both track the population
+distribution more closely than a random split would.
 
-## Core Functionality
+## Public API
 
-### Main Functions (R → Julia mapping)
+Exported from `SPlit`, grouped by role:
 
-1. **`SPlit()` → `split_data()`**: Main splitting function
-2. **`splitratio()` → `optimal_split_ratio()`**: Optimal ratio determination
-3. **`subsample()` → `subsample()`**: Nearest neighbor subsampling (C++ → Julia)
-4. **`sp_cpp()` → `compute_support_points()`**: Support points computation (C++ → Julia)
+### Splitting
 
-### Key Parameters
+- `SplitKernel`, `EnergyKernel`: discrepancy kernel selecting what the
+  optimizer minimizes; `EnergyKernel` is the kernel whose maximum mean
+  discrepancy is the energy distance (Mak & Joseph, 2018).
+- `SupportPointSplitter`: split configuration — `kernel`, `ratio`, `kappa`
+  (stochastic subsample size), `max_iterations`, `tolerance`, `n_threads`,
+  `rng`, `verbose`.
+- `SplitResult`: index partition plus convergence report (`train_indices`,
+  `test_indices`, `converged`, `iterations`); iterable as `train, test =
+  result` and indexable as `data[result, :train]`.
+- `datasplit(splitter, data)`: run a split on a `Matrix`, `DataFrame`, or
+  `Vector`, returning a `SplitResult`.
+- `train_indices(result)`, `test_indices(result)`: accessors.
 
-- `splitRatio`/`split_ratio`: Split proportion (default 0.2)
-- `kappa`: Stochastic optimization subsample size
-- `maxIterations`/`max_iterations`: Max iterations (default 500)
-- `tolerance`: Convergence tolerance (default 1e-10)
-- `nThreads`/`n_threads`: Parallel threads
+### Quality diagnostics
+
+- `energydistance(X, Y)`: energy distance between two samples — exact by
+  default, subsampled-estimator for large inputs.
+- `splitquality(data, result)`: energy distance between the train and test
+  rows of a `SplitResult`; lower is better.
+
+### Optimal ratio
+
+- `optimal_split_ratio(x, y; method = :simple)`: the test-set fraction
+  `γ = 1 / (√p + 1)` from Joseph (2022, Eq. 11), `p` being the number of
+  model parameters.
+
+### Comparison
+
+- `compare(methods, data)`: run multiple `SupportPointSplitter`
+  configurations on the same data, each scored by `splitquality`.
+- `SplitComparison`: result container, convertible to a `DataFrame`.
+- `best(comparison)`: the method/result pair with the lowest energy
+  distance.
 
 ## Implementation Status
 
@@ -37,65 +66,82 @@ SPlit.jl is a Julia port of the original SPlit R package, implementing optimal d
 
 ```text
 src/
-├── SPlit.jl              # Main module file
-├── energy_distance.jl    # Energy distance calculations
-├── support_points.jl     # Support points computation (TODO)
-├── main.jl              # Main splitting functions (TODO)
-├── convert.jl           # Data preprocessing (TODO)
-└── init.jl              # Initialization functions (TODO)
+├── SPlit.jl              # Module entry point: includes source files, defines exports
+├── kernels.jl             # SplitKernel hierarchy (EnergyKernel)
+├── preprocessing.jl       # Helmert encoding, constant-column removal, standardization
+├── optimizer.jl           # Support-point MM optimization (full-data and stochastic)
+├── kdtree_selection.jl    # Sequential nearest-neighbor row selection via k-d tree
+├── splitter.jl            # SupportPointSplitter, SplitResult, datasplit
+├── quality.jl             # energydistance / splitquality diagnostics
+├── ratio.jl               # optimal_split_ratio (Joseph 2022)
+└── comparison.jl          # compare / SplitComparison / best
 ```
 
 ### Dependencies
 
-- DataFrames.jl: DataFrame support
-- Distances.jl: Distance calculations
-- LinearAlgebra.jl: Matrix operations
-- Statistics.jl: Statistical functions
-- StatsBase.jl: Statistical utilities
-- StatsModels.jl: Model handling
-- Polynomials.jl: Polynomial fitting for optimal ratios
-- Random.jl: Random number generation
+- CategoricalArrays.jl: detecting and iterating categorical columns for
+  Helmert encoding
+- DataFrames.jl: DataFrame input/output support
+- Distances.jl: pairwise Euclidean distances for the energy distance
+- LinearAlgebra.jl: matrix operations in the optimizer
+- NearestNeighbors.jl: k-d tree for nearest-neighbor row selection
+- Random.jl: RNG threading through splitting and optimization
+- Statistics.jl: mean/std for standardization and quality estimates
+- StatsBase.jl: sampling without replacement for stochastic optimization and
+  the subsampled energy-distance estimator
 
 ## Algorithm Implementation Notes
 
-### Data Preprocessing (`data_format` in R)
+### Data preprocessing (`preprocess`)
 
-1. Handle missing values (error if found)
-2. Convert factors to Helmert contrasts
-3. Remove constant columns
-4. Standardize all columns (mean 0, variance 1)
+1. Error on missing values.
+2. Encode categorical columns with Helmert contrasts.
+3. Drop constant columns.
+4. Standardize all remaining columns to mean 0, variance 1.
 
-### Support Points Computation (`compute_sp` + `sp_cpp` in R)
+### Support-point computation (`support_points`)
 
-1. Initialize with jittered random sample
-2. Apply bounds constraints
-3. Use stochastic majorization-minimization if `kappa < n`
-4. Parallel optimization with configurable threads
-5. Convergence based on point-wise distance tolerance
+1. Initialize with a jittered random sample from the data, clamped to the
+   data's bounding box.
+2. Apply the kernel's closed-form majorization-minimization update, which
+   decreases the energy-distance objective monotonically (Mak & Joseph,
+   2018).
+3. When `kappa < n`, use the stochastic variant of Joseph & Vakayil (2021):
+   resample `kappa` rows per iteration and stabilize the update with
+   running averages.
+4. Converge when the point-wise update falls below `tolerance`, or stop at
+   `max_iterations`.
 
-### Nearest Neighbor Subsampling (`subsample` in R)
+### Nearest-neighbor selection (`select_nearest`)
 
-- C++ implementation using nanoflann library for k-d tree
-- Find nearest support point for each data point
-- Return indices of smaller subset
+- Build a k-d tree (NearestNeighbors.jl) over the data rows.
+- Each support point, in order, claims its nearest not-yet-claimed row;
+  when every returned neighbor is already claimed, the k-nearest-neighbor
+  query doubles its `k` and retries.
 
-## Testing Strategy
+## Test Suite
 
-### Test Cases to Implement
+- `test/test_preprocessing.jl`: Helmert encoding, constant-column removal,
+  standardization, missing-value handling.
+- `test/test_quality.jl`: `energydistance` and `splitquality`, exact vs.
+  subsampled-estimator agreement.
+- `test/test_optimizer.jl`: MM update monotone descent of the energy
+  objective, full-data and stochastic modes.
+- `test/test_kdtree_selection.jl`: k-d tree and brute-force nearest-neighbor
+  selection equivalence.
+- `test/test_splitter.jl`: `SupportPointSplitter`/`datasplit`/`SplitResult`
+  construction, indexing, iteration, and reproducibility under a fixed
+  `rng`.
+- `test/test_ratio.jl`: `optimal_split_ratio`, including `γ = 1/(√p+1)` spot
+  checks against Joseph (2022, Eq. 11).
+- `test/test_comparison.jl`: `compare`/`SplitComparison`/`best`.
+- `test/test_properties.jl`: integration properties spanning the whole
+  public API — support-point splits achieving lower energy distance than
+  random splits, and stochastic optimization staying within a bounded
+  factor of full-data optimization quality.
 
-1. **Basic functionality**: Simple numeric data splitting
-2. **Categorical data**: Factor handling with Helmert contrasts
-3. **Mixed data types**: Numeric + categorical combinations
-4. **Edge cases**: Single column, constant columns, duplicates
-5. **Large datasets**: Stochastic optimization with `kappa`
-6. **Optimal ratios**: Both "simple" and "regression" methods
-7. **Parallel execution**: Multi-threading verification
-
-### Reference Results
-
-- Compare against R package outputs for identical datasets
-- Verify split quality using energy distance metrics
-- Check convergence behavior and iteration counts
+Correctness is verified against the properties the three papers establish,
+not against any external reference implementation.
 
 ## Development Commands
 
@@ -108,9 +154,6 @@ julia --project=docs/ docs/make.jl
 
 # Format code (JuliaFormatter runs via pre-commit; it is not a package dependency)
 pre-commit run julia-formatter -a
-
-# Benchmark against R
-# (implement comparative benchmarking scripts)
 ```
 
 ## Key References
@@ -130,24 +173,14 @@ pre-commit run julia-formatter -a
 - **Numerical stability**: Proper handling of edge cases and floating-point precision
 - **Stochastic optimization**: Balanced quality vs. speed trade-offs
 
-### Known Challenges
-
-1. **Helmert contrasts**: Efficient categorical variable encoding
-2. **k-d tree implementation**: Fast nearest neighbor search (consider NearestNeighbors.jl)
-3. **Convergence criteria**: Robust stopping conditions
-4. **Memory management**: Large matrix operations with minimal copying
-
 ## Code Style Guidelines
 
-- Follow Julia conventions and existing codebase patterns
 - Use descriptive variable names matching mathematical notation when possible
-- Comprehensive docstrings with parameter descriptions and examples
-- Type annotations for public APIs
-- Consistent error handling with informative messages
+- Comprehensive docstrings with parameter descriptions and examples on public API
+- Type annotations on public API
 
 ## Integration Notes
 
-- Maintain compatibility with DataFrames.jl ecosystem
-- Support both Matrix and DataFrame inputs
-- Provide clear migration path from R package usage
+- Maintain compatibility with the DataFrames.jl ecosystem; support Matrix,
+  DataFrame, and Vector inputs
 - Consider MLJ.jl integration for machine learning workflows
