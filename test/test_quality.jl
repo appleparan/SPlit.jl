@@ -2,6 +2,7 @@ using Test
 using SPlit
 using Random
 using Statistics
+using DataFrames
 
 @testset "energydistance" begin
   @testset "identical samples give zero" begin
@@ -45,5 +46,46 @@ using Statistics
 
   @testset "dimension mismatch errors" begin
     @test_throws ArgumentError energydistance(randn(5, 2), randn(5, 3))
+  end
+end
+
+@testset "splitquality" begin
+  @testset "works on DataFrame with categoricals" begin
+    df = DataFrame(x = randn(MersenneTwister(20), 120), g = repeat(["a", "b", "c"], 40))
+    r = datasplit(SupportPointSplitter(max_iterations = 60, rng = MersenneTwister(21)), df)
+    q = splitquality(df, r)
+    @test q isa Float64
+    @test q >= -1e-12
+  end
+
+  @testset "support-point split beats a random split on average" begin
+    rng = MersenneTwister(22)
+    data = randn(rng, 300, 2)
+    r =
+      datasplit(SupportPointSplitter(max_iterations = 150, rng = MersenneTwister(23)), data)
+    q_sp = splitquality(data, r)
+    random_qs = map(1:20) do i
+      shuffled = randperm(MersenneTwister(100 + i), 300)
+      fake = SPlit.SplitResult(shuffled[61:end], shuffled[1:60], true, 0, r.method)
+      splitquality(data, fake)
+    end
+    @test q_sp < Statistics.mean(random_qs)
+  end
+
+  @testset "auto-switches to estimation above exact_threshold" begin
+    data = randn(MersenneTwister(24), 400, 2)
+    r =
+      datasplit(SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(25)), data)
+    exact = splitquality(data, r)
+    est = splitquality(
+      data,
+      r;
+      exact_threshold = 10,
+      subsample = 100,
+      repeats = 20,
+      rng = MersenneTwister(26),
+    )
+    @test isapprox(est, exact; rtol = 0.5)
+    @test est != exact   # estimation path actually taken
   end
 end

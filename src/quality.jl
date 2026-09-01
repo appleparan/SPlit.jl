@@ -71,3 +71,30 @@ energydistance(X::AbstractVector, Y::AbstractVector; kwargs...) = energydistance
   reshape(collect(Float64, Y), :, 1);
   kwargs...,
 )
+
+"""
+    splitquality(data, result::SplitResult;
+                 exact_threshold = 4_000, subsample = 2_000, repeats = 8,
+                 rng = Random.default_rng()) -> Float64
+
+Energy distance between the train and test rows of `data` under the same
+preprocessing `datasplit` applied. Smaller is better. Computed exactly when
+the total row count is at most `exact_threshold`; otherwise estimated from
+`repeats` random size-`subsample` subsets.
+"""
+function splitquality(
+  data,
+  result::SplitResult;
+  exact_threshold::Int = 4_000,
+  subsample::Int = 2_000,
+  repeats::Int = 8,
+  rng::AbstractRNG = Random.default_rng(),
+)
+  X = preprocess(data)
+  train = X[result.train_indices, :]
+  test = X[result.test_indices, :]
+  if size(train, 1) + size(test, 1) <= exact_threshold
+    return energydistance(train, test)
+  end
+  return energydistance(train, test; subsample, repeats, rng)
+end
