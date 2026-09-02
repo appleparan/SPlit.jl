@@ -69,3 +69,27 @@ end
   @test SPlit.kernelvalue(EnergyKernel(), u, v) == -5.0
   @test SPlit.kernelvalue(EnergyKernel(), u, u) == 0.0
 end
+
+@testset "weighted median bandwidth" begin
+  X = randn(MersenneTwister(40), 300, 2)
+  @test SPlit.resolve(GaussianKernel(), X, MersenneTwister(1), nothing) ==
+        SPlit.resolve(GaussianKernel(), X, MersenneTwister(1))
+  @test SPlit.resolve(EnergyKernel(), X, MersenneTwister(1), ones(300)) == EnergyKernel()
+  @test SPlit.resolve(GaussianKernel(2.0), X, MersenneTwister(1), ones(300)) ==
+        GaussianKernel(2.0)
+
+  # Two clusters far apart, more rows than the 1_000 the heuristic draws:
+  # weight concentrated on one cluster makes most drawn pairs intra-cluster,
+  # so the median distance drops.
+  Y = vcat(randn(MersenneTwister(41), 750, 2), randn(MersenneTwister(42), 750, 2) .+ 20.0)
+  w = vcat(fill(100.0, 750), fill(1e-3, 750))
+  σ_uniform = SPlit.resolve(GaussianKernel(), Y, MersenneTwister(3)).bandwidth
+  σ_weighted = SPlit.resolve(GaussianKernel(), Y, MersenneTwister(3), w).bandwidth
+  @test σ_weighted < σ_uniform
+  @test_throws ArgumentError SPlit.resolve(
+    GaussianKernel(),
+    Y,
+    MersenneTwister(3),
+    ones(10),
+  )
+end
