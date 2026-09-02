@@ -17,7 +17,7 @@ datasets(N, rng) = [
   ("t3-3d", rand(rng, TDist(3), N, 3)),
 ]
 
-function methods(N)
+function methods(N; rng_seed::Int)
   big = N >= 10_000
   return [
     (
@@ -25,7 +25,7 @@ function methods(N)
       SupportPointSplitter(
         kernel = EnergyKernel(),
         kappa = big ? 1_000 : nothing,
-        rng = MersenneTwister(1),
+        rng = MersenneTwister(rng_seed),
       ),
     ),
     (
@@ -33,7 +33,7 @@ function methods(N)
       SupportPointSplitter(
         kernel = GaussianKernel(),
         max_iterations = big ? 100 : 200,
-        rng = MersenneTwister(1),
+        rng = MersenneTwister(rng_seed),
       ),
     ),
     (
@@ -41,7 +41,7 @@ function methods(N)
       HerdingSplitter(
         kernel = EnergyKernel(),
         kappa = big ? 2_000 : nothing,
-        rng = MersenneTwister(1),
+        rng = MersenneTwister(rng_seed),
       ),
     ),
     (
@@ -49,7 +49,7 @@ function methods(N)
       HerdingSplitter(
         kernel = GaussianKernel(),
         kappa = big ? 2_000 : nothing,
-        rng = MersenneTwister(1),
+        rng = MersenneTwister(rng_seed),
       ),
     ),
   ]
@@ -74,17 +74,35 @@ for N in sizes(), (name, data) in datasets(N, MersenneTwister(2026))
   X = SPlit.preprocess(data)
   gk = SPlit.resolve(GaussianKernel(), X, MersenneTwister(7))   # one bandwidth per dataset
   n_test = round(Int, 0.2N)
-  for (label, s) in methods(N)
-    datasplit(s, data[1:min(N, 200), :])                          # warm-up (compilation)
+  # separate rng seeds so the warm-up run (compilation only, on a throwaway
+  # splitter copy) never consumes the timed splitter's own rng stream
+  warmup_methods = methods(N; rng_seed = 0)
+  timed_methods = methods(N; rng_seed = 1)
+  for ((label, s_warmup), (_, s)) in zip(warmup_methods, timed_methods)
+    datasplit(s_warmup, data[1:min(N, 200), :])                   # warm-up (compilation)
     t = @elapsed r = datasplit(s, data)
     push!(
       rows,
-      (name, N, label, splitquality(data, r), splitquality(data, r; kernel = gk), t),
+      (
+        name,
+        N,
+        label,
+        splitquality(data, r; exact_threshold = typemax(Int)),
+        splitquality(data, r; kernel = gk, exact_threshold = typemax(Int)),
+        t,
+      ),
     )
     name == "mixture-2d" && N == first(sizes()) && (selections[label] = test_indices(r))
   end
-  qs = [(r = random_split(N, n_test, MersenneTwister(100 + i));
-  (splitquality(data, r), splitquality(data, r; kernel = gk))) for i = 1:5]
+  qs = [
+    (
+      r = random_split(N, n_test, MersenneTwister(100 + i));
+      (
+        splitquality(data, r; exact_threshold = typemax(Int)),
+        splitquality(data, r; kernel = gk, exact_threshold = typemax(Int)),
+      )
+    ) for i = 1:5
+  ]
   push!(rows, (name, N, "random", mean(first.(qs)), mean(last.(qs)), 0.0))
   name == "mixture-2d" &&
     N == first(sizes()) &&
@@ -159,11 +177,15 @@ ax2 = Axis(
   yscale = log10,
   xlabel = "N",
   ylabel = "seconds (wall)",
-  title = "Split time by method (all datasets)",
+  title = "Split time by method and dataset",
 )
 for (m, col) in zip(methods_order[1:4], colors)
-  sub = rows[rows.method.==m, :]
-  scatterlines!(ax2, sub.N, max.(sub.seconds, 1e-4); label = m, color = col)
+  for (di, dname) in enumerate(unique(rows.dataset))
+    sub = rows[(rows.method.==m).&(rows.dataset.==dname), :]
+    isempty(sub) && continue
+    label_kwargs = di == 1 ? (; label = m) : NamedTuple()
+    scatterlines!(ax2, sub.N, max.(sub.seconds, 1e-4); color = col, label_kwargs...)
+  end
 end
 axislegend(ax2; position = :lt)
 save(joinpath(OUT, "time.png"), fig2; px_per_unit = 2)

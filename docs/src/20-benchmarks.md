@@ -18,13 +18,21 @@ At ``N = 10{,}000`` the support-point methods use `kappa = 1_000`
 has no stochastic mode) to keep wall time reasonable; the herding methods
 use `kappa = 2_000` at that size. On `normal-10d` and `uniform-5d` at that
 size, `support points · gaussian` converges after a single iteration
-(`result.converged == true`, ~1 s) rather than running the full
+(`result.converged == true`, 0.49-0.58 s) rather than running the full
 100-iteration cap that `mixture-2d` and `t3-3d` use there (not converged,
-~40-45 s) — see "Reading the results" for why.
+43-44 s): the absolute displacement tolerance fires at the initial sample
+because the 1/n-scaled gradient is below it; a scale-aware tolerance is a
+planned follow-up — see "Reading the results" for the full explanation.
 
 For every (dataset, method) pair the script records the energy distance and
 the Gaussian-kernel MMD (median-heuristic bandwidth, resolved once per
 dataset) between the resulting train and test rows, plus wall-clock time.
+Every score is computed exactly (`splitquality(...; exact_threshold =
+typemax(Int))`), never via the subsampled estimator, so the table below
+carries no subsampling noise even at ``N = 10{,}000``. Each splitter's
+JIT warm-up runs on a throwaway copy seeded with `MersenneTwister(0)`
+before the timed run on a `MersenneTwister(1)`-seeded copy, so warm-up
+compilation never consumes the timed splitter's own random draws.
 Smaller is better for both discrepancy metrics.
 
 Exact command:
@@ -60,69 +68,86 @@ overlaid, showing why the methods disagree on which rows to hold out.
 
 | dataset | N | method | energy distance | MMD (Gaussian, median σ) | seconds |
 |---|---:|---|---:|---:|---:|
-| mixture-2d | 1000 | support points · energy | 0.000333 | 1.1e-6 | 0.46 |
-| mixture-2d | 1000 | support points · gaussian | 0.00258 | 1.64e-5 | 1.1 |
-| mixture-2d | 1000 | herding · energy | 0.000439 | 1.08e-5 | 0.0018 |
-| mixture-2d | 1000 | herding · gaussian | 0.00772 | 1.9e-5 | 0.021 |
+| mixture-2d | 1000 | support points · energy | 0.000323 | 1.57e-6 | 0.33 |
+| mixture-2d | 1000 | support points · gaussian | 0.00235 | 9.1e-6 | 1.1 |
+| mixture-2d | 1000 | herding · energy | 0.000439 | 1.08e-5 | 0.0021 |
+| mixture-2d | 1000 | herding · gaussian | 0.00772 | 1.9e-5 | 0.018 |
 | mixture-2d | 1000 | random | 0.012 | 0.00258 | – |
-| normal-10d | 1000 | support points · energy | 0.0229 | 0.00203 | 0.52 |
-| normal-10d | 1000 | support points · gaussian | 0.0309 | 0.00302 | 1.2 |
-| normal-10d | 1000 | herding · energy | 0.00822 | 0.000114 | 0.0029 |
-| normal-10d | 1000 | herding · gaussian | 0.00927 | 9.82e-5 | 0.015 |
+| normal-10d | 1000 | support points · energy | 0.0215 | 0.00187 | 0.76 |
+| normal-10d | 1000 | support points · gaussian | 0.0247 | 0.00224 | 1.3 |
+| normal-10d | 1000 | herding · energy | 0.00822 | 0.000114 | 0.0027 |
+| normal-10d | 1000 | herding · gaussian | 0.00927 | 9.82e-5 | 0.031 |
 | normal-10d | 1000 | random | 0.0255 | 0.00227 | – |
-| uniform-5d | 1000 | support points · energy | 0.00392 | 9.87e-5 | 0.54 |
-| uniform-5d | 1000 | support points · gaussian | 0.0149 | 0.00176 | 1.2 |
-| uniform-5d | 1000 | herding · energy | 0.00343 | 3.62e-5 | 0.002 |
-| uniform-5d | 1000 | herding · gaussian | 0.00535 | 3.54e-5 | 0.012 |
+| uniform-5d | 1000 | support points · energy | 0.0047 | 0.000255 | 0.56 |
+| uniform-5d | 1000 | support points · gaussian | 0.015 | 0.00176 | 1.1 |
+| uniform-5d | 1000 | herding · energy | 0.00343 | 3.62e-5 | 0.012 |
+| uniform-5d | 1000 | herding · gaussian | 0.00535 | 3.54e-5 | 0.016 |
 | uniform-5d | 1000 | random | 0.0173 | 0.00217 | – |
-| t3-3d | 1000 | support points · energy | 0.00156 | 8.0e-5 | 0.33 |
-| t3-3d | 1000 | support points · gaussian | 0.00669 | 0.000993 | 1.1 |
-| t3-3d | 1000 | herding · energy | 0.00174 | 9.8e-5 | 0.0017 |
-| t3-3d | 1000 | herding · gaussian | 0.0035 | 7.58e-5 | 0.017 |
+| t3-3d | 1000 | support points · energy | 0.00163 | 0.000116 | 0.43 |
+| t3-3d | 1000 | support points · gaussian | 0.0052 | 0.000663 | 1.1 |
+| t3-3d | 1000 | herding · energy | 0.00174 | 9.8e-5 | 0.0018 |
+| t3-3d | 1000 | herding · gaussian | 0.0035 | 7.58e-5 | 0.014 |
 | t3-3d | 1000 | random | 0.0161 | 0.00375 | – |
-| mixture-2d | 10000 | support points · energy | 0.00102 | 0.000119 | 3.4 |
-| mixture-2d | 10000 | support points · gaussian | 0.00135 | 0.000184 | 41.0 |
-| mixture-2d | 10000 | herding · energy | 0.00159 | 0.000393 | 0.14 |
-| mixture-2d | 10000 | herding · gaussian | 0.00635 | 0.000297 | 0.38 |
-| mixture-2d | 10000 | random | 0.00151 | 0.000286 | – |
-| normal-10d | 10000 | support points · energy | 0.00361 | 0.000315 | 8.8 |
-| normal-10d | 10000 | support points · gaussian | 0.00455 | 0.000457 | 0.49 |
-| normal-10d | 10000 | herding · energy | 0.0045 | 0.000371 | 0.16 |
-| normal-10d | 10000 | herding · gaussian | 0.0046 | 0.000431 | 0.38 |
-| normal-10d | 10000 | random | 0.00355 | 0.000302 | – |
-| uniform-5d | 10000 | support points · energy | 0.00265 | 0.000373 | 5.6 |
-| uniform-5d | 10000 | support points · gaussian | 0.00303 | 0.00039 | 0.46 |
-| uniform-5d | 10000 | herding · energy | 0.0026 | 0.000281 | 0.12 |
-| uniform-5d | 10000 | herding · gaussian | 0.00338 | 0.00049 | 0.37 |
-| uniform-5d | 10000 | random | 0.00252 | 0.000327 | – |
-| t3-3d | 10000 | support points · energy | 0.00106 | 0.000246 | 4.2 |
-| t3-3d | 10000 | support points · gaussian | 0.00165 | 0.000259 | 45.0 |
-| t3-3d | 10000 | herding · energy | 0.00154 | 0.000426 | 0.091 |
-| t3-3d | 10000 | herding · gaussian | 0.0024 | 0.000397 | 0.32 |
-| t3-3d | 10000 | random | 0.00213 | 0.00044 | – |
+| mixture-2d | 10000 | support points · energy | 0.000173 | 3.2e-5 | 3.6 |
+| mixture-2d | 10000 | support points · gaussian | 0.0003 | 7.76e-7 | 43.0 |
+| mixture-2d | 10000 | herding · energy | 0.00121 | 0.000259 | 0.18 |
+| mixture-2d | 10000 | herding · gaussian | 0.00466 | 0.000163 | 0.4 |
+| mixture-2d | 10000 | random | 0.000885 | 0.000166 | – |
+| normal-10d | 10000 | support points · energy | 0.0025 | 0.000215 | 9.2 |
+| normal-10d | 10000 | support points · gaussian | 0.00299 | 0.000289 | 0.49 |
+| normal-10d | 10000 | herding · energy | 0.00238 | 0.000216 | 0.15 |
+| normal-10d | 10000 | herding · gaussian | 0.00313 | 0.000289 | 0.45 |
+| normal-10d | 10000 | random | 0.00208 | 0.000164 | – |
+| uniform-5d | 10000 | support points · energy | 0.000844 | 7.24e-5 | 6.0 |
+| uniform-5d | 10000 | support points · gaussian | 0.00187 | 0.000244 | 0.58 |
+| uniform-5d | 10000 | herding · energy | 0.00137 | 0.000147 | 0.14 |
+| uniform-5d | 10000 | herding · gaussian | 0.00188 | 0.000246 | 0.36 |
+| uniform-5d | 10000 | random | 0.00146 | 0.00016 | – |
+| t3-3d | 10000 | support points · energy | 0.000262 | 4.82e-5 | 4.8 |
+| t3-3d | 10000 | support points · gaussian | 0.000567 | 7.64e-5 | 44.0 |
+| t3-3d | 10000 | herding · energy | 0.000886 | 0.000155 | 0.11 |
+| t3-3d | 10000 | herding · gaussian | 0.00153 | 0.000217 | 0.35 |
+| t3-3d | 10000 | random | 0.00151 | 0.000305 | – |
 
 ## Reading the results
 
-`support points · energy` has the lowest or near-lowest energy distance in
-most rows, though at ``N = 1{,}000`` `herding · energy` is lower on
-`normal-10d` (0.00822 vs. 0.0229) and `uniform-5d` (0.00343 vs. 0.00392).
-`herding · gaussian` matches or beats `support points · energy` on MMD at
-``N = 1{,}000`` on `normal-10d` and `uniform-5d`, at a small fraction of the
-cost since herding has no iterative optimizer to run; at ``N = 10{,}000`` it
-falls behind on both (0.000431 vs. 0.000315 on `normal-10d`; 0.00049 vs.
-0.000373 on `uniform-5d`). `support points · gaussian` is the slowest
-method on `mixture-2d` and `t3-3d`, where it runs the full 100-iteration
-cap without converging (41-45 s at ``N = 10{,}000``); on `normal-10d` and
-`uniform-5d` it instead converges after one iteration, because with the
-median-heuristic bandwidth in 5-10 dimensions the initial random sample is
-already near-stationary for the MMD objective, so the optimizer stops right
-away — those two cells reflect an early stop (essentially a random sample),
-not a capped optimization, and their 0.46-0.49 s timings are not evidence
-of fast optimization. At ``N = 10{,}000``, energy distance favors the
-optimized methods on `mixture-2d` and `t3-3d`, while on `normal-10d` and
-`uniform-5d` every method is within noise of — or slightly behind — the
-random baseline on both metrics (the subsampled `splitquality` estimate
-above the 4,000-row exact threshold adds its own noise there). Recommendation:
-use `support points · energy` as the default; reach for `herding · gaussian`
-when Gaussian-kernel MMD is the target metric or a deterministic,
-optimizer-free split is wanted.
+At ``N = 1{,}000`` every method runs on the full data (no `kappa`), and
+herding is competitive with or ahead of support points: `herding · energy`
+has the lowest energy distance on `normal-10d` (0.00822 vs. 0.0215) and
+`uniform-5d` (0.00343 vs. 0.0047), and `herding · gaussian` has the lowest
+MMD on `normal-10d`, `uniform-5d`, and `t3-3d` (e.g. 9.82e-5 vs. 0.00187 on
+`normal-10d`) at a small fraction of the optimizer's wall time.
+`support points · energy` wins both metrics on `mixture-2d` and the energy
+distance on `t3-3d`.
+
+At ``N = 10{,}000``, where herding switches to `kappa = 2{,}000` (a 20%
+row subsample drawn once for the whole run) and `support points · energy`
+to `kappa = 1{,}000`, herding's advantage mostly disappears:
+`support points · energy` has the lowest energy distance on `mixture-2d`
+(0.000173), `uniform-5d` (0.000844), and `t3-3d` (0.000262), and the lowest
+MMD on `uniform-5d` and `t3-3d`; `support points · gaussian` has the lowest
+MMD on `mixture-2d` (7.76e-7). On `normal-10d` at ``N = 10{,}000`` every
+optimized method is slightly behind the random baseline on both metrics
+(random: 0.00208 energy distance, 0.000164 MMD) — with 10-D standard normal
+data and this coarse a reference sample, none of the methods has enough
+signal to reliably beat chance, and the gaps between methods there are
+small enough not to be decisive.
+
+`support points · gaussian` is the slowest method on `mixture-2d` and
+`t3-3d`, where it runs the full 100-iteration cap without converging
+(43-44 s at ``N = 10{,}000``); on `normal-10d` and `uniform-5d` it instead
+converges after a single iteration (0.49-0.58 s). This is not the sample
+being near-stationary: the objective's ``1/n^2`` and ``1/(nN)`` scaling
+factors make the initial gradient row-norms of order ``10^{-6}``, so the
+first squared displacement (``\sim 10^{-11}``) is already below
+`tolerance = 1e-10` — the absolute displacement tolerance fires at the
+initial sample because the 1/n-scaled gradient is below it, even though
+further iterations do decrease the objective; a scale-aware tolerance is a
+planned follow-up. Those two cells reflect this early stop, not a capped
+optimization, and their fast timings are not evidence of fast convergence.
+
+Recommendation: use `support points · energy` as the default at scale
+(``N \gtrsim 10{,}000`` with `kappa`); at smaller ``N``, where herding runs
+on the full data without `kappa`, `herding · gaussian` is a strong,
+deterministic, and far cheaper alternative when Gaussian-kernel MMD is the
+target metric.
