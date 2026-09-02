@@ -1,5 +1,8 @@
 # [Methods](@id methods)
 
+See [How SPlit works](@ref intuition) for the same quantities explained with
+analogies instead of formulas.
+
 This page states the quantities SPlit.jl computes and names the function that
 implements each one. Rows of the data matrix are observations
 ``x_1, \dots, x_N`` after preprocessing (`preprocess`: Helmert encoding of
