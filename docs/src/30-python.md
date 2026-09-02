@@ -6,7 +6,7 @@ every computation runs in Julia, so the properties documented on the
 [Methods](10-methods.md) page hold unchanged.
 
 ```bash
-pip install splitiq
+uv add splitiq        # or, without uv: pip install splitiq
 ```
 
 The first `import splitiq` call installs Julia (through juliaup, if no

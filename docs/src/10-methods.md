@@ -76,20 +76,25 @@ with ``\nabla_u k(u, v) = -k(u, v)\,(u - v)/\sigma^2``. The optimizer
 ``\xi_{\text{new}} = \operatorname{clamp}(\xi - t \nabla f)`` where ``t`` is
 chosen by Armijo backtracking on the projected step,
 ``f(\xi_{\text{new}}) \le f(\xi) - 10^{-4}\, \langle \nabla f, \xi - \xi_{\text{new}} \rangle``;
-the objective therefore never increases across accepted steps. The gradient
-carries ``1/n^2`` and ``1/(nN)`` factors whose magnitude varies enormously
-with ``n`` and ``N``, so the first trial step (`_first_step`) is scale-aware
-rather than a fixed constant: ``t_0 = 0.1\,\bar w / \max_m \|\nabla_m f\|``,
-with ``\bar w`` the median per-dimension data range, making the first move a
-tenth of the data scale regardless of ``n``, ``N``. Later iterations warm-start
-from twice the previous accepted step. Convergence never fires before the
-second iteration, and then when *either* the largest squared displacement is
-below `tolerance` *or* the relative objective decrease
+the objective therefore never increases across accepted steps.
+
+The gradient carries ``1/n^2`` and ``1/(nN)`` factors whose magnitude varies
+enormously with ``n`` and ``N``, so the first trial step (`_first_step`) is
+scale-aware rather than a fixed constant:
+``t_0 = 0.1\,\bar w / \max_m \|\nabla_m f\|``, with ``\bar w`` the median
+per-dimension data range, making the first move a tenth of the data scale
+regardless of ``n``, ``N``. Later iterations warm-start from twice the
+previous accepted step.
+
+Convergence never fires before the second iteration, and then when *either*
+the largest squared displacement is below `tolerance` *or* the relative
+objective decrease
 ``|f_{t-1} - f_t| / \max(|f_t|, 10^{-12})`` is below `rtol` (default
 ``10^{-8}``); `f` here is the shifted objective above, which omits the
 constant data self-term and is bounded in ``[-1, 1]`` for a Gaussian kernel,
 so `rtol` acts as an absolute-in-effect tolerance
 rather than a tolerance on the (orders-of-magnitude smaller) true MMD².
+
 When `bandwidth = :median`, ``\sigma`` is the median pairwise distance over
 (a sample of) the standardized rows (Gretton et al., 2012), resolved once
 per `datasplit` and stored in `result.method.kernel`. The stochastic
@@ -120,10 +125,11 @@ the greedy MMD² (energy-distance) minimizer. For the Gaussian kernel (a
 bounded feature map), the error ``\mathcal{E}_T`` of Eq. (9) decreases as
 ``O(1/T)`` (Proposition 1); for the energy kernel only the greedy-step
 equivalence with MMD²/energy-distance minimization above is claimed, not the
-``O(1/T)`` rate. `herd` computes the exact data term once (``O(N^2)``) and
-maintains the running sum over selected rows in ``O(N)`` per selection, for a
-total cost of ``O(N^2 + nN)``; the procedure is deterministic for a numeric
-kernel.
+``O(1/T)`` rate.
+
+`herd` computes the exact data term once (``O(N^2)``) and maintains the
+running sum over selected rows in ``O(N)`` per selection, for a total cost of
+``O(N^2 + nN)``; the procedure is deterministic for a numeric kernel.
 
 ## Estimators
 

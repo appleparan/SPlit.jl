@@ -2,14 +2,22 @@
 
 ## Installation
 
+Install with [uv](https://docs.astral.sh/uv/):
+
 ```bash
-pip install splitiq
+uv add splitiq
 ```
 
 Add the `pandas` extra for DataFrame input:
 
 ```bash
-pip install "splitiq[pandas]"
+uv add "splitiq[pandas]"
+```
+
+If you are not using uv, `pip` works as well:
+
+```bash
+pip install splitiq            # or: pip install "splitiq[pandas]"
 ```
 
 Python 3.12 or later is required. No separate Julia installation is required beforehand: the
