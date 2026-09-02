@@ -4,7 +4,8 @@ exclude = [
   "^https://blog.esciencecenter.nl/",
   "^https://github.com/.*/releases/tag/v.*$",
   "^https://doi.org/FIXME$",
-  "^https://appleparan.github.io/SPlit.jl/stable$",
+  # Documenter site is not deployed yet (no gh-pages branch); README badges point at it
+  "^https://appleparan.github.io/SPlit.jl/(stable|dev)",
   "zenodo.org/badge/DOI/FIXME$"
 ]
 

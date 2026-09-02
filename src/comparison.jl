@@ -1,165 +1,63 @@
 """
-Comparison and benchmarking utilities for different splitting methods.
+Side-by-side comparison of splitter configurations on one dataset.
 """
 
-using Statistics
 using DataFrames
 
 """
     SplitComparison
 
-Container for comparing multiple splitting methods.
+Result of [`compare`](@ref): the splitters, their results, and their
+[`splitquality`](@ref) values, index-aligned.
 """
 struct SplitComparison
-  methods::Vector{SplittingMethod}
+  methods::Vector{SupportPointSplitter}
   results::Vector{SplitResult}
-  data_info::NamedTuple
+  qualities::Vector{Float64}
 end
 
 """
-    compare(methods::Vector{<:SplittingMethod}, data; quality::Bool=true) -> SplitComparison
+    compare(methods, data; kwargs...) -> SplitComparison
 
-Compare multiple splitting methods on the same dataset.
-
-# Arguments
-- `methods`: Vector of splitting methods to compare
-- `data`: Dataset to split
-- `quality`: Whether to compute quality metrics
-
-# Returns
-- `SplitComparison` object with results and analysis
-
-# Examples
-```julia
-methods = [
-    SupportPointSplitter(Euclidean(); ratio=0.2),
-    SupportPointSplitter(Cityblock(); ratio=0.2),
-    SupportPointSplitter(EnergyDistance(Euclidean()); ratio=0.2)
-]
-
-comparison = compare(methods, data)
-summary(comparison)
-```
+Run [`datasplit`](@ref) with each splitter in `methods` on `data` and score
+every split with [`splitquality`](@ref). Keyword arguments are forwarded to
+`splitquality`.
 """
-function compare(methods::Vector{<:SplittingMethod}, data; quality::Bool = true)
-  results = if quality
-    [split_with_quality(method, data) for method in methods]
-  else
-    [split(method, data) for method in methods]
-  end
-
-  data_info = (size = size(data), type = typeof(data), n_total = size(data, 1))
-
-  return SplitComparison(methods, results, data_info)
+function compare(methods::Vector{<:SupportPointSplitter}, data; kwargs...)
+  results = [datasplit(m, data) for m in methods]
+  qualities = [splitquality(data, r; kwargs...) for r in results]
+  return SplitComparison(collect(methods), results, qualities)
 end
 
 """
-    summary(comparison::SplitComparison) -> DataFrame
+    DataFrame(comparison::SplitComparison) -> DataFrame
 
-Generate a summary table of splitting method comparison.
+One row per splitter: kernel, ratio, subset sizes, convergence report, and
+energy distance (lower is better).
 """
-function Base.summary(comparison::SplitComparison)
-  df = DataFrame(
-    Method = String[],
-    Metric = String[],
-    Ratio = Float64[],
-    TrainSize = Int[],
-    TestSize = Int[],
-    Quality = Union{Float64,Missing}[],
-    Converged = Bool[],
-    Iterations = Int[],
+function DataFrames.DataFrame(c::SplitComparison)
+  return DataFrame(
+    kernel = [string(nameof(typeof(m.kernel))) for m in c.methods],
+    ratio = [m.ratio for m in c.methods],
+    train = [length(r.train_indices) for r in c.results],
+    test = [length(r.test_indices) for r in c.results],
+    converged = [r.converged for r in c.results],
+    iterations = [r.iterations for r in c.results],
+    energy_distance = c.qualities,
   )
-
-  for (method, result) in zip(comparison.methods, comparison.results)
-    push!(
-      df,
-      (
-        Method = string(typeof(method)),
-        Metric = string(typeof(metric(method))),
-        Ratio = ratio(method),
-        TrainSize = length(result.train_indices),
-        TestSize = length(result.test_indices),
-        Quality = result.quality,
-        Converged = result.convergence,
-        Iterations = result.iterations,
-      ),
-    )
-  end
-
-  return df
 end
 
 """
-    best(comparison::SplitComparison; by::Symbol=:Quality) -> Tuple{SplittingMethod, SplitResult}
+    best(comparison::SplitComparison) -> (method, result)
 
-Find the best splitting method from comparison.
-
-# Arguments
-- `comparison`: SplitComparison object
-- `by`: Criterion for selection (:Quality, :TrainSize, :TestSize)
+The splitter/result pair with the lowest energy distance.
 """
-function best(comparison::SplitComparison; by::Symbol = :Quality)
-  if by === :Quality
-    qualities = [r.quality for r in comparison.results]
-    if any(q -> q !== nothing, qualities)
-      # Lower energy distance is better
-      idx = argmin(filter(!isnothing, qualities))
-      non_nothing_indices = findall(q -> q !== nothing, qualities)
-      best_idx = non_nothing_indices[idx]
-    else
-      throw(ArgumentError("No quality metrics available for comparison"))
-    end
-  elseif by === :TrainSize
-    idx = argmax([length(r.train_indices) for r in comparison.results])
-    best_idx = idx
-  elseif by === :TestSize
-    idx = argmax([length(r.test_indices) for r in comparison.results])
-    best_idx = idx
-  else
-    throw(ArgumentError("Unknown criterion: $by"))
-  end
-
-  return comparison.methods[best_idx], comparison.results[best_idx]
+function best(c::SplitComparison)
+  i = argmin(c.qualities)
+  return c.methods[i], c.results[i]
 end
 
-# Pretty printing
-function Base.show(io::IO, comparison::SplitComparison)
-  println(io, "SplitComparison with $(length(comparison.methods)) methods:")
-  println(io, "  Data: $(comparison.data_info.type) $(comparison.data_info.size)")
-  println(io, "  Total samples: $(comparison.data_info.n_total)")
-
-  df = summary(comparison)
-  show(io, df, allrows = true, allcols = true)
-end
-
-"""
-    DefaultSplitters(ratio::Float64=0.2) -> Vector{SupportPointSplitter}
-
-Create a set of default splitting methods for comparison.
-"""
-function DefaultSplitters(ratio::Float64 = 0.2)
-  return [
-    SupportPointSplitter(Euclidean(); ratio = ratio),
-    SupportPointSplitter(Cityblock(); ratio = ratio),
-    SupportPointSplitter(EnergyDistance(Euclidean()); ratio = ratio),
-  ]
-end
-
-"""
-    quick_compare(data; ratio::Float64=0.2, max_iterations::Int=50) -> SplitComparison
-
-Quick comparison using default methods with reduced iterations for speed.
-"""
-function quick_compare(data; ratio::Float64 = 0.2, max_iterations::Int = 50)
-  methods = [
-    SupportPointSplitter(Euclidean(); ratio = ratio, max_iterations = max_iterations),
-    SupportPointSplitter(Cityblock(); ratio = ratio, max_iterations = max_iterations),
-    SupportPointSplitter(
-      EnergyDistance(Euclidean());
-      ratio = ratio,
-      max_iterations = max_iterations,
-    ),
-  ]
-
-  return compare(methods, data; quality = true)
+function Base.show(io::IO, c::SplitComparison)
+  println(io, "SplitComparison with $(length(c.methods)) methods:")
+  show(io, DataFrame(c); allrows = true, allcols = true)
 end
