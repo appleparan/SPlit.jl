@@ -37,7 +37,7 @@ splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
 ```
 
-## Kernels
+## Kernels and splitters
 
 `SupportPointSplitter` accepts any `SplitKernel`. The default,
 `EnergyKernel`, minimizes the energy distance of Mak & Joseph (2018).
@@ -51,6 +51,17 @@ result = datasplit(gauss, data)
 result.method.kernel            # GaussianKernel with the resolved bandwidth
 splitquality(data, result; kernel = result.method.kernel)   # MMD under the fitted kernel
 ```
+
+`HerdingSplitter` builds the smaller subset directly by greedy kernel
+herding (Chen, Welling & Smola, 2010) instead of computing support points:
+
+```julia
+herd = HerdingSplitter(kernel = GaussianKernel())   # deterministic, optimizer-free
+result = datasplit(herd, data)
+```
+
+See [Benchmarks](@ref benchmarks) for how the two splitters compare across
+kernels and dataset sizes.
 
 ## API Reference
 
@@ -81,6 +92,8 @@ See the [Reference](@ref reference) section for complete API documentation.
 3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
 
 4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
+
+5. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 
 ## Contributors
 

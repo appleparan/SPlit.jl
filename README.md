@@ -77,6 +77,11 @@ destructuring) partition the input rows.
   descent with Armijo backtracking, instead of the energy-distance MM step.
   It has no `kappa` mode; the resolved bandwidth is stored in
   `result.method.kernel`.
+- `HerdingSplitter`: builds the smaller subset directly by greedy kernel
+  herding (Chen, Welling & Smola, 2010) instead of computing support
+  points, under either `EnergyKernel` or `GaussianKernel`. It is
+  deterministic given the data and a numeric kernel; `kappa` estimates the
+  data term from a row subsample for large datasets.
 
 ### Quality diagnostics
 
@@ -109,6 +114,12 @@ on the same data and scores each with `splitquality`, returning a
 `SplitComparison` (convertible to a `DataFrame`); `best(comparison)` returns
 the method/result pair with the lowest energy distance.
 
+### Benchmarks
+
+See the [Benchmarks](https://appleparan.github.io/SPlit.jl/dev/20-benchmarks/)
+page for how `SupportPointSplitter` and `HerdingSplitter` compare across
+kernels and dataset sizes.
+
 ## Algorithm Details
 
 1. **Preprocessing**: categorical columns are Helmert-encoded, constant
@@ -132,6 +143,8 @@ the method/result pair with the lowest energy distance.
 3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
 
 4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
+
+5. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 
 ## How to Cite
 
