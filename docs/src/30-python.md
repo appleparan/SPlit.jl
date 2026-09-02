@@ -45,3 +45,24 @@ of `splitiq` pins SPlit.jl at the git tag `vX.Y.Z`, and pushing that tag
 publishes the Python package to PyPI, so both releases come from one tag. The package sources live
 in the `splitiq/` directory of the repository; its own documentation covers
 installation details and the development setup.
+
+## Weighted samples
+
+Pass `weights` (one non-negative entry per row) to make the split target
+the weighted distribution of the rows, for example a quality score per
+sample:
+
+```python
+import numpy as np
+from splitiq import datasplit, splitquality
+
+data = np.random.default_rng(0).standard_normal((1000, 8))
+weights = np.exp(np.random.default_rng(1).standard_normal(1000))
+
+result = datasplit(data, ratio=0.2, seed=42, weights=weights)
+print(splitquality(data, result, weights=weights))
+```
+
+`energydistance` and `mmd` take `weights_x` and `weights_y` for their two
+samples. This mirrors the Julia `weights`, `weights_x`, and `weights_y`
+keywords described in [Methods](@ref weighted-samples).

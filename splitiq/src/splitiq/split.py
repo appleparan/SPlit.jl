@@ -7,7 +7,15 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
-from splitiq._convert import DataLike, build_kernel, build_rng, to_julia_data, to_python_indices
+from splitiq._convert import (
+    DataLike,
+    _weights_kwarg,
+    build_kernel,
+    build_rng,
+    to_julia_data,
+    to_python_indices,
+    to_weights,
+)
 from splitiq._julia import JuliaValue, _translate_error, julia
 
 if TYPE_CHECKING:
@@ -88,6 +96,7 @@ def datasplit(
     tolerance: float = 1e-10,
     n_threads: int | None = None,
     seed: int | None = None,
+    weights: DataLike | None = None,
 ) -> SplitResult:
     """Split `data` into train and test sets whose distributions match closely.
 
@@ -110,6 +119,11 @@ def datasplit(
         n_threads: Number of threads to use; ``None`` uses Julia's own
             default (``Threads.nthreads()``).
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
+        weights: One non-negative entry per row, or ``None`` for uniform
+            weights. Makes the split target the weighted empirical
+            distribution of the rows; the selected subset itself is
+            uniform. Weights proportional to duplication counts are
+            equivalent to duplicating rows.
 
     Returns:
         The resulting `SplitResult`.
@@ -117,8 +131,10 @@ def datasplit(
     Raises:
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
             ``'herding'`` and `kappa`/`max_iterations`/`tolerance` are set
-            away from their defaults (herding has no such options), or if
-            Julia rejects the arguments (e.g. `ratio` outside (0, 1)).
+            away from their defaults (herding has no such options), if
+            Julia rejects the arguments (e.g. `ratio` outside (0, 1)), or if
+            `weights` has the wrong length, a negative or non-finite entry,
+            or sums to zero.
     """
     if method not in ('support_points', 'herding'):
         msg = f"method must be 'support_points' or 'herding', got {method!r}"
@@ -126,6 +142,7 @@ def datasplit(
 
     jl = julia()
     julia_data = to_julia_data(data)
+    julia_weights = to_weights(weights)
     kernel_obj = build_kernel(jl, kernel, bandwidth)
     rng = build_rng(jl, seed)
 
@@ -144,7 +161,7 @@ def datasplit(
         splitter_kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
         with _translate_error():
             splitter = jl.HerdingSplitter(**splitter_kwargs)
-            result = jl.datasplit(splitter, julia_data)
+            result = jl.datasplit(splitter, julia_data, **_weights_kwarg(julia_weights))
     else:
         splitter_kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
         splitter_kwargs['kappa'] = kappa
@@ -152,7 +169,7 @@ def datasplit(
         splitter_kwargs['tolerance'] = tolerance
         with _translate_error():
             splitter = jl.SupportPointSplitter(**splitter_kwargs)
-            result = jl.datasplit(splitter, julia_data)
+            result = jl.datasplit(splitter, julia_data, **_weights_kwarg(julia_weights))
 
     return _to_split_result(jl, result, method, kernel, ratio)
 

@@ -73,6 +73,42 @@ def to_matrix(data: DataLike) -> np.ndarray:
     return array
 
 
+def to_weights(weights: DataLike | None) -> np.ndarray | None:
+    """Convert a sample-weights argument to a 1-D ``float64`` vector.
+
+    Args:
+        weights: A 1-D array-like with one entry per row, or ``None``.
+
+    Returns:
+        A contiguous ``numpy.ndarray`` of ``float64``, or ``None`` when
+        `weights` is ``None`` (callers omit the keyword in that case).
+        Validation of the values themselves (length, sign, finiteness)
+        happens in Julia and surfaces as ``ValueError``.
+
+    Raises:
+        ValueError: If `weights` is not one-dimensional.
+    """
+    if weights is None:
+        return None
+    array = np.ascontiguousarray(np.asarray(weights, dtype=np.float64))
+    if array.ndim != 1:
+        msg = f'weights must be 1-D, got {array.ndim}-D'
+        raise ValueError(msg)
+    return array
+
+
+def _weights_kwarg(weights: np.ndarray | None) -> dict[str, np.ndarray]:
+    """Keyword arguments carrying `weights`, empty when it is ``None``.
+
+    Args:
+        weights: A converted weights vector, or ``None``.
+
+    Returns:
+        ``{'weights': weights}`` or ``{}``.
+    """
+    return {} if weights is None else {'weights': weights}
+
+
 def _dataframe_to_julia(df: DataLike) -> JuliaValue:
     """Build a Julia ``DataFrame`` from a pandas DataFrame, column by column.
 
