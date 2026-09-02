@@ -39,6 +39,9 @@ output-matching tests. The design record is
   are accepted.
 - All randomness goes through the caller's `rng`; nothing in `src/` seeds or
   prints on a default path.
+- `GaussianKernel` has no `kappa` mode; its `:median` bandwidth is resolved
+  at `datasplit` time and the resolved kernel is stored in
+  `result.method.kernel`.
 
 ## Workflow
 

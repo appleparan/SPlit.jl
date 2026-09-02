@@ -3,8 +3,6 @@ using Documenter
 
 DocMeta.setdocmeta!(SPlit, :DocTestSetup, :(using SPlit); recursive = true)
 
-const page_rename = Dict("developer.md" => "Developer docs") # Without the numbers
-
 makedocs(;
   modules = [SPlit],
   authors = "Jongsu Kim <jongsukim8@gmail.com> and contributors",

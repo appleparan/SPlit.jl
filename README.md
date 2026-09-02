@@ -72,14 +72,28 @@ whose `train_indices` and `test_indices` (also reachable via `data[result,
 :train]`/`data[result, :test]` indexing or `train, test = result`
 destructuring) partition the input rows.
 
+- `GaussianKernel(bandwidth = :median)`: support points minimize the squared
+  maximum mean discrepancy (Gretton et al., 2012) via projected gradient
+  descent with Armijo backtracking, instead of the energy-distance MM step.
+  It has no `kappa` mode; the resolved bandwidth is stored in
+  `result.method.kernel`.
+
 ### Quality diagnostics
 
 `energydistance(X, Y)` computes the energy distance between two samples
-(exactly, or via random subsampling for large inputs). `splitquality(data,
-result)` applies it to the train/test partition of a `SplitResult`, switching
-to the subsampled estimator automatically once the row count crosses a
-threshold — lower values indicate a split whose two sides are more alike in
+(exactly, or via random subsampling for large inputs). `mmd(X, Y, kernel)`
+generalizes this to any `SplitKernel` (the squared maximum mean discrepancy).
+`splitquality(data, result; kernel = EnergyKernel())` applies the matching
+statistic to the train/test partition of a `SplitResult`, switching to the
+subsampled estimator automatically once the row count crosses a threshold —
+lower values indicate a split whose two sides are more alike in
 distribution.
+
+```julia
+gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
+result = datasplit(gauss, data)
+splitquality(data, result; kernel = GaussianKernel())
+```
 
 ### Optimal ratio
 
@@ -116,6 +130,8 @@ the method/result pair with the lowest energy distance.
 2. Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 
 3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
+
+4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
 
 ## How to Cite
 
