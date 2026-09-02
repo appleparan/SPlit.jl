@@ -46,3 +46,19 @@ using DataFrames
     )
   end
 end
+
+@testset "compare with a quality kernel" begin
+  data = randn(MersenneTwister(50), 120, 2)
+  splitters = [
+    SupportPointSplitter(ratio = 0.2, max_iterations = 40, rng = MersenneTwister(51)),
+    SupportPointSplitter(ratio = 0.3, max_iterations = 40, rng = MersenneTwister(52)),
+  ]
+  c = compare(splitters, data; kernel = GaussianKernel(1.0))
+  @test c.kernel == GaussianKernel(1.0)
+  df = DataFrame(c)
+  @test "mmd" in names(df)
+  @test !("energy_distance" in names(df))
+  c0 = compare(splitters, data)
+  @test c0.kernel == EnergyKernel()
+  @test "energy_distance" in names(DataFrame(c0))
+end
