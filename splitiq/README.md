@@ -1,155 +1,117 @@
 # splitiq
 
-Optimal train/test splitting via support points, backed by SPlit.jl
+`splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl), a
+Julia package for optimal train/test splitting via support points. All computation runs in
+Julia through [juliacall](https://github.com/JuliaPy/PythonCall.jl); `splitiq` only converts
+data in and out and translates errors, so its results and guarantees are those of SPlit.jl.
 
-## Project Organization
+## Installation
 
-```plaintext
-splitiq/
-├── LICENSE            <- Open-source license if one is chosen
-├── README.md          <- The top-level README for developers using this project.
-├── mkdocs.yml         <- mkdocs-material configuration file.
-├── pyproject.toml     <- Project configuration file with package metadata for
-│                         splitiq and configuration for tools like ruff
-├── uv.lock            <- The lock file for reproducing the production environment, e.g.
-│                         generated with `uv sync`
-├── scripts            <- Release and helper scripts.
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-├── models             <- Trained and serialized models, model predictions, or model summaries
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-├── tests              <- Unit test files.
-└── src/splitiq   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes splitiq a Python module
-    ├── _version.py             <- Single source of the package version
-    ├── cli.py                  <- Default CLI program
+```bash
+pip install splitiq
 ```
 
-## For Developers
+Add the `pandas` extra for DataFrame input:
 
-### Whether to use `package`
-
-This determines if the project should be treated as a Python package or a "virtual" project.
-
-A `package` is a fully installable Python module,
-while a virtual project is not installable but manages its dependencies in the virtual environment.
-
-If you don't want to use this packaging feature,
-you can set `tool.uv.package = false` in the pyproject.toml file.
-This tells `uv` to handle your project as a virtual project instead of a package.
-
-### Install Python (3.14)
-
-```shell
-uv python install 3.14
+```bash
+pip install "splitiq[pandas]"
 ```
 
-### Pin Python version
+Python 3.12 or later is required.
 
-```shell
-uv python pin 3.14
+## Quick start
+
+```python
+import numpy as np
+import splitiq
+
+X = np.random.default_rng(1).standard_normal((1_000, 3))
+result = splitiq.datasplit(X, ratio=0.2, seed=2)
+
+train, test = result.apply(X)          # or X[result.train_indices], X[result.test_indices]
+splitiq.splitquality(X, result)        # energy distance between train and test; lower is better
+splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
 ```
 
-### Install packages with PyTorch + CUDA 13.0 (Ubuntu)
+`datasplit` also accepts a pandas DataFrame. `category` columns keep their category order;
+plain string/object columns are encoded using their sorted unique values as levels:
 
-```shell
-uv sync --extra cu130
+```python
+import pandas as pd
+
+df = pd.DataFrame({'x': X[:, 0], 'g': pd.Categorical(['a', 'b', 'c'] * (len(X) // 3))})
+result = splitiq.datasplit(df, ratio=0.2, seed=2)
+train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[result.test_indices]
 ```
 
-### Install packages without locking environments
+## API
 
-```shell
-uv sync --frozen
+| Function | Description |
+| --- | --- |
+| `datasplit(data, ratio=0.2, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed)` | Split `data` into train/test sets whose distributions match closely; returns a `SplitResult`. |
+| `SplitResult` | `train_indices`, `test_indices` (0-based numpy arrays), `converged`, `iterations`, `method`, `kernel`, `bandwidth`, `ratio`; `.apply(data)` returns `(train, test)`; supports `train_idx, test_idx = result`. |
+| `splitquality(data, result, *, kernel, bandwidth, estimator, exact_threshold, seed, n_threads)` | Discrepancy between the train and test rows of `data`; lower is better. |
+| `energydistance(x, y, *, estimator, seed, n_threads)` | Energy distance between two samples. |
+| `mmd(x, y, kernel='gaussian', *, bandwidth, estimator, seed, n_threads)` | Squared maximum mean discrepancy between two samples. |
+| `Exact()`, `Subsample(m, repeats=8)`, `RandomSlices(k)`, `RandomFeatures(D)` | Discrepancy estimators for `energydistance`/`mmd`/`splitquality`. |
+| `optimal_split_ratio(x, y, *, method='simple', degree=2)` | Optimal test-set fraction `gamma = 1 / (sqrt(p) + 1)`. |
+
+`method='support_points'` runs the Mak & Joseph (2018) / Joseph & Vakayil (2021) optimizer;
+`method='herding'` runs greedy kernel herding. Indices are 0-based. A Julia `ArgumentError`
+surfaces as a Python `ValueError`; other Julia errors propagate as `juliacall.JuliaError`.
+See the docstrings under `src/splitiq/` for the full argument reference, or build the API
+reference locally with `make docs`.
+
+## First call and threads
+
+Julia does not start when you `import splitiq`. It starts on the first call to `datasplit`,
+`splitquality`, or any other function that needs it. On that first call, `juliapkg` installs a
+compatible Julia (>= 1.10, via `juliaup`) if none is on the `PATH`, instantiates SPlit.jl from
+git, and precompiles it. This one-time step takes a few minutes. Later starts (a new process
+picking up the already-installed Julia and the precompiled package) take about two seconds.
+
+Julia runs single-threaded inside Python unless `PYTHON_JULIACALL_THREADS` (e.g. `auto`, or a
+number) is set in the environment before the first call. The `n_threads` keyword argument only
+limits parallelism within the threads Julia was started with; it cannot raise that count.
+
+## Versioning and releases
+
+The `splitiq` version tracks the SPlit.jl version (currently 0.5.0); `src/splitiq/juliapkg.json`
+pins SPlit.jl at the git tag `v<version>`. Pushing a `vX.Y.Z` release tag builds the versioned
+Julia documentation and, through the `PythonPublish` workflow, publishes `splitiq` to PyPI, so
+both releases come from one tag. There is no separate changelog or release script for the
+Python package.
+
+## Development
+
+From the `splitiq/` directory:
+
+```bash
+uv sync --group dev --group docs   # install dependencies
+make julia-dev                     # build .julia_dev/, developing SPlit.jl from this checkout
+make test                          # run pytest against .julia_dev/
+make format                        # ruff format
+make lint                          # ruff check --fix
+make typecheck                     # ty check
+make docs                          # mkdocs build --strict
+make build                         # uv build
 ```
 
-### Install dev packages, too
+`make julia-dev` runs `scripts/setup_julia_dev.sh`, which develops SPlit.jl from the repository
+checkout instead of the git-pinned revision in `juliapkg.json`, and pins `PythonCall` to the
+version `juliacall` itself requires. `make test` runs against that project by setting
+`PYTHON_JULIACALL_PROJECT`/`PYTHON_JULIACALL_EXE`.
 
-```shell
-uv sync --group dev --group docs --extra cu130
-```
-
-### Run tests
-
-```shell
-uv run pytest
-```
-
-### Linting
-
-```shell
-uv run ruff check --fix .
-```
-
-### Formatting
-
-```shell
-uv run ruff format
-```
-
-### Run pre-commit
-
-* Assume that `pre-commit` installed with `uv tool install pre-commit`
-
-```shell
-uvx pre-commit run --all-files
-```
-
-### Build package
-
-```shell
-uv build
-```
-
-### Serve Document
-
-```shell
-uv run mkdocs serve
-```
-
-### Build Document
-
-```shell
-uv run mkdocs build
-```
-
-### Check next version
-
-```shell
-uv run git-cliff --bumped-version
-```
-
-### Release
-
-Execute scripts
-
-```shell
-sh scripts/release.sh
-```
-
-What `release.sh` does:
-
-1. Read the current version with `uv version --short` and compute the next
-   version with `uv run git-cliff --bumped-version`.
-2. Set the new version with `uv version`, then regenerate `CHANGELOG.md` and
-   `RELEASE.md` with `git-cliff`.
-3. Update the lock file with `uv lock`.
-4. Commit `pyproject.toml`, `CHANGELOG.md`, `RELEASE.md`, `uv.lock` (and
-   `__init__.py`/`tests/test_version.py` if present) as
-   `chore(release): bump version to X`, push, tag `vX`, and push the tag.
+Pre-commit hooks are configured at the repository root and run from there
+(`uvx pre-commit run -a`), not from `splitiq/`.
 
 ## References
 
-* [Packaging Python Projects](https://packaging.python.org/tutorials/packaging-projects/)
-* [Python Packaging User Guide](https://packaging.python.org/)
+- Mak, S. & Joseph, V. R. (2018). Support points. *Annals of Statistics*, 46(6A).
+- Joseph, V. R. & Vakayil, A. (2021). SPlit: An optimal method for data splitting.
+  *Technometrics*, 63(4).
+- Joseph, V. R. (2022). Optimal ratio for data splitting. *Statistical Analysis and Data
+  Mining*, 15(4).
+- Chen, Y., Welling, M. & Smola, A. (2010). Super-samples from kernel herding. *UAI*.
 
 This project template is generated by [copier-modern-ml](https://github.com/appleparan/copier-modern-ml).

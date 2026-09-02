@@ -1,92 +1,68 @@
 # Contributing to splitiq
 
 Contributions are welcome, and they are greatly appreciated!
-Every little bit helps, and credit will always be given.
 
-## Table of Contents
+## How to contribute
 
-1. [How to Contribute](#how-to-contribute)
-2. [Reporting Issues](#reporting-issues)
-3. [Creating a Pull Request (PR)](#creating-a-pull-request-pr)
-4. [Coding Style Guidelines](#coding-style-guidelines)
-5. [Writing Tests](#writing-tests)
-6. [Other Contributions](#other-contributions)
-
-## How to Contribute
-
-1. Fork the repository and clone it to your local machine:
+1. Fork [SPlit.jl](https://github.com/appleparan/SPlit.jl) and clone your fork:
 
     ```bash
-    git clone https://github.com/appleparan/SPlit.jl
+    git clone https://github.com/<your-username>/SPlit.jl
+    cd SPlit.jl/splitiq
     ```
 
 2. Create a new branch for your changes:
 
     ```bash
-    git checkout -b feature/new-feature
+    git checkout -b feat/short-description
     ```
 
-3. Make your changes and commit them with a clear message with conventional commit:
+3. Install dependencies and build the local Julia dev project (needed before running tests):
 
     ```bash
-    git add .
-    git commit -m "feat: Add a clear and concise commit message"
+    uv sync --group dev --group docs
+    make julia-dev
     ```
 
-4. Push your changes to the remote repository:
+4. Make your changes, then run the checks below.
+
+5. Commit with a conventional-commit message and push your branch:
 
     ```bash
-    git push origin feature/new-feature
+    git commit -m "feat: add a clear and concise commit message"
+    git push origin feat/short-description
     ```
 
-5. Create a Pull Request (PR) on GitHub.
+6. Open a Pull Request against `appleparan/SPlit.jl` from your branch.
 
-## Reporting Issues
+## Reporting issues
 
-### Bug Reports
+Use the repository's [issue tracker](https://github.com/appleparan/SPlit.jl/issues) for bugs
+and feature requests. For bugs, include steps to reproduce; for features, explain the problem
+it would solve.
 
-- Use the **issue tracker** to report any bugs you find.
-- Provide as much detail as possible and steps to reproduce the issue.
-- If applicable, include screenshots or log files.
+## Checks before opening a PR
 
-### Feature Requests
+All commands below run from the `splitiq/` directory unless noted:
 
-- Use the **issue tracker** to suggest new features.
-- Explain what problem the feature would solve or why it would be beneficial.
+```bash
+make test        # pytest, against .julia_dev/ built by `make julia-dev`
+make lint         # ruff check --fix
+make format       # ruff format
+make typecheck    # ty check
+make docs         # mkdocs build --strict
+```
 
-## Creating a Pull Request (PR)
+Pre-commit hooks are configured at the repository root and must be run from there, not from
+`splitiq/`:
 
-- Use **Fork** to create a copy of the repository in your GitHub account, then make changes in a new branch.
-- Do not push changes directly to the `main` or `master` branch.
-- Before submitting a PR, ensure that your changes are adequately tested.
-- Provide a clear and detailed description of your changes in the PR title and description.
-- During the review process, you may be asked to make additional changes based on feedback.
+```bash
+cd .. && uvx pre-commit run -a
+```
 
-## Coding Style Guidelines
+## Coding style
 
-- Use 4 spaces for indentation.
-- Use clear and descriptive names for variables and functions.
-- Comment your code to explain the intent behind complex sections.
+Follow the conventions already in `src/splitiq/`: type hints and Google-style docstrings on
+public functions, single quotes, 100-character lines (enforced by `ruff format`/`ruff check`).
 
-## Writing Tests
-
-- When adding new features or fixing bugs, please include relevant tests.
-- Tests should be written using `pytest`.
-- Run tests to ensure they pass:
-
-    ```bash
-    uv run pytest
-    ```
-
-## Other Contributions
-
-- Documentation is a critical part of the project, and contributions to it are also welcomed.
-- Run `mkdocs` for documentation:
-
-    ```bash
-    uv run mkdocs build
-    ```
-
-- Please adhere to the project's Code of Conduct.
-
-Thank you! Your contributions make this project better for everyone.
+Thank you for contributing.

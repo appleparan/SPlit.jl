@@ -58,6 +58,18 @@ splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
 ```
 
+## Python
+
+The same implementation is available from Python as
+[`splitiq`](splitiq/README.md), a `juliacall` wrapper that keeps Julia as the
+only implementation:
+
+```python
+import splitiq
+result = splitiq.datasplit(X, ratio=0.2, seed=2)
+train, test = result.apply(X)
+```
+
 ## API reference
 
 ### Splitting

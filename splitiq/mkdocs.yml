@@ -64,7 +64,7 @@ theme:
 
     # Navigation:
     #
-    #- navigation.expand      # Expand all collapsable sections.
+    #- navigation.expand      # Expand all collapsible sections.
     #- navigation.instant     # Instant loading pages.
     - navigation.indexes # Attach pages directly to Sections. Incompatible with "toc.integrate"
     - navigation.sections # Render top sections as groups.
@@ -104,12 +104,6 @@ theme:
 
 #extra_css:
 
-extra_javascript:
-  - https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?version=4.8.0
-  - javascripts/mermaid-init.js
-  - javascripts/mathjax-init.js # Load mathjax-init.js before loading MathJax itself
-  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
-
 validation:
   links:
     absolute_links: relative_to_docs # Absolute links are relative to the docs directory.
@@ -147,9 +141,6 @@ markdown_extensions:
       permalink: true
 
   # Python Markdown Extensions
-  ## MathJax
-  - pymdownx.arithmatex:
-      generic: true
   ## Improve detection of Markup to emphasize text
   - pymdownx.betterem:
       smart_enable: all
@@ -169,18 +160,14 @@ markdown_extensions:
       line_spans: __span
   ## Add support for inline highlight
   - pymdownx.inlinehilite
-  ## Add support for redering keys
+  ## Add support for rendering keys
   - pymdownx.keys
   ## Add support for markdown extra <mark> tag
   - pymdownx.mark
   ## Add support for converting some sequences of characters into their corresponding symbols
   - pymdownx.smartsymbols
   ## Add support for highlighting code blocks
-  - pymdownx.superfences:
-      custom_fences:
-        - name: mermaid
-          class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.superfences
   ## Add support for including content from other files (README <-> docs dedupe)
   - pymdownx.snippets:
       check_paths: true
@@ -197,7 +184,6 @@ nav:
   - Home: index.md
   - Overview: overview.md
   - Getting Started: getting-started.md
-  - Corporate network: enterprise-network.md
   - API Reference: reference/
 
 plugins:
