@@ -12,10 +12,13 @@
 # `support points · gaussian` — `datasplit` resolves the `:median` bandwidth
 # from the splitter's `rng` before `_initial_points` draws from it, so its
 # initial sample is a different draw than the fresh-`rng` one used elsewhere
-# in this script. Writes `docs/src/assets/benchmarks/rounding.md`. Run:
+# in this script. Writes `docs/src/assets/benchmarks/rounding.md` and
+# `docs/src/assets/benchmarks/rounding.png` (fraction of the initial
+# sample's rows kept by `support points · gaussian` and `support points ·
+# energy`, one panel per N). Run:
 # `julia -t auto --project=benchmark benchmark/rounding.jl`.
 
-using SPlit, DataFrames, Distributions, Random, Statistics
+using SPlit, DataFrames, Distributions, Random, Statistics, CairoMakie
 
 include(joinpath(@__DIR__, "datasets.jl"))
 
@@ -444,3 +447,45 @@ open(out_path, "w") do io
   println(io, spacing)
 end
 println("\nWrote ", out_path)
+
+# ---- figure: fraction of the initial sample's rows kept after rounding,
+# one panel per N, grouped by dataset, for the two `support points ·
+# gaussian`/`support points · energy` methods (the ones the main table in
+# `run.jl` reports).
+function kept_fraction(rows, dataset, N, method)
+  r =
+    only(filter(row -> row.dataset == dataset && row.N == N && row.method == method, rows))
+  kept, total = parse.(Int, split(r.rows_kept, "/"))
+  return kept / total
+end
+
+dataset_order = unique(r.dataset for r in rows)
+sp_methods = ["support points · energy", "support points · gaussian"]
+sp_colors = Makie.wong_colors()[1:2]
+ns = unique(r.N for r in rows)
+
+fig4 = Figure(size = (900, 400))
+for (j, N) in enumerate(ns)
+  ax = Axis(
+    fig4[1, j],
+    title = "N = $N",
+    xticks = (1:length(dataset_order), dataset_order),
+    ylabel = j == 1 ? "rows kept from initial sample" : "",
+    limits = (nothing, (0, 1)),
+  )
+  for (k, m) in enumerate(sp_methods)
+    fracs = [kept_fraction(rows, d, N, m) for d in dataset_order]
+    barplot!(
+      ax,
+      (1:length(dataset_order)) .+ (k == 1 ? -0.2 : 0.2),
+      fracs;
+      width = 0.4,
+      color = sp_colors[k],
+      label = m,
+    )
+  end
+  j == 1 && axislegend(ax; position = :rt)
+end
+fig_path = joinpath(OUT, "rounding.png")
+save(fig_path, fig4; px_per_unit = 2)
+println("Wrote ", fig_path)
