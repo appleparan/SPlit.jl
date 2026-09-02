@@ -1,5 +1,7 @@
 using SPlit, DataFrames, Distributions, Random, Statistics, CairoMakie
 
+include(joinpath(@__DIR__, "datasets.jl"))
+
 const QUICK = "--quick" in ARGS
 const OUT = let i = findfirst(==("--out"), ARGS)
   i === nothing ? joinpath(@__DIR__, "..", "docs", "src", "assets", "benchmarks") : ARGS[i+1]
@@ -7,15 +9,6 @@ end
 mkpath(OUT)
 
 sizes() = QUICK ? [200] : [1_000, 10_000]
-datasets(N, rng) = [
-  ("mixture-2d", let c = rand(rng, 1:4, N)
-    centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
-    centers[c, :] .+ randn(rng, N, 2)
-  end),
-  ("normal-10d", randn(rng, N, 10)),
-  ("uniform-5d", rand(rng, N, 5)),
-  ("t3-3d", rand(rng, TDist(3), N, 3)),
-]
 
 function methods(N; rng_seed::Int)
   big = N >= 10_000
