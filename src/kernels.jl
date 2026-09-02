@@ -5,9 +5,9 @@ Kernel types selecting the discrepancy that support points minimize.
 """
     SplitKernel
 
-Abstract supertype of kernels usable with [`SupportPointSplitter`](@ref).
-Each kernel defines the discrepancy between the support-point set and the
-data distribution that the optimizer minimizes.
+Abstract supertype of kernels usable with [`SupportPointSplitter`](@ref) and
+[`HerdingSplitter`](@ref). Each kernel defines the discrepancy between the
+selected subset and the data distribution that the splitter minimizes.
 """
 abstract type SplitKernel end
 
@@ -61,7 +61,9 @@ GaussianKernel() = GaussianKernel(:median)
 """
     kernelvalue(kernel, u, v) -> Float64
 
-Evaluate the kernel at two points (vectors of equal length).
+Evaluate the kernel at two points (vectors of equal length). For
+`EnergyKernel` the value is `−‖u − v‖`, the (conditionally negative
+definite) kernel whose MMD² is the energy distance.
 """
 function kernelvalue(k::GaussianKernel{Float64}, u::AbstractVector, v::AbstractVector)
   s = 0.0
@@ -69,6 +71,14 @@ function kernelvalue(k::GaussianKernel{Float64}, u::AbstractVector, v::AbstractV
     s += (u[j] - v[j])^2
   end
   return exp(-s / (2 * k.bandwidth^2))
+end
+
+function kernelvalue(::EnergyKernel, u::AbstractVector, v::AbstractVector)
+  s = 0.0
+  @inbounds for j in eachindex(u, v)
+    s += (u[j] - v[j])^2
+  end
+  return -sqrt(s)
 end
 
 """

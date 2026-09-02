@@ -77,6 +77,16 @@ destructuring) partition the input rows.
   descent with Armijo backtracking, instead of the energy-distance MM step.
   It has no `kappa` mode; the resolved bandwidth is stored in
   `result.method.kernel`.
+- `HerdingSplitter`: builds the smaller subset directly by greedy kernel
+  herding (Chen, Welling & Smola, 2010) instead of computing support
+  points, under either `EnergyKernel` or `GaussianKernel`. It is
+  deterministic given the data and a numeric kernel, with an exact
+  (`O(N²)`) data term at every dataset size.
+
+```julia
+herding = HerdingSplitter(kernel = EnergyKernel(), rng = MersenneTwister(2))
+result = datasplit(herding, data)
+```
 
 ### Quality diagnostics
 
@@ -104,10 +114,17 @@ intercept).
 
 ### Comparison
 
-`compare(methods, data)` runs several `SupportPointSplitter` configurations
-on the same data and scores each with `splitquality`, returning a
+`compare(methods, data)` runs several splitter configurations
+(`SupportPointSplitter` or `HerdingSplitter`) on the same data and scores
+each with `splitquality`, returning a
 `SplitComparison` (convertible to a `DataFrame`); `best(comparison)` returns
 the method/result pair with the lowest energy distance.
+
+### Benchmarks
+
+See the [Benchmarks](docs/src/20-benchmarks.md)
+page for how `SupportPointSplitter` and `HerdingSplitter` compare across
+kernels and dataset sizes.
 
 ## Algorithm Details
 
@@ -132,6 +149,8 @@ the method/result pair with the lowest energy distance.
 3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
 
 4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
+
+5. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 
 ## How to Cite
 

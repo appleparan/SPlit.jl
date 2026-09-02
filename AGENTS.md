@@ -47,6 +47,10 @@ output-matching tests. The design record is
   bandwidth then. Choose `σ` on the scale of the standardized data (`:median`
   does this), since a bandwidth far below the row spacing makes the
   objective flat and the optimizer stops at the initial sample.
+- `HerdingSplitter` is deterministic given the data and a numeric kernel;
+  `rng` only feeds a `:median` bandwidth. Its data term is exact (`O(N²)`);
+  there is no subsampled mode. `SplitResult.iterations` is the number of
+  selections.
 
 ## Workflow
 

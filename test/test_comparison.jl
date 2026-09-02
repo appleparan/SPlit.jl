@@ -21,6 +21,7 @@ using DataFrames
     df = DataFrame(c)
     @test nrow(df) == 2
     @test Set(names(df)) == Set([
+      "method",
       "kernel",
       "ratio",
       "train",
@@ -29,6 +30,7 @@ using DataFrames
       "iterations",
       "energy_distance",
     ])
+    @test all(==("SupportPointSplitter"), df.method)
     @test df.test == [30, 45]
   end
 
@@ -94,4 +96,23 @@ end
   @test c.qualities == expected
   m, r = best(c)
   @test r === c.results[argmin(c.qualities)]
+end
+
+@testset "SplitComparison accepts any AbstractSplitter" begin
+  @test fieldtype(SplitComparison, :methods) == Vector{AbstractSplitter}
+end
+
+@testset "compare mixes splitter types" begin
+  data = randn(MersenneTwister(70), 150, 2)
+  splitters = AbstractSplitter[
+    SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(71)),
+    HerdingSplitter(kernel = EnergyKernel()),
+    HerdingSplitter(kernel = GaussianKernel(1.0)),
+  ]
+  c = compare(splitters, data)
+  df = DataFrame(c)
+  @test df.method == ["SupportPointSplitter", "HerdingSplitter", "HerdingSplitter"]
+  @test df.kernel == ["EnergyKernel", "EnergyKernel", "GaussianKernel"]
+  m, r = best(c)
+  @test m === r.method
 end

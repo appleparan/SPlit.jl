@@ -80,6 +80,36 @@ the median pairwise distance over (a sample of) the standardized rows
 `result.method.kernel`. The stochastic `kappa` mode is not available for
 this kernel.
 
+## Kernel herding
+
+`HerdingSplitter` builds the smaller subset row by row. With data
+``x_1, \dots, x_N`` and rows ``s_1, \dots, s_T`` already selected, the next
+row is (Chen, Welling & Smola, 2010, Eq. 8, applied to the empirical
+distribution and restricted to unselected rows)
+
+```math
+s_{T+1} = \arg\max_{x \notin \{s_1,\dots,s_T\}}
+  \; \frac{1}{N} \sum_{l=1}^{N} k(x, x_l) \;-\; \frac{1}{T+1} \sum_{t=1}^{T} k(x, s_t).
+```
+
+Appending ``x`` changes the MMD² between the selected rows and the data by
+
+```math
+\Delta(x) = \frac{k(x,x)}{(T+1)^2} + \frac{2}{(T+1)^2} \sum_{t=1}^{T} k(x, s_t)
+  - \frac{2}{(T+1)N} \sum_{l=1}^{N} k(x, x_l) + \text{const},
+```
+
+so for kernels with constant ``k(x, x)`` — the Gaussian kernel (``1``) and the
+energy kernel ``k(u,v) = -\|u - v\|`` (``0``) — the herding choice is exactly
+the greedy MMD² (energy-distance) minimizer. For the Gaussian kernel (a
+bounded feature map), the error ``\mathcal{E}_T`` of Eq. (9) decreases as
+``O(1/T)`` (Proposition 1); for the energy kernel only the greedy-step
+equivalence with MMD²/energy-distance minimization above is claimed, not the
+``O(1/T)`` rate. `herd` computes the exact data term once (``O(N^2)``) and
+maintains the running sum over selected rows in ``O(N)`` per selection, for a
+total cost of ``O(N^2 + nN)``; the procedure is deterministic for a numeric
+kernel.
+
 ## Nearest-neighbor assignment
 
 Each support point, in order, claims its nearest not-yet-claimed data row
@@ -102,6 +132,7 @@ columns plus one.
 
 ## References
 
+- Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109–116.
 - Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *JMLR*, 13, 723–773.
 - Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 537–546.
 - Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492–502.

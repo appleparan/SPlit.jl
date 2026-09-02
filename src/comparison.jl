@@ -14,7 +14,7 @@ bandwidth resolved from the data), their results, their
 index-aligned.
 """
 struct SplitComparison
-  methods::Vector{SupportPointSplitter}
+  methods::Vector{AbstractSplitter}
   results::Vector{SplitResult}
   qualities::Vector{Float64}
   kernel::SplitKernel
@@ -31,7 +31,7 @@ preprocessed data with `rng` and the resolved kernel is stored in the
 comparison. Remaining keyword arguments are forwarded to `splitquality`.
 """
 function compare(
-  methods::Vector{<:SupportPointSplitter},
+  methods::Vector{<:AbstractSplitter},
   data;
   kernel::SplitKernel = EnergyKernel(),
   rng::AbstractRNG = Random.default_rng(),
@@ -46,12 +46,14 @@ end
 """
     DataFrame(comparison::SplitComparison) -> DataFrame
 
-One row per splitter: kernel, ratio, subset sizes, convergence report, and
-the discrepancy score (`energy_distance` or `mmd`, lower is better).
+One row per splitter: method, kernel, ratio, subset sizes, convergence
+report, and the discrepancy score (`energy_distance` or `mmd`, lower is
+better).
 """
 function DataFrames.DataFrame(c::SplitComparison)
   score = c.kernel isa EnergyKernel ? :energy_distance : :mmd
   return DataFrame(
+    :method => [string(nameof(typeof(m))) for m in c.methods],
     :kernel => [string(nameof(typeof(m.kernel))) for m in c.methods],
     :ratio => [m.ratio for m in c.methods],
     :train => [length(r.train_indices) for r in c.results],

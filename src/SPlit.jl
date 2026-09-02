@@ -5,12 +5,13 @@ include("preprocessing.jl")
 include("optimizer.jl")
 include("kdtree_selection.jl")
 include("splitter.jl")
+include("herding.jl")
 include("quality.jl")
 include("ratio.jl")
 include("comparison.jl")
 
 export SplitKernel, EnergyKernel, GaussianKernel
-export SupportPointSplitter, SplitResult, datasplit
+export AbstractSplitter, SupportPointSplitter, HerdingSplitter, SplitResult, datasplit
 export train_indices, test_indices
 export energydistance, mmd, splitquality
 export optimal_split_ratio
