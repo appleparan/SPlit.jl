@@ -6,7 +6,6 @@ Which estimator/kernel combinations exist is expressed by method dispatch.
 
 using LinearAlgebra: norm
 using Random
-using Statistics: mean, median
 
 """
     DiscrepancyEstimator
@@ -102,7 +101,8 @@ function _project_directions(rng::AbstractRNG, p::Int, k::Int)
 end
 
 # Mean |a_i − a_j| over all ordered pairs of one sample (V-statistic, zero
-# diagonal included), from the sorted sample: Σ_{i<j}(a_(j) − a_(i)) = Σ_i (2i − n − 1) a_(i).
+# diagonal included), from the sorted sample:
+# Σ_{i<j}(a_(j) − a_(i)) = Σ_i (2i − n − 1) a_(i).
 function _within_mean_abs(sorted::AbstractVector{<:Real})
   n = length(sorted)
   s = 0.0

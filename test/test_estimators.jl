@@ -46,13 +46,21 @@ end
   X = randn(rng, 300, 3)
   Y = randn(rng, 200, 3) .+ 0.5
   exact = energydistance(X, Y)
-  errs = [
-    abs(
-      energydistance(X, Y; estimator = RandomSlices(k), rng = MersenneTwister(2)) - exact,
-    ) for k in (16, 64, 256)
-  ]
-  @test errs[3] < errs[1]
-  @test errs[3] < 0.05 * exact
+  ks = (16, 64, 256)
+  mean_err = map(ks) do k
+    mean(
+      abs(
+        energydistance(
+          X,
+          Y;
+          estimator = RandomSlices(k),
+          rng = MersenneTwister(1_000 + t),
+        ) - exact,
+      ) for t = 1:20
+    )
+  end
+  @test mean_err[3] < 0.5 * mean_err[1]
+  @test mean_err[3] < 0.1 * exact
   @test energydistance(X, Y; estimator = RandomSlices(64), rng = MersenneTwister(1)) ==
         energydistance(X, Y; estimator = RandomSlices(64), rng = MersenneTwister(1))
   # p == 1 is exact for any k
