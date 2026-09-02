@@ -42,6 +42,11 @@ output-matching tests. The design record is
 - `GaussianKernel` has no `kappa` mode; its `:median` bandwidth is resolved
   at `datasplit` time and the resolved kernel is stored in
   `result.method.kernel`.
+- `:median` fails with an `ArgumentError` when at least half of all row
+  pairs coincide (e.g. a single binary categorical column) — pass a numeric
+  bandwidth then. Choose `σ` on the scale of the standardized data (`:median`
+  does this), since a bandwidth far below the row spacing makes the
+  objective flat and the optimizer stops at the initial sample.
 
 ## Workflow
 

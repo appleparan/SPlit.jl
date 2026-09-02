@@ -92,7 +92,7 @@ distribution.
 ```julia
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
 result = datasplit(gauss, data)
-splitquality(data, result; kernel = GaussianKernel())
+splitquality(data, result; kernel = result.method.kernel)   # MMD under the fitted kernel
 ```
 
 ### Optimal ratio

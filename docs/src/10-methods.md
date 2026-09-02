@@ -54,8 +54,8 @@ For a kernel ``k`` the squared maximum mean discrepancy (Gretton et al.,
 
 `mmd` evaluates it (block-wise, with the same optional subsampling and the
 same bias caveat as `energydistance`). With ``k(u, v) = -\|u - v\|`` this is
-the energy distance, which is why `EnergyKernel` and `GaussianKernel` share
-one interface.
+the energy distance, which is why `mmd` covers both `EnergyKernel` and
+`GaussianKernel`.
 
 `GaussianKernel(σ)` uses ``k(u, v) = \exp\!\left(-\|u - v\|^2 / 2\sigma^2\right)``.
 Support points under it minimize, up to a constant,
@@ -106,3 +106,4 @@ columns plus one.
 - Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 537–546.
 - Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492–502.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562–2592.
+- Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249–1272.

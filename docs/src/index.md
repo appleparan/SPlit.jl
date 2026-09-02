@@ -49,7 +49,7 @@ backtracking; see [Methods](@ref methods) for both objectives.
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
 result = datasplit(gauss, data)
 result.method.kernel            # GaussianKernel with the resolved bandwidth
-splitquality(data, result; kernel = GaussianKernel())   # MMD under the same kernel
+splitquality(data, result; kernel = result.method.kernel)   # MMD under the fitted kernel
 ```
 
 ## API Reference
