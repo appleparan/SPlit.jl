@@ -122,7 +122,7 @@ the method/result pair with the lowest energy distance.
 
 ### Benchmarks
 
-See the [Benchmarks](https://appleparan.github.io/SPlit.jl/dev/20-benchmarks/)
+See the [Benchmarks](docs/src/20-benchmarks.md)
 page for how `SupportPointSplitter` and `HerdingSplitter` compare across
 kernels and dataset sizes.
 
