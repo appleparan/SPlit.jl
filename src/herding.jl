@@ -6,63 +6,35 @@ rows and the data (energy-distance minimization for `EnergyKernel`).
 """
 
 using Random
-using StatsBase: sample
 
-# d_i = mean over `rows` of k(x_i, x_l), for every row i; chunked over
-# threads. When `rows` is a strict subsample (kappa < N), the mean is
-# leave-self-out — skip l == i and divide by length(rows) − (i ∈ rows ? 1 :
-# 0) — so a row that was drawn into `rows` is not scored using its own
-# self-term k(x,x), which would otherwise bias the argmax toward sampled
-# rows. When `rows` spans every row (kappa = N or nothing), every row is "in
-# rows" identically, so there is no such asymmetry to correct and the mean
-# stays over all N rows including the self-term, matching Eq. (8) exactly.
-function _data_term(kernel::SplitKernel, X::Matrix{Float64}, rows, n_threads::Int)
+# d_i = mean over all N rows of k(x_i, x_l), for every row i (including the
+# self-term k(x_i, x_i), matching Eq. (8) exactly); chunked over threads.
+function _data_term(kernel::SplitKernel, X::Matrix{Float64}, n_threads::Int)
   N = size(X, 1)
   d = Vector{Float64}(undef, N)
-  n_rows = length(rows)
-  full = n_rows == N
-  inrows = falses(N)
-  if !full
-    for l in rows
-      inrows[l] = true
-    end
-  end
   chunks = collect(Iterators.partition(1:N, cld(N, max(1, n_threads))))
   @sync for chunk in chunks
     Threads.@spawn for i in chunk
       s = 0.0
-      @views for l in rows
-        (!full && l == i) && continue
+      @views for l = 1:N
         s += kernelvalue(kernel, X[i, :], X[l, :])
       end
-      d[i] = full ? s / n_rows : s / (n_rows - (inrows[i] ? 1 : 0))
+      d[i] = s / N
     end
   end
   return d
 end
 
 """
-    _kappa_rows(rng, N, kappa) -> Vector{Int}
-
-Sorted `kappa`-row subsample of `1:N`, drawn with `rng`, used by [`herd`](@ref)
-to estimate the data term.
-"""
-_kappa_rows(rng::AbstractRNG, N::Int, kappa::Int) =
-  sort!(sample(rng, 1:N, kappa; replace = false))
-
-"""
-    herd(kernel, X, n; kappa = nothing, n_threads = Threads.nthreads(),
-         rng = Random.default_rng()) -> Vector{Int}
+    herd(kernel, X, n; n_threads = Threads.nthreads()) -> Vector{Int}
 
 Select `n` rows of `X` by kernel herding: the first row maximizes the mean
 kernel value to the data, and each later row maximizes
 `mean_l k(x, x_l) − (1/(T+1)) Σ_t k(x, s_t)` over rows not yet selected
-(Chen, Welling & Smola 2010, Eq. 8). The mean is a leave-self-out mean over
-the other rows, so a row does not pick up its own `k(x,x)` self-term when it
-happens to be one of the rows averaged over. With `kappa`, this mean is
-estimated from `kappa` rows drawn with `rng`; otherwise the procedure is
-deterministic and `rng` is unused. Ties go to the lowest row index. Cost
-`O(N·|rows| + nN)`.
+(Chen, Welling & Smola 2010, Eq. 8). The data term is the exact mean over all
+`N` rows, including the self-term. The procedure is deterministic given the
+data and a numeric kernel; ties go to the lowest row index. Cost
+`O(N² + nN)`.
 
 # Examples
 
@@ -75,20 +47,14 @@ function herd(
   kernel::SplitKernel,
   X::Matrix{Float64},
   n::Int;
-  kappa::Union{Nothing,Int} = nothing,
   n_threads::Int = Threads.nthreads(),
-  rng::AbstractRNG = Random.default_rng(),
 )
   isresolved(kernel) ||
     throw(ArgumentError("kernel parameters must be resolved; call resolve first"))
   N = size(X, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
-  kappa === nothing ||
-    kappa > 0 ||
-    throw(ArgumentError("kappa must be positive, got $kappa"))
 
-  rows = (kappa === nothing || kappa >= N) ? (1:N) : _kappa_rows(rng, N, kappa)
-  d = _data_term(kernel, X, rows, n_threads)
+  d = _data_term(kernel, X, n_threads)
   c = zeros(N)
   used = falses(N)
   selected = Vector{Int}(undef, n)
@@ -113,14 +79,14 @@ function herd(
 end
 
 """
-    HerdingSplitter(; kernel = GaussianKernel(), ratio = 0.2, kappa = nothing,
+    HerdingSplitter(; kernel = GaussianKernel(), ratio = 0.2,
                       n_threads = Threads.nthreads(), rng = Random.default_rng())
 
 Split by greedy kernel herding (Chen, Welling & Smola 2010): the smaller
 subset is chosen row by row to minimize the MMD² (energy distance for
 `EnergyKernel`) to the whole data. Deterministic given the data and a numeric
-kernel; `rng` only drives the `kappa` subsample and a `:median` bandwidth.
-See [`herd`](@ref) for the rule and cost.
+kernel; `rng` only feeds a `:median` bandwidth. See [`herd`](@ref) for the
+rule and cost.
 
 # Examples
 
@@ -132,7 +98,6 @@ result = datasplit(HerdingSplitter(rng = MersenneTwister(2)), data)
 struct HerdingSplitter{K<:SplitKernel,R<:AbstractRNG} <: AbstractSplitter
   kernel::K
   ratio::Float64
-  kappa::Union{Nothing,Int}
   n_threads::Int
   rng::R
 end
@@ -140,17 +105,13 @@ end
 function HerdingSplitter(;
   kernel::SplitKernel = GaussianKernel(),
   ratio::Real = 0.2,
-  kappa::Union{Nothing,Int} = nothing,
   n_threads::Int = Threads.nthreads(),
   rng::AbstractRNG = Random.default_rng(),
 )
   ratio = Float64(ratio)
   0 < ratio < 1 || throw(ArgumentError("ratio must be in (0, 1), got $ratio"))
-  kappa === nothing ||
-    kappa > 0 ||
-    throw(ArgumentError("kappa must be positive, got $kappa"))
   n_threads > 0 || throw(ArgumentError("n_threads must be positive, got $n_threads"))
-  return HerdingSplitter(kernel, ratio, kappa, n_threads, rng)
+  return HerdingSplitter(kernel, ratio, n_threads, rng)
 end
 
 function datasplit(s::HerdingSplitter, data)
@@ -160,8 +121,8 @@ function datasplit(s::HerdingSplitter, data)
   0 < n_small < n_total ||
     throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
   kernel = resolve(s.kernel, X, s.rng)
-  fitted = HerdingSplitter(kernel, s.ratio, s.kappa, s.n_threads, s.rng)
-  small = herd(kernel, X, n_small; kappa = s.kappa, n_threads = s.n_threads, rng = s.rng)
+  fitted = HerdingSplitter(kernel, s.ratio, s.n_threads, s.rng)
+  small = herd(kernel, X, n_small; n_threads = s.n_threads)
   rest = setdiff(1:n_total, small)
   test, train = s.ratio <= 0.5 ? (small, rest) : (rest, small)
   return SplitResult(collect(train), collect(test), true, n_small, fitted)

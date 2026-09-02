@@ -48,8 +48,9 @@ output-matching tests. The design record is
   does this), since a bandwidth far below the row spacing makes the
   objective flat and the optimizer stops at the initial sample.
 - `HerdingSplitter` is deterministic given the data and a numeric kernel;
-  `rng` only feeds `kappa` subsampling and `:median`. `SplitResult.iterations`
-  is the number of selections.
+  `rng` only feeds a `:median` bandwidth. Its data term is exact (`O(N²)`);
+  there is no subsampled mode. `SplitResult.iterations` is the number of
+  selections.
 
 ## Workflow
 

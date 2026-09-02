@@ -103,14 +103,12 @@ so for kernels with constant ``k(x, x)`` — the Gaussian kernel (``1``) and the
 energy kernel ``k(u,v) = -\|u - v\|`` (``0``) — the herding choice is exactly
 the greedy MMD² (energy-distance) minimizer. For the Gaussian kernel (a
 bounded feature map), the error ``\mathcal{E}_T`` of Eq. (9) decreases as
-``O(1/T)`` (Proposition 1), also under approximate maximization
-(Corollary 2), which is what licenses estimating the data term from a
-`kappa`-row subsample; for the energy kernel only the greedy-step
+``O(1/T)`` (Proposition 1); for the energy kernel only the greedy-step
 equivalence with MMD²/energy-distance minimization above is claimed, not the
-``O(1/T)`` rate. `herd` computes the data term once
-(``O(N^2)``, or ``O(N\kappa)`` with `kappa`) and maintains the running sum
-over selected rows in ``O(N)`` per selection; the procedure is deterministic
-for a numeric kernel.
+``O(1/T)`` rate. `herd` computes the exact data term once (``O(N^2)``) and
+maintains the running sum over selected rows in ``O(N)`` per selection, for a
+total cost of ``O(N^2 + nN)``; the procedure is deterministic for a numeric
+kernel.
 
 ## Nearest-neighbor assignment
 

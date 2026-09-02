@@ -54,46 +54,17 @@ end
     end
   end
 
-  @testset "deterministic for a numeric kernel; kappa path reproducible" begin
+  @testset "deterministic regardless of n_threads" begin
     k = GaussianKernel(1.0)
-    a = SPlit.herd(k, X, 15; rng = MersenneTwister(1), n_threads = 1)
-    b = SPlit.herd(k, X, 15; rng = MersenneTwister(2), n_threads = 4)
+    a = SPlit.herd(k, X, 15; n_threads = 1)
+    b = SPlit.herd(k, X, 15; n_threads = 4)
     @test a == b
-    c1 = SPlit.herd(k, X, 15; kappa = 30, rng = MersenneTwister(5))
-    c2 = SPlit.herd(k, X, 15; kappa = 30, rng = MersenneTwister(5))
-    @test c1 == c2
-    @test length(unique(c1)) == 15
-    # kappa ≥ N is the exact path
-    @test SPlit.herd(k, X, 15; kappa = 80, rng = MersenneTwister(1)) == a
   end
 
   @testset "validation" begin
     @test_throws ArgumentError SPlit.herd(GaussianKernel(1.0), X, 0)
     @test_throws ArgumentError SPlit.herd(GaussianKernel(1.0), X, 81)
     @test_throws ArgumentError SPlit.herd(GaussianKernel(), X, 5)      # unresolved
-    @test_throws ArgumentError SPlit.herd(GaussianKernel(1.0), X, 5; kappa = 0)
-  end
-end
-
-@testset "herd with kappa" begin
-  @testset "kappa data term beats random subsets (leave-self-out mean)" begin
-    data = randn(MersenneTwister(120), 600, 2)
-    sel =
-      SPlit.herd(GaussianKernel(1.0), data, 120; kappa = 250, rng = MersenneTwister(121))
-    q = energydistance(data[sel, :], data)
-    random = [
-      energydistance(data[randperm(MersenneTwister(200 + i), 600)[1:120], :], data) for
-      i = 1:20
-    ]
-    @test q < mean(random)
-  end
-
-  @testset "kappa selections are not concentrated in the sampled rows" begin
-    data = randn(MersenneTwister(120), 600, 2)
-    sel =
-      SPlit.herd(GaussianKernel(1.0), data, 120; kappa = 150, rng = MersenneTwister(121))
-    rows = SPlit._kappa_rows(MersenneTwister(121), 600, 150)
-    @test count(in(rows), sel) <= 60
   end
 
   @testset "duplicate rows: lowest-index tie rule" begin
@@ -111,10 +82,9 @@ end
   @testset "construction and validation" begin
     s = HerdingSplitter()
     @test s isa AbstractSplitter
-    @test s.kernel == GaussianKernel() && s.ratio == 0.2 && s.kappa === nothing
+    @test s.kernel == GaussianKernel() && s.ratio == 0.2
     @test_throws ArgumentError HerdingSplitter(ratio = 0)
     @test_throws ArgumentError HerdingSplitter(ratio = 1)
-    @test_throws ArgumentError HerdingSplitter(kappa = 0)
     @test_throws ArgumentError HerdingSplitter(n_threads = 0)
     @test HerdingSplitter(ratio = 1 // 4).ratio == 0.25
   end

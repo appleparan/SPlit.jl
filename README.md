@@ -80,8 +80,8 @@ destructuring) partition the input rows.
 - `HerdingSplitter`: builds the smaller subset directly by greedy kernel
   herding (Chen, Welling & Smola, 2010) instead of computing support
   points, under either `EnergyKernel` or `GaussianKernel`. It is
-  deterministic given the data and a numeric kernel; `kappa` estimates the
-  data term from a row subsample for large datasets.
+  deterministic given the data and a numeric kernel, with an exact
+  (`O(N²)`) data term at every dataset size.
 
 ```julia
 herding = HerdingSplitter(kernel = EnergyKernel(), rng = MersenneTwister(2))

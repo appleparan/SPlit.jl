@@ -57,9 +57,7 @@ is deterministic; the whole procedure is deterministic given the kernel and
 the data (ties broken by the lowest row index).
 
 Proposition 1 gives $O(1/T)$ decrease of Eq. (9) when $\|\phi(x)\|$ is
-bounded (true for the Gaussian kernel); Corollary 2 keeps the rate under
-approximate maximization, which justifies estimating the data term from a
-row subsample (`kappa`).
+bounded (true for the Gaussian kernel).
 
 ## Architecture
 
@@ -78,24 +76,26 @@ accepts `Vector{<:AbstractSplitter}`. `datasplit`, `train_indices`,
 ### `HerdingSplitter` (`src/herding.jl`)
 
 ```julia
-HerdingSplitter(; kernel = GaussianKernel(), ratio = 0.2, kappa = nothing,
+HerdingSplitter(; kernel = GaussianKernel(), ratio = 0.2,
                   n_threads = Threads.nthreads(), rng = Random.default_rng())
 datasplit(::HerdingSplitter, data) -> SplitResult
 ```
 
-- `preprocess` → `resolve(kernel, X, rng)` → `herd(kernel, X, n_small; kappa,
-  n_threads, rng)` → the selected rows are the smaller subset (test when
+- `preprocess` → `resolve(kernel, X, rng)` → `herd(kernel, X, n_small;
+  n_threads)` → the selected rows are the smaller subset (test when
   `ratio ≤ 0.5`, train otherwise), exactly as for support points.
 - `SplitResult.converged = true`, `iterations = n_small` (one selection per
   iteration; the procedure always terminates).
-- `herd` computes the data term $d_i = \frac{1}{N}\sum_l k(x_i, x_l)$ for
-  every row once — $O(N^2)$, chunked over `n_threads` with block-wise
-  accumulation, no $N\times N$ matrix — or, with `kappa`, from `kappa` rows
-  drawn with `rng` — leave-self-out mean over `kappa` rows, unbiased for
-  every row and free of the self-term bias that would otherwise favor
-  sampled rows; Corollary 2. It then keeps a running
+- `herd` computes the exact data term $d_i = \frac{1}{N}\sum_l k(x_i, x_l)$
+  for every row once — $O(N^2)$, chunked over `n_threads` with block-wise
+  accumulation, no $N\times N$ matrix. It then keeps a running
   sum $c_i = \sum_t k(x_i, s_t)$ updated in $O(N)$ per selection. Total
-  $O(N^2 + nN)$ time, $O(N)$ extra memory.
+  $O(N^2 + nN)$ time, $O(N)$ extra memory. Large-N estimation of the data
+  term is deferred: a row-subsample reference is not candidate-symmetric (a
+  sampled row cannot reference itself while its unsampled neighbours
+  reference it), which measurably biases the selection; a
+  candidate-symmetric estimator (e.g. random Fourier features of the kernel
+  mean embedding) is a follow-up.
 - `EnergyKernel` gains `kernelvalue(k, u, v) = -\|u - v\|` so both kernels
   share the herding code; the energy kernel's `k(x,x)=0` keeps the greedy
   equivalence above.
@@ -120,7 +120,8 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
   `HerdingSplitter(GaussianKernel())`, random split (mean of 5 seeds).
 - Metrics per (dataset, method): energy distance and Gaussian-kernel MMD of
   the split (median-heuristic bandwidth resolved once per dataset), wall
-  time; support-point methods use `kappa = 1_000` at $N = 10{,}000$.
+  time; support-point energy-kernel uses `kappa = 1_000` at $N = 10{,}000$;
+  herding uses the exact data term at all sizes.
 - Output: a Markdown table on stdout plus figures written with CairoMakie
   (a dependency of the benchmark environment only, never of the package) to
   `docs/src/assets/benchmarks/`:
@@ -141,14 +142,13 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
 
 - `docs/src/10-methods.md`: new "Kernel herding" section — Eq. (8) on the
   empirical distribution, the $\Delta$ derivation above, the $O(1/T)$
-  statement, the `kappa` estimate, and the function names (`herd`,
-  `HerdingSplitter`).
+  statement, and the function names (`herd`, `HerdingSplitter`).
 - `docs/src/20-benchmarks.md`: as above, with the three figures embedded
   (`![…](assets/benchmarks/….png)`; Documenter copies `docs/src/assets`).
 - `docs/src/index.md`: a Splitters paragraph showing both splitters;
   README: one bullet and one snippet for `HerdingSplitter`; AGENTS.md: one
-  gotcha (herding is deterministic given the kernel; `rng` only feeds `kappa`
-  and `:median`).
+  gotcha (herding is deterministic given the kernel; `rng` only feeds a
+  `:median` bandwidth).
 - Docstrings with examples for `HerdingSplitter` and `herd`.
 
 ## Testing (paper-property style)
@@ -160,11 +160,11 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
 3. Optimality: herding splits beat random splits under both `mmd` and
    `energydistance` (both kernels).
 4. Determinism: same data and numeric kernel ⇒ identical indices regardless
-   of `rng` and `n_threads`; with `kappa`, same `rng` ⇒ identical indices.
+   of `rng` and `n_threads`.
 5. `compare` with a mixed vector of `SupportPointSplitter` and
    `HerdingSplitter`; `DataFrame` shows the `method` column; `best` works.
-6. Validation: `ratio`, `kappa`, unresolved kernel, unsupported kernel type
-   errors; `DataFrame`/vector inputs.
+6. Validation: `ratio`, unresolved kernel, unsupported kernel type errors;
+   `DataFrame`/vector inputs.
 7. Benchmark script smoke test: runs on tiny sizes (`--quick` flag), prints
    a table with the expected rows, and writes the three PNG files to a
    temporary output directory (`--out`).
