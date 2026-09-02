@@ -292,3 +292,58 @@ end
     @test_throws ArgumentError mmd(X, Y, GaussianKernel(1.0); weights_x = zeros(30))
   end
 end
+
+@testset "weighted RandomSlices and RandomFeatures" begin
+  rng = MersenneTwister(61)
+  X = randn(rng, 200, 3)
+  Y = randn(rng, 180, 3) .+ 0.4
+  Xdup = vcat(X[1:1, :], X)
+  wx = vcat([2.0], ones(199))
+
+  # same rng ⇒ same directions/features, so duplication invariance is exact
+  @test isapprox(
+    energydistance(
+      X,
+      Y;
+      weights_x = wx,
+      estimator = RandomSlices(32),
+      rng = MersenneTwister(5),
+    ),
+    energydistance(Xdup, Y; estimator = RandomSlices(32), rng = MersenneTwister(5));
+    atol = 1e-10,
+  )
+  @test energydistance(
+    X,
+    Y;
+    weights_x = ones(200),
+    estimator = RandomSlices(32),
+    rng = MersenneTwister(5),
+  ) == energydistance(X, Y; estimator = RandomSlices(32), rng = MersenneTwister(5))
+
+  k = GaussianKernel(1.2)
+  @test isapprox(
+    mmd(X, Y, k; weights_x = wx, estimator = RandomFeatures(256), rng = MersenneTwister(6)),
+    mmd(Xdup, Y, k; estimator = RandomFeatures(256), rng = MersenneTwister(6));
+    atol = 1e-10,
+  )
+
+  # weighted sliced estimate agrees with the weighted exact value
+  wr = rand(MersenneTwister(62), 200)
+  exact = energydistance(X, Y; weights_x = wr)
+  est = energydistance(
+    X,
+    Y;
+    weights_x = wr,
+    estimator = RandomSlices(512),
+    rng = MersenneTwister(7),
+  )
+  @test isapprox(est, exact; rtol = 0.2)
+
+  @test_throws ArgumentError energydistance(
+    X,
+    Y;
+    weights_x = wr,
+    estimator = RandomFeatures(8),
+  )
+  @test_throws ArgumentError mmd(X, Y, k; weights_x = wr, estimator = RandomSlices(8))
+end

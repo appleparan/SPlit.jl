@@ -265,6 +265,8 @@ function _mmd(e::Subsample, k, X, Y, wx, wy, rng, n_threads)
   end
   return mean(estimates)
 end
+_mmd(e::RandomFeatures, k::GaussianKernel{Float64}, X, Y, wx, wy, rng, n_threads) =
+  _rff_mmd(k, X, Y, wx, wy, e.D, rng)
 _mmd(e::DiscrepancyEstimator, k, X, Y, wx, wy, rng, n_threads) =
   _undefined(e, "mmd under $(nameof(typeof(k))) with weights")
 
@@ -354,6 +356,8 @@ function _energydistance(e::Subsample, X, Y, wx, wy, rng, n_threads)
   end
   return mean(estimates)
 end
+_energydistance(e::RandomSlices, X, Y, wx, wy, rng, n_threads) =
+  _sliced_energydistance(X, Y, wx, wy, e.k, rng)
 _energydistance(e::DiscrepancyEstimator, X, Y, wx, wy, rng, n_threads) =
   _undefined(e, "the energy distance with weights")
 

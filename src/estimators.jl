@@ -45,7 +45,9 @@ end
 Estimate an energy distance from `k` random one-dimensional projections
 (`rng`), each evaluated exactly by sorting: unbiased, `O(k (n + m) log(n + m))`.
 Defined for the energy kernel only. See the Methods page for the identity
-`E_θ |⟨θ, u⟩| = κ_p ‖u‖` behind it.
+`E_θ |⟨θ, u⟩| = κ_p ‖u‖` behind it. With sample weights the per-direction
+one-dimensional energy distance is weighted (prefix sums of the sorted
+weights).
 """
 struct RandomSlices <: DiscrepancyEstimator
   k::Int
@@ -60,7 +62,8 @@ end
 
 Estimate a Gaussian-kernel quantity with `D` random Fourier features
 (Rahimi & Recht 2007) drawn with `rng`: unbiased, `O((n + m) D p)`. Defined for
-`GaussianKernel` only.
+`GaussianKernel` only. With sample weights the feature means are weighted
+means.
 """
 struct RandomFeatures <: DiscrepancyEstimator
   D::Int
@@ -132,6 +135,62 @@ function _ed1d(a::AbstractVector{<:Real}, b::AbstractVector{<:Real})
   return 2 * _cross_mean_abs(sa, sb) - _within_mean_abs(sa) - _within_mean_abs(sb)
 end
 
+# Σ_{i,k} w_i w_k |a_i − a_k| for a sorted sample `sorted` with weights `w`
+# aligned to it: Σ_{i<k} w_i w_k (a_k − a_i) = Σ_k w_k (a_k W_{k−1} − A_{k−1})
+# with W, A the prefix sums of w and w·a; doubled for ordered pairs.
+function _weighted_within_abs(sorted::AbstractVector{<:Real}, w::AbstractVector{<:Real})
+  W = 0.0
+  A = 0.0
+  s = 0.0
+  @inbounds for k in eachindex(sorted, w)
+    s += w[k] * (sorted[k] * W - A)
+    W += w[k]
+    A += w[k] * sorted[k]
+  end
+  return 2s
+end
+
+# Σ_{i,j} w_i v_j |a_i − b_j| with `a` sorted and `w` aligned to it, via
+# prefix sums of w and w·a; `b` need not be sorted.
+function _weighted_cross_abs(
+  a::AbstractVector{<:Real},
+  w::AbstractVector{<:Real},
+  b::AbstractVector{<:Real},
+  v::AbstractVector{<:Real},
+)
+  n = length(a)
+  W = cumsum(w)
+  A = cumsum(w .* a)
+  Wn = W[n]
+  An = A[n]
+  total = 0.0
+  @inbounds for j in eachindex(b, v)
+    y = b[j]
+    r = searchsortedlast(a, y)
+    Wr = r == 0 ? 0.0 : W[r]
+    Ar = r == 0 ? 0.0 : A[r]
+    total += v[j] * ((y * Wr - Ar) + ((An - Ar) - y * (Wn - Wr)))
+  end
+  return total
+end
+
+# Weighted one-dimensional energy distance, weights scaled to sum one.
+function _ed1d(
+  a::AbstractVector{<:Real},
+  w::AbstractVector{<:Real},
+  b::AbstractVector{<:Real},
+  v::AbstractVector{<:Real},
+)
+  pa = sortperm(a)
+  pb = sortperm(b)
+  sa = Float64.(a[pa])
+  sb = Float64.(b[pb])
+  wa = w[pa]
+  vb = v[pb]
+  return 2 * _weighted_cross_abs(sa, wa, sb, vb) - _weighted_within_abs(sa, wa) -
+         _weighted_within_abs(sb, vb)
+end
+
 # Sliced energy distance: κ_p^{-1} · mean over k directions of ED_1(Xθ, Yθ).
 function _sliced_energydistance(
   X::AbstractMatrix,
@@ -147,6 +206,24 @@ function _sliced_energydistance(
     u = X * θ
     v = Y * θ
     total += _ed1d(u, v)
+  end
+  return total / (k * sphere_constant(p))
+end
+
+function _sliced_energydistance(
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  wx::AbstractVector{Float64},
+  wy::AbstractVector{Float64},
+  k::Int,
+  rng::AbstractRNG,
+)
+  p = size(X, 2)
+  Θ = _project_directions(rng, p, k)
+  total = 0.0
+  for j = 1:k
+    θ = view(Θ, :, j)
+    total += _ed1d(X * θ, wx, Y * θ, wy)
   end
   return total / (k * sphere_constant(p))
 end
@@ -187,6 +264,24 @@ function _feature_mean(φ::FourierFeatureMap, X::AbstractMatrix; block::Int = 4_
   return (φ.scale / n) .* acc
 end
 
+# Weighted feature mean Σᵢ wᵢ z(xᵢ), weights scaled to sum one, block-wise.
+function _feature_mean(
+  φ::FourierFeatureMap,
+  X::AbstractMatrix,
+  w::AbstractVector{Float64};
+  block::Int = 4_096,
+)
+  D = length(φ.b)
+  n = size(X, 1)
+  acc = zeros(D)
+  for i0 = 1:block:n
+    i1 = min(i0 + block - 1, n)
+    @views Z = cos.(X[i0:i1, :] * φ.W' .+ φ.b')      # (rows × D)
+    @views acc .+= Z' * w[i0:i1]
+  end
+  return φ.scale .* acc
+end
+
 # Unbiased random-Fourier-features estimate of squared Gaussian MMD:
 # ‖z̄_X − z̄_Y‖².
 function _rff_mmd(
@@ -198,4 +293,17 @@ function _rff_mmd(
 )
   φ = FourierFeatureMap(k, size(X, 2), D, rng)
   return sum(abs2, _feature_mean(φ, X) .- _feature_mean(φ, Y))
+end
+
+function _rff_mmd(
+  k::GaussianKernel{Float64},
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  wx::AbstractVector{Float64},
+  wy::AbstractVector{Float64},
+  D::Int,
+  rng::AbstractRNG,
+)
+  φ = FourierFeatureMap(k, size(X, 2), D, rng)
+  return sum(abs2, _feature_mean(φ, X, wx) .- _feature_mean(φ, Y, wy))
 end
