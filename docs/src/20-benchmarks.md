@@ -16,7 +16,11 @@ are compared per (dataset, ``N``): `SupportPointSplitter(EnergyKernel())`,
 At ``N = 10{,}000`` the support-point methods use `kappa = 1_000`
 (energy kernel) and a lower `max_iterations = 100` (Gaussian kernel, which
 has no stochastic mode) to keep wall time reasonable; the herding methods
-use `kappa = 2_000` at that size.
+use `kappa = 2_000` at that size. On `normal-10d` and `uniform-5d` at that
+size, `support points · gaussian` converges after a single iteration
+(`result.converged == true`, ~1 s) rather than running the full
+100-iteration cap that `mixture-2d` and `t3-3d` use there (not converged,
+~40-45 s) — see "Reading the results" for why.
 
 For every (dataset, method) pair the script records the energy distance and
 the Gaussian-kernel MMD (median-heuristic bandwidth, resolved once per
@@ -100,16 +104,25 @@ overlaid, showing why the methods disagree on which rows to hold out.
 ## Reading the results
 
 `support points · energy` has the lowest or near-lowest energy distance in
-almost every row and stays reasonably fast (well under a second at
-``N = 1{,}000``, single-digit seconds at ``N = 10{,}000``). `herding ·
-gaussian` matches or beats it on MMD in several datasets (`normal-10d`,
-`uniform-5d`) at a small fraction of the cost, since herding has no
-iterative optimizer to run. `support points · gaussian` is consistently the
-slowest method in the table — up to 45 seconds at ``N = 10{,}000`` even with
-`max_iterations` already halved there — without a matching quality
-advantage. At ``N = 10{,}000`` the gap between every method and the random
-split narrows on MMD (the subsampled `splitquality` estimate above the
-4,000-row exact threshold adds its own noise), though energy distance still
-favors the optimized methods clearly. Recommendation: use `support points ·
-energy` as the default; reach for `herding · gaussian` when Gaussian-kernel
-MMD is the target metric or a deterministic, optimizer-free split is wanted.
+most rows, though at ``N = 1{,}000`` `herding · energy` is lower on
+`normal-10d` (0.00822 vs. 0.0229) and `uniform-5d` (0.00343 vs. 0.00392).
+`herding · gaussian` matches or beats `support points · energy` on MMD at
+``N = 1{,}000`` on `normal-10d` and `uniform-5d`, at a small fraction of the
+cost since herding has no iterative optimizer to run; at ``N = 10{,}000`` it
+falls behind on both (0.000431 vs. 0.000315 on `normal-10d`; 0.00049 vs.
+0.000373 on `uniform-5d`). `support points · gaussian` is the slowest
+method on `mixture-2d` and `t3-3d`, where it runs the full 100-iteration
+cap without converging (41-45 s at ``N = 10{,}000``); on `normal-10d` and
+`uniform-5d` it instead converges after one iteration, because with the
+median-heuristic bandwidth in 5-10 dimensions the initial random sample is
+already near-stationary for the MMD objective, so the optimizer stops right
+away — those two cells reflect an early stop (essentially a random sample),
+not a capped optimization, and their 0.46-0.49 s timings are not evidence
+of fast optimization. At ``N = 10{,}000``, energy distance favors the
+optimized methods on `mixture-2d` and `t3-3d`, while on `normal-10d` and
+`uniform-5d` every method is within noise of — or slightly behind — the
+random baseline on both metrics (the subsampled `splitquality` estimate
+above the 4,000-row exact threshold adds its own noise there). Recommendation:
+use `support points · energy` as the default; reach for `herding · gaussian`
+when Gaussian-kernel MMD is the target metric or a deterministic,
+optimizer-free split is wanted.
