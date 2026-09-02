@@ -73,7 +73,7 @@ end
     @test length(unique(sel)) == 5
     for (idx, s) in enumerate(sel)
       dups = findall(j -> Y[j, :] == Y[s, :], 1:60)
-      @test s == minimum(setdiff(dups, sel[1:idx-1]))
+      @test s == minimum(setdiff(dups, sel[1:(idx-1)]))
     end
   end
 end

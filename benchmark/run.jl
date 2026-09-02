@@ -140,7 +140,7 @@ for (j, N) in enumerate(sizes()), (i, dname) in enumerate(unique(rows.dataset))
     xticks = (1:5, ["SP·E", "SP·G", "H·E", "H·G", "rand"]),
     ylabel = i == 1 ? "discrepancy" : "",
   )
-  sub = rows[(rows.dataset.==dname).&(rows.N.==N), :]
+  sub = filter(r -> r.dataset == dname && r.N == N, rows)
   idx = [findfirst(==(m), sub.method) for m in methods_order]
   barplot!(
     ax,
@@ -173,7 +173,7 @@ ax2 = Axis(
 )
 for (m, col) in zip(methods_order[1:4], colors)
   for (di, dname) in enumerate(unique(rows.dataset))
-    sub = rows[(rows.method.==m).&(rows.dataset.==dname), :]
+    sub = filter(r -> r.method == m && r.dataset == dname, rows)
     isempty(sub) && continue
     label_kwargs = di == 1 ? (; label = m) : NamedTuple()
     scatterlines!(ax2, sub.N, max.(sub.seconds, 1e-4); color = col, label_kwargs...)
