@@ -70,8 +70,9 @@ f(\xi) = \frac{1}{n^2} \sum_{i,j} k(\xi_i, \xi_j)
 
 with ``\nabla_u k(u, v) = -k(u, v)\,(u - v)/\sigma^2``. The optimizer
 (`support_points(::GaussianKernel, …)`) takes projected gradient steps
-``\xi \leftarrow \operatorname{clamp}(\xi - t \nabla f)`` where ``t`` is chosen
-by Armijo backtracking, ``f(\xi_{\text{new}}) \le f(\xi) - 10^{-4}\, t\, \|\nabla f\|^2``,
+``\xi_{\text{new}} = \operatorname{clamp}(\xi - t \nabla f)`` where ``t`` is
+chosen by Armijo backtracking on the projected step,
+``f(\xi_{\text{new}}) \le f(\xi) - 10^{-4}\, \langle \nabla f, \xi - \xi_{\text{new}} \rangle``,
 starting from twice the previous accepted step; the objective therefore never
 increases across accepted steps. When `bandwidth = :median`, ``\sigma`` is
 the median pairwise distance over (a sample of) the standardized rows

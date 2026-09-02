@@ -266,8 +266,15 @@ function _mmd_gradient!(
   return G
 end
 
-# One projected-gradient step with Armijo backtracking. Returns the accepted
-# step size, or 0.0 if no step of the 30 tried decreased the objective.
+# One projected-gradient step with Armijo backtracking on the projected step:
+# ξ_new is ξ − tG clamped to the bounding box, and the accepted step size t
+# is the largest tried (starting from t0, halving) satisfying
+# f(ξ_new) ≤ f(ξ) − 1e-4 · ⟨G, ξ − ξ_new⟩ — the sufficient-decrease test
+# against the actual projected move rather than the unprojected ‖G‖², so a
+# point held at the bounding box (where ξ − ξ_new can be much smaller than
+# tG) can still be accepted as converged. Returns (accepted step size,
+# objective at the accepted points), or (0.0, f0) if none of the 30 tried
+# steps decreased the objective.
 function _armijo_step!(
   new_points::Matrix{Float64},
   points::Matrix{Float64},
@@ -278,18 +285,22 @@ function _armijo_step!(
   data::Matrix{Float64},
   bounds::Matrix{Float64},
 )
-  gnorm2 = sum(abs2, G)
   t = t0
   for _ = 1:30
     @inbounds for m in axes(points, 1), j in axes(points, 2)
       new_points[m, j] = clamp(points[m, j] - t * G[m, j], bounds[j, 1], bounds[j, 2])
     end
-    if _mmd_objective(k, new_points, data) <= f0 - 1e-4 * t * gnorm2
-      return t
+    decrease = 0.0
+    @inbounds for m in axes(points, 1), j in axes(points, 2)
+      decrease += G[m, j] * (points[m, j] - new_points[m, j])
+    end
+    f_new = _mmd_objective(k, new_points, data)
+    if f_new <= f0 - 1e-4 * decrease
+      return t, f_new
     end
     t /= 2
   end
-  return 0.0
+  return 0.0, f0
 end
 
 """
@@ -297,9 +308,10 @@ end
 
 Support points under a Gaussian kernel: minimize the squared MMD between the
 point set and the data by projected gradient descent with Armijo
-backtracking (the objective never increases across accepted steps). The
-kernel must be resolved (numeric bandwidth); `datasplit` resolves it. The
-stochastic `kappa` mode is not available for this kernel yet.
+backtracking on the projected step (the objective never increases across
+accepted steps). The kernel must be resolved (numeric bandwidth);
+`datasplit` resolves it. The stochastic `kappa` mode is not available for
+this kernel yet.
 """
 function support_points(
   k::GaussianKernel,
@@ -336,16 +348,15 @@ function support_points(
   converged = false
   while !converged && iteration < max_iterations
     iteration += 1
-    verbose && print("\rIteration $iteration/$max_iterations  objective=$f")
+    verbose && print("\rIteration $iteration/$max_iterations  objective(mmd2 − const)=$f")
     _mmd_gradient!(G, k, points, working, n_threads)
-    t = _armijo_step!(new_points, points, G, f, 2t, k, working, bounds)
+    t, f = _armijo_step!(new_points, points, G, f, 2t, k, working, bounds)
     t == 0.0 && break   # no decreasing step found: stop, report not converged
     max_move = 0.0
     @views for m = 1:n
       max_move = max(max_move, sum(abs2, new_points[m, :] .- points[m, :]))
     end
     points, new_points = new_points, points
-    f = _mmd_objective(k, points, working)
     converged = max_move < tolerance
   end
   verbose && println()
@@ -369,10 +380,9 @@ function _mmd_trajectory(
   t = 1.0
   for _ = 1:max_iterations
     _mmd_gradient!(G, k, points, data, 1)
-    t = _armijo_step!(new_points, points, G, f, 2t, k, data, bounds)
+    t, f = _armijo_step!(new_points, points, G, f, 2t, k, data, bounds)
     t == 0.0 && break
     points, new_points = new_points, points
-    f = _mmd_objective(k, points, data)
     push!(traj, f)
   end
   return traj

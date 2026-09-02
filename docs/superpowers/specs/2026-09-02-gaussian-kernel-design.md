@@ -87,10 +87,10 @@ Per iteration:
 
 1. Evaluate `∇MMD²` for all points (chunked over `n_threads`; each chunk
    writes only its rows of the gradient matrix).
-2. Armijo backtracking on the step `ξ − t∇`: start from `t = 2·t_prev`
-   (`t_0 = 1`), halve until
-   `MMD²(ξ_new) ≤ MMD²(ξ) − c·t·‖∇‖²` with `c = 1e-4`, at most 30 halvings;
-   if none succeeds, stop and report `converged = false`.
+2. Armijo backtracking on the projected step: start from `t = 2·t_prev`
+   (`t_0 = 1`), clamp `ξ_new = ξ − t∇` to the bounding box, and halve until
+   `MMD²(ξ_new) ≤ MMD²(ξ) − c·⟨∇, ξ − ξ_new⟩` with `c = 1e-4`, at most 30
+   halvings; if none succeeds, stop and report `converged = false`.
 3. Clamp to the data bounding box (as in Phase 1).
 4. Convergence check on the accepted step.
 
