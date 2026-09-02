@@ -75,3 +75,28 @@ julia -t auto --project=benchmark benchmark/herding_estimators.jl
 | GaussianKernel | RandomFeatures(2048) | 0.0019, 0.00168, 0.00171 (mean 0.00177) | 5.88e-5 | 0.00268 | 30.0× |
 | GaussianKernel | RandomFeatures(8192) | 0.000474, 0.000503, 0.000343 (mean 0.00044) | 5.88e-5 | 0.00268 | 7.48× |
 | GaussianKernel | RandomFeatures(32768) | 0.000203, 0.000225, 0.000187 (mean 0.000205) | 5.88e-5 | 0.00268 | 3.48× |
+
+## [Weighted `kappa` subsampling](@id weighted-kappa)
+
+With sample weights, the stochastic MM can draw its `kappa` rows in two
+ways: uniformly, rescaling the drawn weights to mean one within the
+subsample (`:uniform`), or in proportion to the weights, treating the
+subsample as uniform (`:proportional`). Both are implemented behind the
+internal `_subsampling` keyword of `support_points`; the default is
+`:uniform`. Measured on `normal-10d` and `uniform-5d` at N = 10,000 with
+log-normal weights and a 10:1 two-cluster profile, `kappa` ∈ {500, 2000},
+five rng seeds each; the score is the weighted energy distance between the
+selected rows and the full data under the weights. At `kappa` = 500 the
+mean score was 0.0217 (se 0.00086) for `:uniform` and 0.0226 (se 0.0012)
+for `:proportional`; `:uniform` had the lower mean but the two rules were
+within one combined standard error of each other, so `:uniform` stays the
+default for its simplicity (sampling without replacement in proportion to
+`w` also does not give inclusion probabilities exactly proportional to
+`w`, so `:proportional` is only an approximation of the weighted
+distribution in the first place). Full table:
+[`assets/benchmarks/weighted_kappa.md`](assets/benchmarks/weighted_kappa.md).
+Reproduce with:
+
+```sh
+julia -t auto --project=benchmark benchmark/weighted_kappa.jl
+```
