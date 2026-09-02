@@ -222,6 +222,11 @@ overlaid, showing why the methods disagree on which rows to hold out.
   dataset, well below both support-point methods and random (e.g.
   `normal-10d`: 1.91e-6 for `herding · energy` versus 0.000215 for
   `support points · energy`).
+- On `normal-10d` and `uniform-5d` at N = 10,000 the support-point splits
+  are the initial random sample. The optimizer moves the points less than
+  the spacing between data rows, so `select_nearest` rounds every point
+  back to its own starting row; see "Nearest-neighbor assignment returns
+  the initial sample" under Caveats.
 - Herding is also the fastest optimized method at N = 10,000.
   `herding · energy` takes 0.12-0.2 s and `herding · gaussian` 0.43-0.48 s,
   versus 3.7-9.6 s for `support points · energy` and 3.7-14.0 s for
@@ -257,10 +262,9 @@ current rule behaves as follows.
   The single accepted step of the fixed-step version was already close to a
   local optimum; the current rule reaches the same point by iteration rather
   than by an accidentally tight tolerance. This is a convergence fix, not a
-  quality fix. On Gaussian MMD at N = 10,000, `support points · gaussian`
-  scores worse than the random split under both versions, on `normal-10d`
-  (0.000289 versus random's 0.000164) and `uniform-5d` (0.000243 versus
-  random's 0.00016).
+  quality fix. The selected rows are the same under both versions, because
+  on these two datasets the nearest-neighbor assignment returns the initial
+  sample; see the next caveat.
 - On `mixture-2d` and `t3-3d` it converges well before the iteration cap,
   in 3.7 s and 14.0 s (down from 42 s, an 11x and 3x speedup), at a slightly
   higher final MMD (mixture-2d: 1.74e-6 versus 7.76e-7; t3-3d: 8.06e-5
@@ -276,6 +280,73 @@ None of this changes which method the Summary recommends: `support points ·
 gaussian` is not the lowest-discrepancy method on any (dataset, N) cell, so
 its exact stopping point does not affect the "use `herding · energy` by
 default" recommendation.
+
+### Nearest-neighbor assignment returns the initial sample
+
+`SupportPointSplitter` optimizes continuous support points and then maps
+each one to its nearest unclaimed data row (`select_nearest`, sequential
+nearest-neighbor, Joseph & Vakayil 2021). The points start at a random
+sample of data rows jittered by 0.1% of the per-dimension range
+(`_initial_points`). On `normal-10d` and `uniform-5d` at N = 10,000, the
+optimizer moves each point far less than the spacing between rows: on
+`normal-10d`, the Gaussian optimizer's median displacement is 0.144
+standardized units against a median nearest-neighbor spacing of 1.37 (0.0845
+versus 0.376 on `uniform-5d`), so `select_nearest` maps almost every point
+straight back to its own starting row.
+
+`normal-10d`, N = 10,000:
+
+| method | continuous MMD | rows kept | test-vs-train MMD |
+|---|---:|---:|---:|
+| initial sample | – | – | 0.000215 |
+| initial sample (datasplit path) | – | – | 0.000289 |
+| support points · gaussian | 2.29e-6 | 2000/2000 | 0.000215 |
+| support points · gaussian (datasplit path) | – | 2000/2000 | 0.000289 |
+| support points · energy, `kappa = 1_000` | 7.72e-5 | 2000/2000 | 0.000215 |
+| support points · energy, full data | 1.88e-6 | 2000/2000 | 0.000215 |
+| random (5 seeds) | – | – | 0.000164 |
+
+The "(datasplit path)" rows call `datasplit` exactly as `run.jl` does.
+`datasplit` resolves the `:median` bandwidth from the splitter's `rng`
+before the points are initialized, so the Gaussian run starts from a
+different random sample than the energy run (whose kernel needs no
+resolution) and than the plain rows above, which pre-resolve the kernel.
+That is the whole difference between the Results table's `support points ·
+gaussian` (0.000289) and `support points · energy` (0.000215): each is the
+test-vs-train score of the initial sample its run started from. The
+optimizer itself works: the continuous Gaussian support points reach an MMD
+of 2.29e-6 to the full dataset, on par with `herding · gaussian` (2.17e-6).
+But every optimized method rounds back to exactly its own 2,000 starting
+rows, so "`support points · gaussian` scores worse than random" is one
+seed-1 draw against the 5-seed random mean of 0.000164, not the optimization
+making the split worse.
+
+On `uniform-5d`, where the standardized data fills the unit box rather than
+clustering near the origin, the rounding step is less lossy: `support points
+· gaussian` keeps 1998 of the 2,000 initial rows, full-data `support points
+· energy` keeps 1929/2000, and the stochastic `kappa = 1_000` update moves
+points far enough to keep only 1731/2000, which is why `support points ·
+energy` is the one support-point method that beats random on this dataset
+(MMD 7.24e-5 versus random's 0.00016).
+
+Starting the points away from data rows is not a fix. Two alternative
+initializations were run through the same optimizer and rounding step:
+uniform in the standardized bounding box, and the initial sample plus ±50%
+per-dimension-range jitter. On `normal-10d` both land on outlier-adjacent
+rows and score 12-18x worse than random (uniform-box init: MMD 0.003, energy
+distance 0.0258, against random's 0.000164 / 0.00208). On `uniform-5d`,
+where the rows already fill the box, the same initializations instead score
+2-11x *better* than random, so the direction of the effect depends on the
+dataset, not on the initialization being an improvement in general.
+
+The loss happens entirely at the rounding step: `select_nearest` claims
+whichever unclaimed row is closest, and in high dimension on standardized
+data that is usually the point's own starting row. `HerdingSplitter` selects
+data rows directly, with no continuous optimization or rounding step, so it
+is unaffected.
+
+Reproduce with `julia -t auto --project=benchmark benchmark/rounding.jl`;
+the full table is in `assets/benchmarks/rounding.md`.
 
 `support points · energy` runs with `kappa = 1_000` at ``N = 10{,}000``,
 so its ``N = 10{,}000`` numbers include stochastic-MM approximation error;

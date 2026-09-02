@@ -12,6 +12,11 @@ using NearestNeighbors
 
 Indices of the data rows selected for the support points, in support-point
 order. `data` and `points` have observations in rows.
+
+When the optimized `points` sit closer to their own starting row than to
+any other row, this returns the initial random sample unchanged. That is
+expected in high dimension, where the displacement is small relative to the
+row spacing (see the Benchmarks page).
 """
 function select_nearest(data::Matrix{Float64}, points::Matrix{Float64})
   size(data, 2) == size(points, 2) ||

@@ -64,6 +64,11 @@ output-matching tests. The design record is
   previous accepted step. Convergence needs at least 2 iterations and either
   the displacement rule (`tolerance`, squared displacement) or the
   relative-decrease rule (`rtol`, on the bounded shifted objective).
+- `select_nearest` rounds each optimized point to its own starting data row
+  whenever the optimizer's displacement is below the row spacing (measured
+  on `normal-10d`/`uniform-5d` at N = 10,000, see Benchmarks): the split is
+  then exactly the initial random sample. `HerdingSplitter` has no such
+  rounding step.
 
 ## Workflow
 

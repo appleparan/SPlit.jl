@@ -41,6 +41,10 @@ points and mapped to data rows by sequential nearest-neighbor selection.
 - `rng`: source of all randomness (initialization, jitter, stochastic
   subsampling); pass a seeded RNG for reproducible splits.
 - `verbose`: print per-iteration progress.
+
+In high dimension the optimized points may move less than the spacing
+between rows, in which case the selection is the initial random sample;
+prefer `HerdingSplitter` there (see the Benchmarks page).
 """
 struct SupportPointSplitter{K<:SplitKernel,R<:AbstractRNG} <: AbstractSplitter
   kernel::K

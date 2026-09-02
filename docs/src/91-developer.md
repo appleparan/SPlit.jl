@@ -34,8 +34,12 @@ In particular, the Julia code is formatted using [JuliaFormatter.jl](https://git
 ```julia-repl
 julia> # Press ]
 pkg> activate
-pkg> add JuliaFormatter
+pkg> add JuliaFormatter@1.0.62
 ```
+
+CI pins the same JuliaFormatter version (and Julia 1.10) in `.github/workflows/Lint.yml`,
+so your local formatting must agree with that version; when upgrading, bump both places
+together.
 
 To install `pre-commit`, we recommend using [pipx](https://pipx.pypa.io) as follows:
 
