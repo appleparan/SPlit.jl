@@ -62,3 +62,10 @@ using LinearAlgebra
     @test_throws ArgumentError SPlit.resolve(GaussianKernel(), same, MersenneTwister(1))
   end
 end
+
+@testset "EnergyKernel kernelvalue" begin
+  u = [0.0, 3.0]
+  v = [4.0, 0.0]
+  @test SPlit.kernelvalue(EnergyKernel(), u, v) == -5.0
+  @test SPlit.kernelvalue(EnergyKernel(), u, u) == 0.0
+end

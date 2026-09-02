@@ -6,6 +6,13 @@ using DataFrames
 using Random
 
 """
+    AbstractSplitter
+
+Supertype of every splitting method usable with [`datasplit`](@ref).
+"""
+abstract type AbstractSplitter end
+
+"""
     SupportPointSplitter(; kernel = EnergyKernel(), ratio = 0.2, kappa = nothing,
                           max_iterations = 500, tolerance = 1e-10,
                           n_threads = Threads.nthreads(),
@@ -29,7 +36,7 @@ Configuration for optimal data splitting via support points
   subsampling); pass a seeded RNG for reproducible splits.
 - `verbose`: print per-iteration progress.
 """
-struct SupportPointSplitter{K<:SplitKernel,R<:AbstractRNG}
+struct SupportPointSplitter{K<:SplitKernel,R<:AbstractRNG} <: AbstractSplitter
   kernel::K
   ratio::Float64
   kappa::Union{Nothing,Int}
@@ -80,12 +87,12 @@ end
 Outcome of [`datasplit`](@ref): index partition plus an honest report of the
 optimizer's convergence.
 """
-struct SplitResult{K<:SplitKernel,R<:AbstractRNG}
+struct SplitResult{M<:AbstractSplitter}
   train_indices::Vector{Int}
   test_indices::Vector{Int}
   converged::Bool
   iterations::Int
-  method::SupportPointSplitter{K,R}
+  method::M
 end
 
 """
@@ -99,12 +106,13 @@ train_indices(r::SplitResult) = r.train_indices
 test_indices(r::SplitResult) = r.test_indices
 
 """
-    datasplit(splitter::SupportPointSplitter, data) -> SplitResult
+    datasplit(splitter::AbstractSplitter, data) -> SplitResult
 
 Split `data` (matrix, `DataFrame`, or vector; observations in rows) into
 train and test sets whose distributions are as similar as possible, by
 computing support points for the smaller side and mapping them to data rows
-by sequential nearest-neighbor selection.
+by sequential nearest-neighbor selection. Methods exist for
+[`SupportPointSplitter`](@ref) and [`HerdingSplitter`](@ref).
 """
 function datasplit(s::SupportPointSplitter, data)
   X = preprocess(data)

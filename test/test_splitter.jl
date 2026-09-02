@@ -154,3 +154,11 @@ end
     @test sort(vcat(train_indices(r), test_indices(r))) == collect(1:90)
   end
 end
+
+@testset "splitter hierarchy" begin
+  @test SupportPointSplitter <: AbstractSplitter
+  data = randn(MersenneTwister(90), 60, 2)
+  r = datasplit(SupportPointSplitter(max_iterations = 20, rng = MersenneTwister(91)), data)
+  @test r isa SplitResult{<:SupportPointSplitter}
+  @test r.method isa AbstractSplitter
+end
