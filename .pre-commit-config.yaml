@@ -13,6 +13,8 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-yaml
+        # mkdocs.yml uses !!python/name tags for pymdownx fences
+        exclude: ^splitiq/mkdocs\.yml$
       - id: end-of-file-fixer
       - id: file-contents-sorter
         files: .JuliaFormatter.toml
@@ -43,6 +45,14 @@ repos:
     rev: v1.37.1
     hooks:
       - id: yamllint
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.4
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^splitiq/
+      - id: ruff-format
+        files: ^splitiq/
   - repo: https://github.com/domluna/JuliaFormatter.jl
     rev: v2.1.6
     hooks:
