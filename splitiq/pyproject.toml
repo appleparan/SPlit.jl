@@ -1,6 +1,6 @@
 [project]
 name = "splitiq"
-version = "0.5.1"
+version = "0.5.2"
 description = "Optimal train/test splitting via support points, backed by SPlit.jl"
 authors = [
     {name="Jongsu Liam Kim", email="jongsukim8@gmail.com"}
@@ -27,7 +27,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "Programming Language :: Julia",
     "Operating System :: POSIX",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries :: Python Modules"
