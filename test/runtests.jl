@@ -4,6 +4,7 @@ using Test
 @testset "SPlit.jl" begin
   include("test_preprocessing.jl")
   include("test_kernels.jl")
+  include("test_weights.jl")
   include("test_estimators.jl")
   include("test_quality.jl")
   include("test_optimizer.jl")

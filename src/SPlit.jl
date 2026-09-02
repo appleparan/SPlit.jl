@@ -1,6 +1,7 @@
 module SPlit
 
 include("kernels.jl")
+include("weights.jl")
 include("estimators.jl")
 include("preprocessing.jl")
 include("optimizer.jl")
