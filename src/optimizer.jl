@@ -5,6 +5,9 @@ Full-data mode applies the closed-form MM update of Mak & Joseph (2018),
 which decreases the energy-distance objective monotonically. When `kappa` is
 given, the stochastic variant of Joseph & Vakayil (2021) resamples `kappa`
 rows per iteration and stabilizes the update with running averages.
+For `GaussianKernel`, support points minimize the squared MMD by projected
+gradient descent with Armijo backtracking (Gretton et al. 2012 for the
+objective).
 """
 
 using LinearAlgebra
@@ -210,6 +213,167 @@ function _objective_trajectory(
     _mm_sweep!(new_points, current_const, points, data, running_const, 1.0, bounds, 1)
     points, new_points = new_points, points
     push!(traj, _exact_energydistance(points, data))
+  end
+  return traj
+end
+
+# MMD² objective up to the constant mean k(x, x): mean k(ξ, ξ) − 2 mean k(ξ, x).
+function _mmd_objective(
+  k::GaussianKernel{Float64},
+  points::AbstractMatrix{Float64},
+  data::AbstractMatrix{Float64},
+)
+  return _mean_kernel(k, points, points) - 2 * _mean_kernel(k, points, data)
+end
+
+# Full gradient of _mmd_objective with respect to every support point.
+# Row m of G is (2/n²) Σ_{j≠m} ∇k(ξ_m, ξ_j) − (2/(nN)) Σ_l ∇k(ξ_m, x_l).
+# Chunks write disjoint rows of G; `points` and `data` are read-only.
+function _mmd_gradient!(
+  G::Matrix{Float64},
+  k::GaussianKernel{Float64},
+  points::Matrix{Float64},
+  data::Matrix{Float64},
+  n_threads::Int,
+)
+  n, p = size(points)
+  N = size(data, 1)
+  chunks = collect(Iterators.partition(1:n, cld(n, max(1, n_threads))))
+  @sync for chunk in chunks
+    Threads.@spawn begin
+      g = zeros(p)
+      for m in chunk
+        @views ξ = points[m, :]
+        for j = 1:p
+          G[m, j] = 0.0
+        end
+        for o = 1:n
+          o == m && continue
+          @views kernelgrad!(g, k, ξ, points[o, :])
+          for j = 1:p
+            G[m, j] += (2 / n^2) * g[j]
+          end
+        end
+        for l = 1:N
+          @views kernelgrad!(g, k, ξ, data[l, :])
+          for j = 1:p
+            G[m, j] -= (2 / (n * N)) * g[j]
+          end
+        end
+      end
+    end
+  end
+  return G
+end
+
+# One projected-gradient step with Armijo backtracking. Returns the accepted
+# step size, or 0.0 if no step of the 30 tried decreased the objective.
+function _armijo_step!(
+  new_points::Matrix{Float64},
+  points::Matrix{Float64},
+  G::Matrix{Float64},
+  f0::Float64,
+  t0::Float64,
+  k::GaussianKernel{Float64},
+  data::Matrix{Float64},
+  bounds::Matrix{Float64},
+)
+  gnorm2 = sum(abs2, G)
+  t = t0
+  for _ = 1:30
+    @inbounds for m in axes(points, 1), j in axes(points, 2)
+      new_points[m, j] = clamp(points[m, j] - t * G[m, j], bounds[j, 1], bounds[j, 2])
+    end
+    if _mmd_objective(k, new_points, data) <= f0 - 1e-4 * t * gnorm2
+      return t
+    end
+    t /= 2
+  end
+  return 0.0
+end
+
+"""
+    support_points(kernel::GaussianKernel, data, n; kwargs...)
+
+Support points under a Gaussian kernel: minimize the squared MMD between the
+point set and the data by projected gradient descent with Armijo
+backtracking (the objective never increases across accepted steps). The
+kernel must be resolved (numeric bandwidth); `datasplit` resolves it. The
+stochastic `kappa` mode is not available for this kernel yet.
+"""
+function support_points(
+  k::GaussianKernel,
+  data::Matrix{Float64},
+  n::Int;
+  kappa::Union{Nothing,Int} = nothing,
+  max_iterations::Int = 500,
+  tolerance::Float64 = 1e-10,
+  n_threads::Int = Threads.nthreads(),
+  rng::AbstractRNG = Random.default_rng(),
+  verbose::Bool = false,
+)
+  isresolved(k) ||
+    throw(ArgumentError("GaussianKernel bandwidth must be resolved; call resolve first"))
+  kappa === nothing ||
+    throw(ArgumentError("stochastic mode (kappa) is not available for GaussianKernel yet"))
+  N = size(data, 1)
+  0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
+  max_iterations > 0 ||
+    throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
+
+  bounds = _data_bounds(data)
+  working = copy(data)
+  if length(unique(eachrow(working))) < N
+    _jitter!(rng, working, bounds)
+  end
+  points = _initial_points(rng, working, n, bounds)
+  new_points = similar(points)
+  G = similar(points)
+  f = _mmd_objective(k, points, working)
+  t = 1.0
+
+  iteration = 0
+  converged = false
+  while !converged && iteration < max_iterations
+    iteration += 1
+    verbose && print("\rIteration $iteration/$max_iterations  objective=$f")
+    _mmd_gradient!(G, k, points, working, n_threads)
+    t = _armijo_step!(new_points, points, G, f, 2t, k, working, bounds)
+    t == 0.0 && break   # no decreasing step found: stop, report not converged
+    max_move = 0.0
+    @views for m = 1:n
+      max_move = max(max_move, sum(abs2, new_points[m, :] .- points[m, :]))
+    end
+    points, new_points = new_points, points
+    f = _mmd_objective(k, points, working)
+    converged = max_move < tolerance
+  end
+  verbose && println()
+  return points, converged, iteration
+end
+
+# Test helper: objective after each accepted step (full-data Gaussian path).
+function _mmd_trajectory(
+  k::GaussianKernel{Float64},
+  data::Matrix{Float64},
+  n::Int;
+  max_iterations::Int,
+  rng::AbstractRNG,
+)
+  bounds = _data_bounds(data)
+  points = _initial_points(rng, copy(data), n, bounds)
+  new_points = similar(points)
+  G = similar(points)
+  f = _mmd_objective(k, points, data)
+  traj = Float64[f]
+  t = 1.0
+  for _ = 1:max_iterations
+    _mmd_gradient!(G, k, points, data, 1)
+    t = _armijo_step!(new_points, points, G, f, 2t, k, data, bounds)
+    t == 0.0 && break
+    points, new_points = new_points, points
+    f = _mmd_objective(k, points, data)
+    push!(traj, f)
   end
   return traj
 end
