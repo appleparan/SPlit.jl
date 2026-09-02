@@ -399,6 +399,10 @@ the Design experiments page (currently [`RandomSlices`](@ref)`(64)` for
 `subsample = m, repeats = r` keywords are a compatibility path: when
 `subsample` is given explicitly, it always wins over `estimator` and maps to
 `Subsample(m, r)`.
+
+`weights` (one non-negative entry per row of `data`) applies the weighted
+preprocessing `datasplit` used and compares the weighted train rows with
+the weighted test rows, each side's weights rescaled to sum one.
 """
 function splitquality(
   data,
@@ -410,11 +414,12 @@ function splitquality(
   repeats::Int = 8,
   rng::AbstractRNG = Random.default_rng(),
   n_threads::Int = Threads.nthreads(),
+  weights::Union{Nothing,AbstractVector} = nothing,
 )
-  X = preprocess(data)
+  X = preprocess(data, weights)
   train = X[result.train_indices, :]
   test = X[result.test_indices, :]
-  k = isresolved(kernel) ? kernel : resolve(kernel, X, rng)
+  k = isresolved(kernel) ? kernel : resolve(kernel, X, rng, weights)
   chosen = if subsample !== nothing
     Subsample(subsample, repeats)
   elseif estimator !== nothing
@@ -424,5 +429,16 @@ function splitquality(
   else
     _fallback_estimator(k)
   end
-  return mmd(train, test, k; estimator = chosen, rng, n_threads)
+  weights === nothing && return mmd(train, test, k; estimator = chosen, rng, n_threads)
+  w = _normalize_weights(weights, size(X, 1))
+  return mmd(
+    train,
+    test,
+    k;
+    estimator = chosen,
+    rng,
+    n_threads,
+    weights_x = w[result.train_indices],
+    weights_y = w[result.test_indices],
+  )
 end

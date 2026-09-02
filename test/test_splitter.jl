@@ -162,3 +162,81 @@ end
   @test r isa SplitResult{<:SupportPointSplitter}
   @test r.method isa AbstractSplitter
 end
+
+@testset "datasplit with weights" begin
+  data = randn(MersenneTwister(100), 200, 3)
+
+  @testset "uniform weights reproduce the unweighted split exactly" begin
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      s =
+        SupportPointSplitter(kernel = kernel, max_iterations = 60, rng = MersenneTwister(1))
+      r0 = datasplit(s, data)
+      s =
+        SupportPointSplitter(kernel = kernel, max_iterations = 60, rng = MersenneTwister(1))
+      r1 = datasplit(s, data; weights = ones(200))
+      # weighted standardization matches the unweighted one up to rounding,
+      # so the selected rows agree; the optimizer trajectory is compared
+      # bit for bit at the `support_points` level in test_optimizer.jl
+      @test r1.test_indices == r0.test_indices
+      @test r1.train_indices == r0.train_indices
+    end
+  end
+
+  @testset "a :median bandwidth is resolved with the weights" begin
+    s = SupportPointSplitter(
+      kernel = GaussianKernel(),
+      max_iterations = 5,
+      rng = MersenneTwister(2),
+    )
+    r = datasplit(s, data; weights = rand(MersenneTwister(3), 200))
+    @test r.method.kernel isa GaussianKernel{Float64}
+  end
+
+  @testset "heavy cluster gets more test rows" begin
+    rng = MersenneTwister(101)
+    A = randn(rng, 200, 2) .- 4.0
+    B = randn(rng, 200, 2) .+ 4.0
+    X = vcat(A, B)
+    w = vcat(fill(9.0, 200), fill(1.0, 200))
+    s = SupportPointSplitter(ratio = 0.2, max_iterations = 100, rng = MersenneTwister(4))
+    r_u = datasplit(s, X)
+    s = SupportPointSplitter(ratio = 0.2, max_iterations = 100, rng = MersenneTwister(4))
+    r_w = datasplit(s, X; weights = w)
+    @test count(<=(200), r_w.test_indices) > count(<=(200), r_u.test_indices)
+  end
+
+  @testset "DataFrame input with weights" begin
+    df = DataFrame(x = randn(MersenneTwister(102), 90), g = repeat(["a", "b", "c"], 30))
+    s = SupportPointSplitter(max_iterations = 30, rng = MersenneTwister(5))
+    r = datasplit(s, df; weights = rand(MersenneTwister(6), 90))
+    @test length(test_indices(r)) == 18
+  end
+
+  @testset "validation" begin
+    s = SupportPointSplitter(max_iterations = 5)
+    @test_throws ArgumentError datasplit(s, data; weights = ones(199))
+    @test_throws ArgumentError datasplit(s, data; weights = -ones(200))
+  end
+end
+
+@testset "splitquality with weights" begin
+  data = randn(MersenneTwister(103), 150, 2)
+  s = SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(7))
+  r = datasplit(s, data)
+  @test splitquality(data, r; weights = ones(150)) == splitquality(data, r)
+  w = rand(MersenneTwister(8), 150)
+  q = splitquality(data, r; weights = w)
+  @test q isa Float64
+  @test q >= -1e-12
+  # equals the weighted discrepancy between the weighted train and test rows
+  X = SPlit.preprocess(data, w)
+  wn = w ./ sum(w)
+  expected = energydistance(
+    X[r.train_indices, :],
+    X[r.test_indices, :];
+    weights_x = wn[r.train_indices],
+    weights_y = wn[r.test_indices],
+  )
+  @test isapprox(q, expected; atol = 1e-12)
+  @test_throws ArgumentError splitquality(data, r; weights = ones(10))
+end

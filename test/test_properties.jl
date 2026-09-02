@@ -73,4 +73,20 @@ using Statistics
       @test q_ed < mean(rand_ed)
     end
   end
+
+  @testset "weighted support-point splits beat random splits under the weighted energy distance" begin
+    rng = MersenneTwister(120)
+    data = randn(rng, 300, 3)
+    w = exp.(randn(rng, 300))        # log-normal, heavy-tailed weights
+    s = SupportPointSplitter(max_iterations = 200, rng = MersenneTwister(121))
+    r = datasplit(s, data; weights = w)
+    q_sp = splitquality(data, r; weights = w)
+    n_test = length(test_indices(r))
+    random_qs = map(1:25) do i
+      perm = randperm(MersenneTwister(5_000 + i), 300)
+      fake = SPlit.SplitResult(perm[(n_test+1):end], perm[1:n_test], true, 0, s)
+      splitquality(data, fake; weights = w)
+    end
+    @test q_sp < mean(random_qs)
+  end
 end

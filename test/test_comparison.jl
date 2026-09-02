@@ -116,3 +116,20 @@ end
   m, r = best(c)
   @test m === r.method
 end
+
+@testset "compare forwards weights" begin
+  data = randn(MersenneTwister(110), 120, 2)
+  w = rand(MersenneTwister(111), 120)
+  methods = [
+    SupportPointSplitter(max_iterations = 30, rng = MersenneTwister(1)),
+    HerdingSplitter(kernel = GaussianKernel(1.0)),
+  ]
+  c = compare(methods, data; weights = w)
+  @test length(c.qualities) == 2
+  @test all(isfinite, c.qualities)
+  @test isapprox(
+    c.qualities[1],
+    splitquality(data, c.results[1]; weights = w);
+    atol = 1e-12,
+  )
+end
