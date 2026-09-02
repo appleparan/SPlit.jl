@@ -304,6 +304,19 @@ function _armijo_step!(
   return 0.0, f0
 end
 
+# Scale-aware initial trial step for the first Armijo iteration: a tenth of
+# the median per-dimension data range, divided by the largest gradient row
+# norm (guarded against a near-zero gradient by `eps()`). The gradient
+# carries 1/n², 1/(nN) factors whose magnitude varies enormously with n and
+# N, so a fixed t0 = 1.0 can be far too small; this keeps the first move a
+# fixed fraction of the data scale regardless. Shared by
+# `support_points(::GaussianKernel, …)` and `_mmd_trajectory`.
+function _first_step(G::Matrix{Float64}, bounds::Matrix{Float64})
+  n = size(G, 1)
+  scale = median(view(bounds, :, 2) .- view(bounds, :, 1))
+  return 0.1 * scale / max(maximum(norm(view(G, m, :)) for m = 1:n), eps())
+end
+
 """
     support_points(kernel::GaussianKernel, data, n; kwargs...)
 
@@ -321,7 +334,11 @@ regardless of the point count or gradient magnitude (Armijo backtracking and
 the `2t` warm start on later iterations are unchanged). Convergence never
 fires before the second iteration, and then when either the largest squared
 displacement is below `tolerance` or the relative objective decrease
-`|f_{t-1} - f_t| / max(|f_t|, 1e-12)` is below `rtol`.
+`|f_{t-1} - f_t| / max(|f_t|, 1e-12)` is below `rtol`. `f` is
+`_mmd_objective`, which omits the constant data self-term and is bounded in
+`[-1, 1]` for a Gaussian kernel on standardized data, so `rtol` acts as an
+absolute per-iteration tolerance on that bounded objective, not a relative
+tolerance on the (orders-of-magnitude smaller) true MMD².
 """
 function support_points(
   k::GaussianKernel,
@@ -343,6 +360,7 @@ function support_points(
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
   max_iterations > 0 ||
     throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
+  rtol > 0 || throw(ArgumentError("rtol must be positive, got $rtol"))
 
   bounds = _data_bounds(data)
   working = copy(data)
@@ -354,7 +372,6 @@ function support_points(
   G = similar(points)
   f = _mmd_objective(k, points, working)
   t = 1.0
-  scale = median(view(bounds, :, 2) .- view(bounds, :, 1))
 
   iteration = 0
   converged = false
@@ -362,9 +379,7 @@ function support_points(
     iteration += 1
     verbose && print("\rIteration $iteration/$max_iterations  objective(mmd2 − const)=$f")
     _mmd_gradient!(G, k, points, working, n_threads)
-    t0 =
-      iteration == 1 ? 0.1 * scale / max(maximum(norm(view(G, m, :)) for m = 1:n), eps()) :
-      2t
+    t0 = iteration == 1 ? _first_step(G, bounds) : 2t
     f_prev = f
     t, f = _armijo_step!(new_points, points, G, f, t0, k, working, bounds)
     t == 0.0 && break   # no decreasing step found: stop, report not converged
@@ -396,12 +411,9 @@ function _mmd_trajectory(
   f = _mmd_objective(k, points, data)
   traj = Float64[f]
   t = 1.0
-  scale = median(view(bounds, :, 2) .- view(bounds, :, 1))
   for iteration = 1:max_iterations
     _mmd_gradient!(G, k, points, data, 1)
-    t0 =
-      iteration == 1 ? 0.1 * scale / max(maximum(norm(view(G, m, :)) for m = 1:n), eps()) :
-      2t
+    t0 = iteration == 1 ? _first_step(G, bounds) : 2t
     t, f = _armijo_step!(new_points, points, G, f, t0, k, data, bounds)
     t == 0.0 && break
     points, new_points = new_points, points

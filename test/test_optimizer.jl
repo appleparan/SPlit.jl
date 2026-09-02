@@ -180,13 +180,15 @@ end
   end
 
   @testset "does not stop at the initial sample on high-dimensional data" begin
-    data = randn(MersenneTwister(140), 4_000, 10)
+    data = randn(MersenneTwister(140), 10_000, 10)
     k = SPlit.resolve(GaussianKernel(), data, MersenneTwister(141))
     pts, conv, iters =
-      SPlit.support_points(k, data, 800; max_iterations = 50, rng = MersenneTwister(142))
-    @test iters >= 2
+      SPlit.support_points(k, data, 2_000; max_iterations = 2, rng = MersenneTwister(142))
+    @test iters == 2
+    @test conv == false
+    @test all(pts .>= minimum(data; dims = 1)) && all(pts .<= maximum(data; dims = 1))
     traj =
-      SPlit._mmd_trajectory(k, data, 800; max_iterations = 10, rng = MersenneTwister(142))
+      SPlit._mmd_trajectory(k, data, 2_000; max_iterations = 3, rng = MersenneTwister(142))
     @test traj[end] < traj[1]
   end
 
