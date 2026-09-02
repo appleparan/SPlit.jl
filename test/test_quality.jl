@@ -156,3 +156,32 @@ end
     )
   end
 end
+
+@testset "splitquality estimator keyword and threshold" begin
+  data = randn(MersenneTwister(60), 300, 2)
+  r = datasplit(SupportPointSplitter(max_iterations = 30, rng = MersenneTwister(61)), data)
+  q_exact = splitquality(data, r)
+  @test q_exact == splitquality(data, r; estimator = Exact())
+  @test splitquality(
+    data,
+    r;
+    exact_threshold = 10,
+    estimator = nothing,
+    rng = MersenneTwister(1),
+  ) == splitquality(
+    data,
+    r;
+    estimator = SPlit._fallback_estimator(EnergyKernel()),
+    rng = MersenneTwister(1),
+  )
+  q_sl = splitquality(data, r; estimator = RandomSlices(256), rng = MersenneTwister(2))
+  @test isapprox(q_sl, q_exact; rtol = 0.5)
+  @test splitquality(
+    data,
+    r;
+    subsample = 100,
+    repeats = 3,
+    rng = MersenneTwister(4),
+    exact_threshold = 10,
+  ) == splitquality(data, r; estimator = Subsample(100, 3), rng = MersenneTwister(4))
+end

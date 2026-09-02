@@ -94,3 +94,28 @@ end
   @test SPlit._mean_kernel(k, X, Y; block = 300, n_threads = 1) ==
         SPlit._mean_kernel(k, X, Y; block = 300, n_threads = 3)
 end
+
+@testset "random Fourier features" begin
+  k = GaussianKernel(1.3)
+  rng = MersenneTwister(20)
+  x = randn(rng, 4)
+  y = randn(rng, 4)
+  errs = Float64[]
+  for D in (64, 1024, 16_384)
+    φ = SPlit.FourierFeatureMap(k, 4, D, MersenneTwister(21))
+    push!(errs, abs(dot(φ(x), φ(y)) - SPlit.kernelvalue(k, x, y)))
+  end
+  @test errs[3] < errs[1]
+  @test errs[3] < 0.05
+  X = randn(rng, 300, 4)
+  Y = randn(rng, 200, 4) .+ 0.4
+  exact = mmd(X, Y, k)
+  est = mmd(X, Y, k; estimator = RandomFeatures(4096), rng = MersenneTwister(22))
+  @test isapprox(est, exact; rtol = 0.25)
+  @test mmd(X, Y, k; estimator = RandomFeatures(256), rng = MersenneTwister(1)) ==
+        mmd(X, Y, k; estimator = RandomFeatures(256), rng = MersenneTwister(1))
+  @test_throws ArgumentError mmd(X, Y, k; estimator = RandomSlices(8))
+  @test mmd(X, Y, EnergyKernel(); estimator = RandomSlices(32), rng = MersenneTwister(3)) ==
+        energydistance(X, Y; estimator = RandomSlices(32), rng = MersenneTwister(3))
+  @test_throws ArgumentError mmd(X, Y, EnergyKernel(); estimator = RandomFeatures(8))
+end

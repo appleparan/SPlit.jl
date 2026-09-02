@@ -149,3 +149,52 @@ function _sliced_energydistance(
   end
   return total / (k * sphere_constant(p))
 end
+
+"""
+    FourierFeatureMap(kernel::GaussianKernel{Float64}, p, D, rng)
+
+Random Fourier features (Rahimi & Recht 2007) for a `p`-dimensional Gaussian
+kernel: `z(x) = √(2/D) cos(Wx + b)` with `W ~ N(0, σ⁻² I)` and
+`b ~ U[0, 2π]`, so that `E[z(x)ᵀz(y)] = kernelvalue(kernel, x, y)`. Drawn
+once per call from `rng`; callable on a column vector.
+"""
+struct FourierFeatureMap
+  W::Matrix{Float64}
+  b::Vector{Float64}
+  scale::Float64
+end
+
+function FourierFeatureMap(k::GaussianKernel{Float64}, p::Int, D::Int, rng::AbstractRNG)
+  W = randn(rng, D, p) ./ k.bandwidth
+  b = 2π .* rand(rng, D)
+  return FourierFeatureMap(W, b, sqrt(2 / D))
+end
+
+(φ::FourierFeatureMap)(x::AbstractVector) = φ.scale .* cos.(φ.W * x .+ φ.b)
+
+# Mean feature vector over the rows of X, block-wise (never materializes an
+# N×D matrix for the whole input).
+function _feature_mean(φ::FourierFeatureMap, X::AbstractMatrix; block::Int = 4_096)
+  D = length(φ.b)
+  n = size(X, 1)
+  acc = zeros(D)
+  for i0 = 1:block:n
+    i1 = min(i0 + block - 1, n)
+    @views Z = cos.(X[i0:i1, :] * φ.W' .+ φ.b')      # (rows × D)
+    acc .+= vec(sum(Z; dims = 1))
+  end
+  return (φ.scale / n) .* acc
+end
+
+# Unbiased random-Fourier-features estimate of squared Gaussian MMD:
+# ‖z̄_X − z̄_Y‖².
+function _rff_mmd(
+  k::GaussianKernel{Float64},
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  D::Int,
+  rng::AbstractRNG,
+)
+  φ = FourierFeatureMap(k, size(X, 2), D, rng)
+  return sum(abs2, _feature_mean(φ, X) .- _feature_mean(φ, Y))
+end
