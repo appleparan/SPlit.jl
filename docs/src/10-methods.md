@@ -72,13 +72,25 @@ with ``\nabla_u k(u, v) = -k(u, v)\,(u - v)/\sigma^2``. The optimizer
 (`support_points(::GaussianKernel, …)`) takes projected gradient steps
 ``\xi_{\text{new}} = \operatorname{clamp}(\xi - t \nabla f)`` where ``t`` is
 chosen by Armijo backtracking on the projected step,
-``f(\xi_{\text{new}}) \le f(\xi) - 10^{-4}\, \langle \nabla f, \xi - \xi_{\text{new}} \rangle``,
-starting from twice the previous accepted step; the objective therefore never
-increases across accepted steps. When `bandwidth = :median`, ``\sigma`` is
-the median pairwise distance over (a sample of) the standardized rows
-(Gretton et al., 2012), resolved once per `datasplit` and stored in
-`result.method.kernel`. The stochastic `kappa` mode is not available for
-this kernel.
+``f(\xi_{\text{new}}) \le f(\xi) - 10^{-4}\, \langle \nabla f, \xi - \xi_{\text{new}} \rangle``;
+the objective therefore never increases across accepted steps. The gradient
+carries ``1/n^2`` and ``1/(nN)`` factors whose magnitude varies enormously
+with ``n`` and ``N``, so the first trial step (`_first_step`) is scale-aware
+rather than a fixed constant: ``t_0 = 0.1\,\bar w / \max_m \|\nabla_m f\|``,
+with ``\bar w`` the median per-dimension data range, making the first move a
+tenth of the data scale regardless of ``n``, ``N``. Later iterations warm-start
+from twice the previous accepted step. Convergence never fires before the
+second iteration, and then when *either* the largest squared displacement is
+below `tolerance` *or* the relative objective decrease
+``|f_{t-1} - f_t| / \max(|f_t|, 10^{-12})`` is below `rtol` (default
+``10^{-8}``); `f` here is the shifted objective above, which omits the
+constant data self-term and is bounded in ``[-1, 1]`` for a Gaussian kernel
+on standardized data, so `rtol` acts as an absolute-in-effect tolerance
+rather than a tolerance on the (orders-of-magnitude smaller) true MMD².
+When `bandwidth = :median`, ``\sigma`` is the median pairwise distance over
+(a sample of) the standardized rows (Gretton et al., 2012), resolved once
+per `datasplit` and stored in `result.method.kernel`. The stochastic
+`kappa` mode is not available for this kernel.
 
 ## Kernel herding
 
@@ -110,6 +122,96 @@ maintains the running sum over selected rows in ``O(N)`` per selection, for a
 total cost of ``O(N^2 + nN)``; the procedure is deterministic for a numeric
 kernel.
 
+## Estimators
+
+`energydistance`, `mmd`, and `splitquality` accept an `estimator` keyword
+that selects how the discrepancy above is computed. Which estimator/kernel
+combinations exist is expressed by method dispatch (a method per
+combination, never an `if`); an undefined combination raises an
+`ArgumentError`.
+
+| estimator | `energydistance` (`EnergyKernel`) | `mmd` (`GaussianKernel`) |
+|---|---|---|
+| `Exact` | yes, threaded | yes, threaded |
+| `Subsample(m, repeats)` | yes | yes |
+| `RandomSlices(k)` | yes | no |
+| `RandomFeatures(D)` | no | yes |
+
+### RandomSlices — the projection identity
+
+For ``\theta`` uniform on the unit sphere ``S^{p-1}`` and any
+``u \in \mathbb{R}^p``,
+
+```math
+\mathbb{E}_\theta\,|\langle \theta, u \rangle| = \kappa_p \|u\|, \qquad
+\kappa_p = \frac{\Gamma(p/2)}{\sqrt{\pi}\,\Gamma\!\left((p+1)/2\right)},
+```
+
+computed by `sphere_constant` via the recursion ``\kappa_1 = 1``,
+``\kappa_2 = 2/\pi``, ``\kappa_{p+2} = \kappa_p\,p/(p+1)``. The energy
+distance is linear in the pairwise norms, so with ``u^\theta = X\theta``,
+``v^\theta = Y\theta``,
+
+```math
+\mathrm{ED}(X, Y) = \kappa_p^{-1}\, \mathbb{E}_\theta\, \mathrm{ED}_1(u^\theta, v^\theta),
+```
+
+and `RandomSlices(k)` averages this over `k` directions drawn with `rng`
+(`_sliced_energydistance`). The one-dimensional energy distance
+``\mathrm{ED}_1`` is computed exactly from sorted projections
+(`_ed1d`): for a sorted sample ``a_{(1)} \le \dots \le a_{(n)}``,
+
+```math
+\sum_{i<j} (a_{(j)} - a_{(i)}) = \sum_i (2i - n - 1)\, a_{(i)}
+```
+
+gives the within-sample mean (`_within_mean_abs`), and the cross term
+``\sum_{i,j} |a_i - b_j|`` follows from prefix sums of one sorted sample and
+the ranks of the other (`_cross_mean_abs`), for a total cost of
+``O(k (n+m) \log(n+m))``.
+
+### RandomFeatures — random Fourier features
+
+For the Gaussian kernel ``k(x,y) = \exp(-\|x-y\|^2/2\sigma^2)``, with
+``\omega_j \sim \mathcal{N}(0, \sigma^{-2} I_p)`` and
+``b_j \sim U[0, 2\pi]`` (Rahimi & Recht, 2007),
+
+```math
+z(x) = \sqrt{2/D}\,\big[\cos(\omega_j^\top x + b_j)\big]_{j=1}^{D}, \qquad
+\mathbb{E}\big[z(x)^\top z(y)\big] = k(x, y),
+```
+
+drawn once per call from `rng` as `FourierFeatureMap`. `RandomFeatures(D)`
+estimates squared MMD as ``\|\bar z_X - \bar z_Y\|^2`` with
+``\bar z_X = \frac{1}{n}\sum_i z(x_i)`` (`_rff_mmd`, `_feature_mean`), an
+unbiased estimator of the V-statistic, cost ``O((n+m)Dp)``.
+
+### Exact — threaded
+
+`_mean_pairwise` and `_mean_kernel` split their block loop over row-block
+pairs across `n_threads` spawned tasks, each writing disjoint entries of a
+preallocated accumulator that is then summed in a fixed pair order — so the
+result is identical for every thread count, not just numerically close.
+
+### Automatic rule for `splitquality`
+
+`estimator = nothing` (the default) selects `Exact()` when the total row
+count is at most `exact_threshold` (20,000), and otherwise the fallback
+chosen by the selection experiment on the [Benchmarks](@ref benchmarks)
+page (`_fallback_estimator`).
+
+### Why herding stays exact
+
+`RandomSlices`/`RandomFeatures` give an unbiased data term for kernel
+herding too, but measurement rejected them: every candidate row's estimate
+shares the same random directions or features, so the estimator noise is
+correlated across rows, and the greedy `argmax` follows that correlated
+noise into a direction-dependent region of the data rather than averaging it
+out — at feasible budgets the selected subset was worse than a random
+subset. See "Approximate herding data terms (rejected)" on the
+[Benchmarks](@ref benchmarks) page for the table. `HerdingSplitter`'s data
+term (`_data_term`) therefore stays exact only.
+
 ## Nearest-neighbor assignment
 
 Each support point, in order, claims its nearest not-yet-claimed data row
@@ -137,4 +239,5 @@ columns plus one.
 - Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 537–546.
 - Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492–502.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562–2592.
+- Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249–1272.
