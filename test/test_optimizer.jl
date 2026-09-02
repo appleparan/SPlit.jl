@@ -107,7 +107,7 @@ end
     data = randn(MersenneTwister(60), 40, 2)
     points = randn(MersenneTwister(61), 6, 2)
     G = zeros(6, 2)
-    SPlit._mmd_gradient!(G, k, points, data, 1)
+    SPlit._mmd_gradient!(G, k, points, data, ones(40), 1)
     h = 1e-6
     for m = 1:6, j = 1:2
       plus = copy(points)
@@ -120,7 +120,7 @@ end
     end
     # threaded gradient equals serial gradient
     G4 = zeros(6, 2)
-    SPlit._mmd_gradient!(G4, k, points, data, 4)
+    SPlit._mmd_gradient!(G4, k, points, data, ones(40), 4)
     @test G4 == G
   end
 
@@ -364,5 +364,91 @@ end
       weights = ones(50),
       _subsampling = :other,
     )
+  end
+end
+
+@testset "weighted support points (Gaussian kernel)" begin
+  k = GaussianKernel(1.0)
+
+  @testset "nothing and uniform weights give identical points" begin
+    data = randn(MersenneTwister(80), 120, 2)
+    a, ca, ia =
+      SPlit.support_points(k, data, 12; max_iterations = 40, rng = MersenneTwister(1))
+    b, cb, ib = SPlit.support_points(
+      k,
+      data,
+      12;
+      max_iterations = 40,
+      rng = MersenneTwister(1),
+      weights = ones(120),
+    )
+    @test a == b
+    @test (ca, ia) == (cb, ib)
+  end
+
+  @testset "weighted gradient matches finite differences of the weighted objective" begin
+    rng = MersenneTwister(81)
+    data = randn(rng, 30, 2)
+    w = rand(rng, 30)
+    w_bar = w ./ sum(w)
+    w_hat = w .* (30 / sum(w))
+    points = randn(rng, 5, 2)
+    G = similar(points)
+    SPlit._mmd_gradient!(G, k, points, data, w_hat, 1)
+    h = 1e-6
+    for m = 1:5, j = 1:2
+      plus = copy(points)
+      plus[m, j] += h
+      minus = copy(points)
+      minus[m, j] -= h
+      fd =
+        (
+          SPlit._mmd_objective(k, plus, data, w_bar) -
+          SPlit._mmd_objective(k, minus, data, w_bar)
+        ) / (2h)
+      @test isapprox(G[m, j], fd; atol = 1e-6)
+    end
+  end
+
+  @testset "weighted objective never increases across accepted steps" begin
+    rng = MersenneTwister(82)
+    data = randn(rng, 120, 2)
+    w = rand(rng, 120) .^ 2
+    traj = SPlit._mmd_trajectory(
+      k,
+      data,
+      12;
+      max_iterations = 40,
+      rng = MersenneTwister(2),
+      weights = w,
+    )
+    for t = 2:length(traj)
+      @test traj[t] <= traj[t-1] + 1e-12
+    end
+  end
+
+  @testset "concentrated weights pull support points toward the heavy cluster" begin
+    rng = MersenneTwister(83)
+    A = randn(rng, 200, 2) .- 4.0
+    B = randn(rng, 200, 2) .+ 4.0
+    data = vcat(A, B)
+    w = vcat(fill(9.0, 200), fill(1.0, 200))
+    in_A(pts) = count(<(0.0), pts[:, 1])
+    unweighted, _, _ =
+      SPlit.support_points(k, data, 40; max_iterations = 100, rng = MersenneTwister(4))
+    weighted, _, _ = SPlit.support_points(
+      k,
+      data,
+      40;
+      max_iterations = 100,
+      rng = MersenneTwister(4),
+      weights = w,
+    )
+    @test in_A(weighted) > in_A(unweighted)
+  end
+
+  @testset "validation" begin
+    data = randn(MersenneTwister(84), 50, 2)
+    @test_throws ArgumentError SPlit.support_points(k, data, 5; weights = ones(49))
   end
 end
