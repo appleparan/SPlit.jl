@@ -13,8 +13,6 @@ repos:
       - id: check-json
       - id: check-toml
       - id: check-yaml
-        # mkdocs.yml uses !!python/name tags for pymdownx fences
-        exclude: ^splitiq/mkdocs\.yml$
       - id: end-of-file-fixer
       - id: file-contents-sorter
         files: .JuliaFormatter.toml

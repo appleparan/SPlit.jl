@@ -1,7 +1,8 @@
 name: Python publish
 
-# Publishes splitiq to PyPI from the same vX.Y.Z tag TagBot creates when the
-# Julia package is registered. The Python and Julia versions are kept equal.
+# Publishes splitiq to PyPI from the vX.Y.Z release tag of SPlit.jl (pushed
+# by hand or by TagBot). The Python and Julia versions are kept equal, and
+# juliapkg.json pins SPlit.jl at that same tag.
 
 on:
   push:
