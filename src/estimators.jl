@@ -74,6 +74,18 @@ _undefined(e, what) =
   throw(ArgumentError("$(nameof(typeof(e))) is not defined for $(what)"))
 
 """
+    _supports(estimator, kernel) -> Bool
+
+Whether `estimator` has a herding data term defined for `kernel`. Checked at
+`HerdingSplitter` construction and by `herd` so an unsupported combination
+raises `ArgumentError` naming both types instead of a `MethodError`.
+"""
+_supports(::Exact, ::SplitKernel) = true
+_supports(::RandomSlices, ::EnergyKernel) = true
+_supports(::RandomFeatures, ::GaussianKernel) = true
+_supports(::DiscrepancyEstimator, ::SplitKernel) = false
+
+"""
     sphere_constant(p) -> Float64
 
 `κ_p = E_θ |⟨θ, e₁⟩|` for `θ` uniform on the unit sphere of `ℝ^p`:
