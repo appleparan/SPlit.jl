@@ -49,6 +49,8 @@ jobs:
         run: uv run ty check
       - name: Build docs
         run: uv run properdocs build --strict
+      - name: Validate package metadata (trove classifiers)
+        run: uvx --from 'validate-pyproject[all]' validate-pyproject pyproject.toml
       - name: Build wheel
         run: uv build
 
