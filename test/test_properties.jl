@@ -53,4 +53,24 @@ using Statistics
     @test q_mmd < mean(rand_mmd)
     @test q_ed < mean(rand_ed)
   end
+
+  @testset "herding splits beat random splits under MMD and energy distance" begin
+    data = randn(MersenneTwister(110), 250, 2)
+    for k in (GaussianKernel(1.0), EnergyKernel())
+      r = datasplit(HerdingSplitter(kernel = k), data)
+      q_k = splitquality(data, r; kernel = k)
+      q_ed = splitquality(data, r)
+      n_test = length(test_indices(r))
+      rand_k = Float64[]
+      rand_ed = Float64[]
+      for i = 1:25
+        perm = randperm(MersenneTwister(3_000 + i), 250)
+        fake = SPlit.SplitResult(perm[(n_test+1):end], perm[1:n_test], true, 0, r.method)
+        push!(rand_k, splitquality(data, fake; kernel = k))
+        push!(rand_ed, splitquality(data, fake))
+      end
+      @test q_k < mean(rand_k)
+      @test q_ed < mean(rand_ed)
+    end
+  end
 end
