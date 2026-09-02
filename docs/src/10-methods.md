@@ -27,7 +27,7 @@ comparing splits, not as an absolute value.
 
 Support points (Mak & Joseph, 2018) minimize ``\mathrm{ED}(\{\xi\}, \{x\})``
 over the point locations. The objective is minimized by
-majorization–minimization: at iteration ``t`` every point moves to
+majorization-minimization: at iteration ``t`` every point moves to
 
 ```math
 \xi_m^{(t+1)} = \frac{\displaystyle \frac{N}{n} \sum_{o \ne m}
@@ -114,8 +114,8 @@ Appending ``x`` changes the MMD² between the selected rows and the data by
   - \frac{2}{(T+1)N} \sum_{l=1}^{N} k(x, x_l) + \text{const},
 ```
 
-so for kernels with constant ``k(x, x)`` — the Gaussian kernel (``1``) and the
-energy kernel ``k(u,v) = -\|u - v\|`` (``0``) — the herding choice is exactly
+so for kernels with constant ``k(x, x)``, namely the Gaussian kernel (``1``)
+and the energy kernel ``k(u,v) = -\|u - v\|`` (``0``), the herding choice is exactly
 the greedy MMD² (energy-distance) minimizer. For the Gaussian kernel (a
 bounded feature map), the error ``\mathcal{E}_T`` of Eq. (9) decreases as
 ``O(1/T)`` (Proposition 1); for the energy kernel only the greedy-step
@@ -140,7 +140,7 @@ combination, never an `if`); an undefined combination raises an
 | `RandomSlices(k)` | yes | no |
 | `RandomFeatures(D)` | no | yes |
 
-### RandomSlices — the projection identity
+### RandomSlices: the projection identity
 
 For ``\theta`` uniform on the unit sphere ``S^{p-1}`` and any
 ``u \in \mathbb{R}^p``,
@@ -173,7 +173,7 @@ gives the within-sample mean (`_within_mean_abs`), and the cross term
 the ranks of the other (`_cross_mean_abs`), for a total cost of
 ``O(k (n+m) \log(n+m))``.
 
-### RandomFeatures — random Fourier features
+### RandomFeatures: random Fourier features
 
 For the Gaussian kernel ``k(x,y) = \exp(-\|x-y\|^2/2\sigma^2)``, with
 ``\omega_j \sim \mathcal{N}(0, \sigma^{-2} I_p)`` and
@@ -189,11 +189,11 @@ estimates squared MMD as ``\|\bar z_X - \bar z_Y\|^2`` with
 ``\bar z_X = \frac{1}{n}\sum_i z(x_i)`` (`_rff_mmd`, `_feature_mean`), an
 unbiased estimator of the V-statistic, cost ``O((n+m)Dp)``.
 
-### Exact — threaded
+### Exact: threaded
 
 `_mean_pairwise` and `_mean_kernel` split their block loop over row-block
 pairs across `n_threads` spawned tasks, each writing disjoint entries of a
-preallocated accumulator that is then summed in a fixed pair order — so the
+preallocated accumulator that is then summed in a fixed pair order, so the
 result is identical for every thread count, not just numerically close.
 
 ### Automatic rule for `splitquality`
@@ -210,8 +210,8 @@ herding too, but measurement rejected them: every candidate row's estimate
 shares the same random directions or features, so the estimator noise is
 correlated across rows, and the greedy `argmax` follows that correlated
 noise into a direction-dependent region of the data rather than averaging it
-out — at feasible budgets the selected subset was worse than a random
-subset. See "Approximate herding data terms (rejected)" on the
+out. At feasible budgets the selected subset was worse than a random subset.
+See "Approximate herding data terms (rejected)" on the
 [Benchmarks](@ref benchmarks) page for the table. `HerdingSplitter`'s data
 term (`_data_term`) therefore stays exact only.
 
@@ -237,10 +237,10 @@ columns plus one.
 
 ## References
 
-- Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109–116.
-- Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *JMLR*, 13, 723–773.
-- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 537–546.
-- Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492–502.
-- Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562–2592.
+- Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
+- Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *JMLR*, 13, 723-773.
+- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 537-546.
+- Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502.
+- Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 - Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
-- Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249–1272.
+- Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249-1272.

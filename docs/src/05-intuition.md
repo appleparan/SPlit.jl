@@ -10,8 +10,8 @@ If you want to see how the methods perform, see [Benchmarks](@ref benchmarks).
 Imagine dividing a school class into two teams for a game, by drawing names
 out of a hat. Most of the time you get two reasonably balanced teams. But
 sometimes the hat gives you all the tall kids on one side, or all the fast
-runners, and the game is lopsided before it even starts. Nothing was done
-wrong, the draw was fair, and you were unlucky.
+runners, and the game is lopsided before it even starts. Nobody did anything
+wrong. The draw was fair, and you were unlucky.
 
 A test set plays the same role for a machine learning model that the second
 team plays in that game. It is supposed to be a miniature version of the
@@ -37,11 +37,10 @@ with the energy distance.
 Picture two groups of people standing in a room, group A on the left, group B
 on the right. You want to know whether they were drawn from the same crowd,
 or whether they are actually different populations sitting in different
-corners. Do this: measure the average distance between a randomly chosen
-person from A and a randomly chosen person from B (call this the
-cross-distance), and separately measure the average distance between two
-random people picked from within A, and within B (call these the
-within-distances).
+corners. Measure the average distance between a randomly chosen person
+from A and a randomly chosen person from B (call this the cross-distance),
+and separately measure the average distance between two random people picked
+from within A, and within B (call these the within-distances).
 
 If A and B are two random samples from the same crowd, a person from A
 is, on average, about as far from a person in B as two people from the same
@@ -73,22 +72,22 @@ because its numbers happen to be bigger.
 
 ## Support points: choose ideal locations first, rows later
 
-Here is the central idea. Rather than pick data rows directly, SPlit first
-asks a more abstract question: if I could place `n` points anywhere I like,
+Rather than pick data rows directly, SPlit first asks a more abstract
+question: if I could place `n` points anywhere I like,
 not restricted to existing rows, where should they go so that their energy
 distance to the full data is as small as possible? The answer to that
 question is a set of support points (Mak & Joseph, 2018).
 
 Think of placing `n` ice-cream trucks in a city so that they serve the whole
-population well. Each truck is pulled toward where people actually live,
-that is attraction to the data. But if every truck parked on the single
-busiest block, the rest of the city would be poorly served, and the trucks
-would all look almost identical to each other, so each truck is also pushed
-away from where the other trucks already are, that is repulsion between the
-points. Minimizing the energy distance between the trucks and the population
-is exactly the mathematical version of balancing that pull and that push:
-enough attraction to sit where the data is dense, enough repulsion to still
-spread out and cover where the data is sparse.
+population well. Each truck is pulled toward where people live (attraction
+to the data). But if every truck parked on the single busiest block, the rest
+of the city would be poorly served, and the trucks would all look almost
+identical to each other, so each truck is also pushed away from where the
+other trucks already are (repulsion between the points). Minimizing the
+energy distance between the trucks and the population is exactly the
+mathematical version of balancing that pull and that push: enough attraction
+to sit where the data is dense, enough repulsion to still spread out and
+cover where the data is sparse.
 
 `n` is the size of the smaller side of the split. With `ratio = 0.2` on
 1,000 rows, `n` is 200; those 200 points are what the optimizer places.
@@ -101,9 +100,9 @@ majorization-minimization (MM). At each sweep, every point moves to a
 weighted average of two things: the data rows, which pull it (nearby rows
 pull harder than far ones, because the pull weight is one over distance),
 and the other support points, which push it away, so points do not collapse
-onto each other. Every sweep is guaranteed to make the energy distance
-smaller or, at worst, leave it the same. It never gets worse. This guarantee
-is exactly what the descent test in this package checks. Points are clamped
+onto each other. Every sweep makes the energy distance smaller or, at worst,
+leaves it the same, and the descent test in this package checks exactly that
+guarantee. Points are clamped
 to stay inside the bounding box of the data, so the optimizer never wanders
 off to a location no data row is near. The sweeps stop either when the
 largest squared move of any point in one sweep drops below `tolerance`, or
@@ -221,14 +220,14 @@ splitquality(data, result; kernel = result.method.kernel)
 `bandwidth = :median`, the default, picks `σ` as the median pairwise
 distance between the standardized rows, resolved once when `datasplit` runs,
 and the resolved kernel (with a plain number in place of `:median`) is
-stored in `result.method.kernel`, as shown above. Two things to watch for:
+stored in `result.method.kernel`, as shown above. Two things to watch for.
 `:median` raises an `ArgumentError` when at least half of all row pairs
 coincide exactly, which happens for example with a single binary categorical
-column; in that case pass a numeric `σ` instead, chosen on the scale of the
-standardized data, since a bandwidth far below the spacing between rows
-makes the objective flat and the optimizer never moves away from its
-starting sample. Also, `kappa`, the stochastic large-data mode from the
-previous section, is not available for `GaussianKernel`.
+column. In that case pass a numeric `σ` instead, chosen on the scale of the
+standardized data: a bandwidth far below the spacing between rows makes the
+objective flat, and the optimizer never moves away from its starting sample.
+Also, `kappa`, the stochastic large-data mode from the previous section, is
+not available for `GaussianKernel`.
 
 ## Skipping the points: kernel herding
 
