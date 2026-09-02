@@ -12,7 +12,7 @@ gets a scale-aware first step and a minimum iteration count so it no longer
 reports convergence at the initial sample. (B) and (C) introduce a
 `DiscrepancyEstimator` type hierarchy — `Exact`, `Subsample`, `RandomSlices`,
 `RandomFeatures` — selected by an `estimator` keyword on `energydistance`,
-`mmd`, `splitquality`, and `HerdingSplitter`; which combinations exist is
+`mmd`, and `splitquality`; which combinations exist is
 expressed by method dispatch, not runtime checks. `RandomSlices` estimates the
 energy distance from random 1-D projections in $O(kN\log N)$;
 `RandomFeatures` estimates Gaussian MMD with random Fourier features in
@@ -185,13 +185,14 @@ early-stop disclosure is rewritten once the new numbers are in.
 
 - Methods page: "Estimators" section with the projection identity (with
   $\kappa_p$ and the sorted-sample formulas), random Fourier features, the
-  threaded exact path, and the herding data terms; the optimizer section
+  threaded exact path, and a short "why herding stays exact" paragraph pointing
+  at the negative-result table; the optimizer section
   updated for the scale-aware step and the two-part convergence rule. Every
   formula names its function.
-- Benchmarks page: "Estimators" table and decision; re-run of the existing
+- Benchmarks page: "Estimators" table and decision, followed by the
+  approximate-herding negative-result table; re-run of the existing
   benchmark with the new optimizer (support points · gaussian cells change).
-- README/index: `estimator` keyword and `HerdingSplitter(estimator = …)`
-  snippets; AGENTS.md gotchas for the estimator dispatch contract and the new
+- README/index: `estimator` keyword snippets for `energydistance`/`mmd`; AGENTS.md gotchas for the estimator dispatch contract and the new
   convergence rule.
 
 ## Testing (property style)

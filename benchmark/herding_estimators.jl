@@ -1,7 +1,8 @@
 # Negative-result benchmark: approximating the kernel-herding data term with
 # RandomSlices/RandomFeatures makes greedy selection unreliable, because all
 # candidate rows share the same random directions/features and the greedy
-# argmax follows the resulting correlated noise. See the Methods page.
+# argmax follows the resulting correlated noise. The table it writes is
+# embedded on the Benchmarks page.
 #
 # For each estimator budget: draw the (noisy) data term with the package's
 # internal estimator building blocks, run a local copy of the exact greedy
@@ -43,21 +44,21 @@ function greedy_select(kernel, X::Matrix{Float64}, n::Int, d::Vector{Float64})
 end
 
 function random_slices_data_term(X::Matrix{Float64}, k::Int, rng::AbstractRNG)
-  N, p = size(X)
+  n_rows, p = size(X)
   κ = SPlit.sphere_constant(p)
   Θ = SPlit._project_directions(rng, p, k)
-  d = zeros(N)
-  rank = Vector{Int}(undef, N)
+  d = zeros(n_rows)
+  rank = Vector{Int}(undef, n_rows)
   for j = 1:k
     u = X * @view(Θ[:, j])
     order = sortperm(u)
     for (r, i) in enumerate(order)
       rank[i] = r
     end
-    P = cumsum(u[order])
-    for i = 1:N
+    prefix = cumsum(u[order])
+    for i = 1:n_rows
       r = rank[i]
-      d[i] -= (u[i] * (2r - N) - 2 * P[r] + P[N]) / (k * κ * N)
+      d[i] -= (u[i] * (2r - n_rows) - 2 * prefix[r] + prefix[n_rows]) / (k * κ * n_rows)
     end
   end
   return d
@@ -69,10 +70,10 @@ function random_features_data_term(
   D::Int,
   rng::AbstractRNG,
 )
-  N, p = size(X)
+  n_rows, p = size(X)
   φ = SPlit.FourierFeatureMap(kernel, p, D, rng)
   z̄ = SPlit._feature_mean(φ, X)
-  return [sum(φ(@view X[i, :]) .* z̄) for i = 1:N]
+  return [sum(φ(@view X[i, :]) .* z̄) for i = 1:n_rows]
 end
 
 random_baseline(kernel, X, n; repeats = 10) = mean(
@@ -173,14 +174,16 @@ open(out_path, "w") do io
     2010, Eq. 8) was tried with `RandomSlices`/`RandomFeatures` approximations
     and rejected: all candidate rows share the same random directions or
     features, so the estimator's noise is correlated across rows, and greedy
-    `argmax` selection tracks that noise rather than averaging it out. The
-    budget needed to reliably beat a random subset costs as much as the exact
-    `O(N²)` data term, with no accuracy left over. `RandomSlices`/
-    `RandomFeatures` remain available for `energydistance`/`mmd` quality
-    diagnostics; `HerdingSplitter`'s data term is exact only.
+    `argmax` selection tracks that noise rather than averaging it out. In the
+    table below the small budgets select subsets *worse than a random subset*,
+    the mid budgets roughly match random, and only the largest budgets come
+    within about 3× of exact herding — at which point the estimator's own cost
+    (`O(kN log N)` for slices, `O(NDp)` for Fourier features) matches the exact
+    `O(N²)` data term for `N` around 10⁵. `RandomSlices`/`RandomFeatures`
+    remain available for `energydistance`/`mmd` quality diagnostics;
+    `HerdingSplitter`'s data term is exact only.
 
     N = $N, p = $P, n = $N_SELECT, 3 rng seeds per row.
-
     """,
   )
   println(io, table)
