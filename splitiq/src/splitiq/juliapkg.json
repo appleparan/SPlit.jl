@@ -2,7 +2,7 @@
   "julia": "1.10",
   "packages": {
     "SPlit": {
-      "rev": "v0.5.0",
+      "rev": "v0.5.1",
       "url": "https://github.com/appleparan/SPlit.jl.git",
       "uuid": "6b22f1a1-5f68-5715-9b23-279ae752cb98"
     }
