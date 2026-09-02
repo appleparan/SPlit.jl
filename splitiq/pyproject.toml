@@ -1,0 +1,285 @@
+[project]
+name = "splitiq"
+version = "0.5.0"
+description = "Optimal train/test splitting via support points, backed by SPlit.jl"
+authors = [
+    {name="Jongsu Liam Kim", email="jongsukim8@gmail.com"}
+]
+readme = "README.md"
+license = "Apache-2.0"
+dependencies = [
+    "juliacall>=0.9.35,<0.10",
+    "juliapkg>=0.1.26,<0.2",
+    "numpy>=1.26",
+]
+requires-python = ">=3.12, <4.0"
+keywords = [
+    "data splitting",
+    "support points",
+    "energy distance",
+    "train test split",
+    "julia",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Julia",
+    "Operating System :: POSIX",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+[project.urls]
+Homepage = "https://github.com/appleparan/SPlit.jl"
+Documentation = "https://appleparan.github.io/SPlit.jl"
+Issues = "https://github.com/appleparan/SPlit.jl/issues"
+
+[project.optional-dependencies]
+pandas = [
+    "pandas>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    { include-group = "docs" },
+    "coverage==7.15.4",
+    "pandas>=2.0",
+    "coverage-badge==1.1.2",
+    "git-cliff==2.13.1",
+    "ruff==0.16.4",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-html==4.2.0",
+    "pytest-mock==3.15.1",
+    "pre-commit==4.6.2",
+    "ty>=0.0.74",
+]
+docs = [
+    "mkdocs==1.6.1",
+    "mkdocs-material==9.7.7",
+    "mkdocstrings[python]==1.0.6",
+    "mkdocs-gen-files==0.6.1",
+    "mkdocs-section-index==0.3.12",
+    "mkdocs-literate-nav==0.6.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.4,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = true
+managed = true
+# Dependency cooldown: ignore packages released in the last 7 days
+# https://docs.astral.sh/uv/reference/settings/#exclude-newer
+exclude-newer = "P7D"
+# default-groups = ["dev", "docs"]
+
+[tool.uv.pip]
+index-url = "https://pypi.org/simple"
+
+[tool.ruff]
+include = ["*.py", "*.pyi", "**/pyproject.toml", "*.ipynb"]
+exclude = [
+    "__pycache__",
+    "data/*",
+    "notebooks/*",
+    "logs/*",
+    "**/__pycache__",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "docs",
+    "data",
+    "tests/data",
+]
+# Same as Black.
+line-length = 100
+# Assume Python 3.13
+target-version = "py313"
+
+[tool.ruff.lint]
+ignore = [
+    "ANN002", # missing-type-args
+    "ANN003", # missing-type-kwargs
+    "ANN204", # missing-return-type-special-method
+    "COM812", # missing-trailing-comma
+    "D100", # undocumented-public-module
+    "D101", # undocumented-public-class
+    "E741", # ambiguous-variable-name
+    "F811", # redefined-while-unused
+    "FBT001",   # boolean-type-hint-positional-argument
+    "FBT002",   # boolean-default-value-positional-argument
+    "N806", # non-lowercase-variable-in-function
+]
+select = [
+    "A",    # flake8-builtins
+    "AIR",  # Airflow
+    "ANN",  # flake8-annotations: https://stackoverflow.com/a/63550734/743078
+    "ARG",  # flake8-unused-arguments
+    "B",    # flake8-bugbear
+    "BLE",  # flake8-blind-accept
+    "B9",   # flake8-broken-line
+    "COM",  # flake8-commas
+    "C4",   # flake8-comprehensions
+    "D",    # pydocstyle
+    "DTZ",  # flake8-datetimez
+    "E",    # pycodestyle
+    "EM",   # flake8-errmsg
+    "F",    # pyflakes
+    "FBT",  # flake8-boolean-trap
+    "G",    # flake8-logging-format
+    "I",    # isort
+    "ICN",  # flake8-import-conventions
+    "LOG",  # flake8-logging
+    "N",    # pep8-naming
+    "NPY",  # NumPy-specific rules
+    "PD",   # pandas-vet
+    "PERF", # Perflint
+    "PIE",  # flake8-pie
+    "PLE",  # pylint-error
+    "PT",   # flake8-pytest-style
+    "PTH",  # flake8-use-pathlib
+    "RUF",  # Ruff-specific rules
+    "S",    # flake8-bandit
+    "SIM",  # flake8-simplify
+    "TC",   # flake8-type-checking
+    "TID",  # flake8-tidy-imports
+    "T100", # debuggger
+    "YTT",  # flake8-2020
+    "UP",   # pyupgrade
+    "W",    # pycodestyle
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "single"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 18
+
+[tool.ruff.lint.per-file-ignores]
+"**/configs/**.py" = [
+    "F401",
+    "E402",
+]
+"**/__init__.py" = [
+    "F401",
+    "F403",
+    "E402",
+]
+"**/tests/config/**.py" = [
+    "F401",
+    "E402",
+]
+"**/tests/**.py" = [
+    "ANN",
+    "D100",
+    "D103",
+    "D104",
+    "S101",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["splitiq"]
+known-third-party = ["numpy", "pandas", "juliacall", "juliapkg"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = [
+    "tests",
+]
+pythonpath = [
+  "src"
+]
+python_files = ["test_*.py"]
+# https://docs.pytest.org/en/6.2.x/customize.html#pyproject-toml
+# Directories that are not visited by pytest collector:
+norecursedirs = [
+    "hooks",
+    "*.egg",
+    ".eggs",
+    "dist",
+    "build",
+    "docs",
+    ".tox",
+    ".git",
+    "__pycache__"
+]
+log_cli = "true"
+markers = [
+    "slow"
+]
+doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "--doctest-modules",
+    "--doctest-continue-on-failure",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 50
+show_missing = true
