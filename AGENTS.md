@@ -35,7 +35,7 @@ output-matching tests. The design record is
   estimate has a positive bias of order `1/subsample`. `splitquality`
   switches to it automatically above `exact_threshold`.
 - Categorical columns are Helmert-encoded in canonical level order so splits
-  do not depend on row order; `Union{Missing,T}` columns without missings
+  do not depend on row order; `Union{Missing,T}` columns without missing values
   are accepted.
 - All randomness goes through the caller's `rng`; nothing in `src/` seeds or
   prints on a default path.
