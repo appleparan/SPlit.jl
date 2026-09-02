@@ -11,6 +11,8 @@ using LinearAlgebra
     @test GaussianKernel(2).bandwidth === 2.0
     @test_throws ArgumentError GaussianKernel(0.0)
     @test_throws ArgumentError GaussianKernel(-1)
+    @test_throws ArgumentError GaussianKernel(Inf)
+    @test_throws ArgumentError GaussianKernel(NaN)
     @test_throws ArgumentError GaussianKernel(:mean)
   end
 

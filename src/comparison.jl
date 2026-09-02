@@ -3,6 +3,7 @@ Side-by-side comparison of splitter configurations on one dataset.
 """
 
 using DataFrames
+using Random
 
 """
     SplitComparison
@@ -18,23 +19,28 @@ struct SplitComparison
   qualities::Vector{Float64}
   kernel::SplitKernel
 end
+SplitComparison(m, r, q) = SplitComparison(m, r, q, EnergyKernel())
 
 """
     compare(methods, data; kernel = EnergyKernel(), kwargs...) -> SplitComparison
 
 Run [`datasplit`](@ref) with each splitter in `methods` on `data` and score
-every split with [`splitquality`](@ref) under `kernel`. Remaining keyword
-arguments are forwarded to `splitquality`.
+every split with [`splitquality`](@ref) under `kernel`. `kernel` selects the
+scoring discrepancy; a `:median` bandwidth is resolved once on the
+preprocessed data with `rng` and the resolved kernel is stored in the
+comparison. Remaining keyword arguments are forwarded to `splitquality`.
 """
 function compare(
   methods::Vector{<:SupportPointSplitter},
   data;
   kernel::SplitKernel = EnergyKernel(),
+  rng::AbstractRNG = Random.default_rng(),
   kwargs...,
 )
   results = [datasplit(m, data) for m in methods]
-  qualities = [splitquality(data, r; kernel, kwargs...) for r in results]
-  return SplitComparison([r.method for r in results], results, qualities, kernel)
+  k = isresolved(kernel) ? kernel : resolve(kernel, preprocess(data), rng)
+  qualities = [splitquality(data, r; kernel = k, rng, kwargs...) for r in results]
+  return SplitComparison([r.method for r in results], results, qualities, k)
 end
 
 """

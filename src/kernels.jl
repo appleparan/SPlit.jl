@@ -22,7 +22,6 @@ majorization–minimization update.
 struct EnergyKernel <: SplitKernel end
 
 using Distances: Euclidean, pairwise
-using LinearAlgebra: norm
 using Random
 using Statistics: median
 using StatsBase: sample
@@ -41,7 +40,8 @@ the standardized data. The resolved value is stored in `result.method.kernel`.
 struct GaussianKernel{B<:Union{Float64,Symbol}} <: SplitKernel
   bandwidth::B
   function GaussianKernel(bandwidth::Real)
-    bandwidth > 0 || throw(ArgumentError("bandwidth must be positive, got $bandwidth"))
+    isfinite(bandwidth) && bandwidth > 0 ||
+      throw(ArgumentError("bandwidth must be a positive finite number, got $bandwidth"))
     return new{Float64}(Float64(bandwidth))
   end
   function GaussianKernel(bandwidth::Symbol)

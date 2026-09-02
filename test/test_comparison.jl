@@ -80,3 +80,18 @@ end
   m, r = best(c)
   @test m === r.method
 end
+
+@testset "compare resolves a :median scoring kernel once" begin
+  data = randn(MersenneTwister(60), 1_500, 2)
+  splitters = [
+    SupportPointSplitter(ratio = 0.2, max_iterations = 20, rng = MersenneTwister(61)),
+    SupportPointSplitter(ratio = 0.3, max_iterations = 20, rng = MersenneTwister(62)),
+  ]
+  c = compare(splitters, data; kernel = GaussianKernel(), rng = MersenneTwister(63))
+  @test c.kernel isa GaussianKernel{Float64}
+  X = SPlit.preprocess(data)
+  expected = [mmd(X[r.train_indices, :], X[r.test_indices, :], c.kernel) for r in c.results]
+  @test c.qualities == expected
+  m, r = best(c)
+  @test r === c.results[argmin(c.qualities)]
+end
