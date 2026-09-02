@@ -365,6 +365,30 @@ end
       _subsampling = :other,
     )
   end
+
+  @testset "all-zero kappa subsample errors" begin
+    data = randn(MersenneTwister(90), 60, 2)
+    w = zeros(60)
+    w[1] = 1.0
+    # 59 zero-weight rows and kappa = 10: each draw has probability ≈ 0.83 of
+    # drawing only zero-weight rows, so at least one of these seeds must throw.
+    @test any(1:20) do seed
+      try
+        SPlit.support_points(
+          EnergyKernel(),
+          data,
+          5;
+          kappa = 10,
+          weights = w,
+          rng = MersenneTwister(seed),
+          max_iterations = 3,
+        )
+        false
+      catch e
+        e isa ArgumentError
+      end
+    end
+  end
 end
 
 @testset "weighted support points (Gaussian kernel)" begin

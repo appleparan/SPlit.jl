@@ -126,6 +126,11 @@ function _standardize!(M::Matrix{Float64}, w::Vector{Float64})
     col = view(M, :, j)
     μ = sum(w .* col)
     σ = sqrt(sum(w .* (col .- μ) .^ 2) / correction)
+    σ > 0 || throw(
+      ArgumentError(
+        "column $j is constant on the rows with positive weight; drop it or give those rows weight",
+      ),
+    )
     col .= (col .- μ) ./ σ
   end
   return M

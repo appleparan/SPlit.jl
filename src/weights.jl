@@ -34,6 +34,7 @@ _isuniform(w::AbstractVector) = all(==(first(w)), w)
 # (uniform) vector yields exactly ones, so uniform weights reproduce the
 # unweighted arithmetic bit for bit.
 function _mean_one_weights(weights::AbstractVector)
+  sum(weights) > 0 || throw(ArgumentError("weights must not all be zero"))
   w = Vector{Float64}(weights)
   # A constant vector is exactly uniform: return exact ones rather than
   # relying on length(w) / sum(w) rounding to 1.0.

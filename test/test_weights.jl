@@ -30,4 +30,8 @@ using SPlit
     @test SPlit._mean_one_weights(SPlit._uniform_weights(7)) == ones(7)
     @test SPlit._mean_one_weights(fill(1 / 9, 9)) == ones(9)
   end
+
+  @testset "all-zero weights error" begin
+    @test_throws ArgumentError SPlit._mean_one_weights(zeros(4))
+  end
 end

@@ -133,7 +133,11 @@ function _draw_subsample(
   ::Val{:uniform},
 )
   idx = sample(rng, 1:N, kappa; replace = false)
-  return idx, _mean_one_weights(w_hat[idx])
+  sub = w_hat[idx]
+  sum(sub) > 0 || throw(
+    ArgumentError("the kappa subsample drew only zero-weight rows; use a larger kappa"),
+  )
+  return idx, _mean_one_weights(sub)
 end
 function _draw_subsample(
   rng::AbstractRNG,

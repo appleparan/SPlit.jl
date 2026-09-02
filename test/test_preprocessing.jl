@@ -109,9 +109,9 @@ end
 
   @testset "uniform weights match the unweighted result up to rounding" begin
     data = randn(MersenneTwister(32), 60, 2)
-    X_unweighted = SPlit.preprocess(data)
-    X_weighted = SPlit.preprocess(data, ones(60))
-    @test isapprox(X_weighted, X_unweighted; atol = 1e-12)
+    M = SPlit._encode(data)
+    X_w = SPlit._standardize!(copy(M), fill(1 / 60, 60))
+    @test isapprox(X_w, SPlit.preprocess(data); atol = 1e-12)
   end
 
   @testset "constant weight vector is treated as nothing and matches exactly" begin
@@ -123,6 +123,13 @@ end
     w = zeros(10)
     w[3] = 1.0
     @test_throws ArgumentError SPlit.preprocess(randn(10, 2), w)
+  end
+
+  @testset "column constant on positive-weight rows errors" begin
+    @test_throws ArgumentError SPlit.preprocess(
+      [5.0 1.0; 5.0 2.0; 7.0 3.0],
+      [1.0, 1.0, 0.0],
+    )
   end
 
   @testset "DataFrame with categoricals accepts weights" begin
