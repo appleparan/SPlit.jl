@@ -133,12 +133,12 @@ end
 function decide(agg)
   base = only(filter(r -> r.estimator == SUBSAMPLE_LABEL, eachrow(agg)))
   candidates = filter(r -> r.estimator != SUBSAMPLE_LABEL, agg)
-  qualifying = filter(
-    r ->
-      r.agg_max_error <= base.agg_max_error / 3 &&
-        r.agg_mean_seconds <= base.agg_mean_seconds,
-    candidates,
-  )
+  function passes(r)
+    within_error = r.agg_max_error <= base.agg_max_error / 3
+    within_time = r.agg_mean_seconds <= base.agg_mean_seconds
+    return within_error && within_time
+  end
+  qualifying = filter(passes, candidates)
   isempty(qualifying) && return SUBSAMPLE_LABEL
   return qualifying[argmin(qualifying.agg_mean_seconds), :estimator]
 end
