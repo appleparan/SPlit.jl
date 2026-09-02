@@ -91,18 +91,21 @@ result = datasplit(herding, data)
 ### Quality diagnostics
 
 `energydistance(X, Y)` computes the energy distance between two samples
-(exactly, or via random subsampling for large inputs). `mmd(X, Y, kernel)`
-generalizes this to any `SplitKernel` (the squared maximum mean discrepancy).
-`splitquality(data, result; kernel = EnergyKernel())` applies the matching
-statistic to the train/test partition of a `SplitResult`, switching to the
-subsampled estimator automatically once the row count crosses a threshold —
-lower values indicate a split whose two sides are more alike in
+(exactly, or via a `DiscrepancyEstimator` for large inputs). `mmd(X, Y,
+kernel)` generalizes this to any `SplitKernel` (the squared maximum mean
+discrepancy). `splitquality(data, result; kernel = EnergyKernel())` applies
+the matching statistic to the train/test partition of a `SplitResult`,
+switching to an estimator automatically once the row count crosses a
+threshold — lower values indicate a split whose two sides are more alike in
 distribution.
 
 ```julia
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
 result = datasplit(gauss, data)
 splitquality(data, result; kernel = result.method.kernel)   # MMD under the fitted kernel
+
+energydistance(X, Y; estimator = RandomSlices(256))
+mmd(X, Y, GaussianKernel(1.0); estimator = RandomFeatures(2048))
 ```
 
 ### Optimal ratio
@@ -151,6 +154,8 @@ kernels and dataset sizes.
 4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
 
 5. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
+
+6. Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 
 ## How to Cite
 

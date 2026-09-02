@@ -31,9 +31,16 @@ output-matching tests. The design record is
 - The MM sweep in `optimizer.jl` is the hot loop and is written as explicit
   coordinate loops on purpose: keep it allocation-free. `n0 = 0.2n` there is
   an implementation constant, not from the papers.
-- `energydistance` is exact unless `subsample` is passed; the subsampled
-  estimate has a positive bias of order `1/subsample`. `splitquality`
-  switches to it automatically above `exact_threshold`.
+- `energydistance`/`mmd` are exact unless an `estimator` (or the compatibility
+  `subsample` keyword) is passed; `Subsample`'s estimate has a positive bias
+  of order `1/m` (`Subsample(m, repeats)`), `RandomSlices`/`RandomFeatures`
+  are unbiased.
+  `splitquality` switches to the fallback `DiscrepancyEstimator` chosen by
+  the selection experiment (see Benchmarks) automatically above
+  `exact_threshold` (20,000 rows).
+- estimator/kernel combinations are methods of `_energydistance`/`_mmd` — add
+  a method, never an `if`; herding has no estimator mode on purpose (measured
+  worse than random, see Benchmarks).
 - Categorical columns are Helmert-encoded in canonical level order so splits
   do not depend on row order; `Union{Missing,T}` columns without missing values
   are accepted.
@@ -51,6 +58,12 @@ output-matching tests. The design record is
   `rng` only feeds a `:median` bandwidth. Its data term is exact (`O(N²)`);
   there is no subsampled mode. `SplitResult.iterations` is the number of
   selections.
+- Gaussian optimizer: the first trial step is 10% of the standardized data
+  scale (median column range) divided by the largest per-point gradient
+  norm, not a fixed constant; later iterations warm-start from twice the
+  previous accepted step. Convergence needs at least 2 iterations and either
+  the displacement rule (`tolerance`, squared displacement) or the
+  relative-decrease rule (`rtol`, on the bounded shifted objective).
 
 ## Workflow
 

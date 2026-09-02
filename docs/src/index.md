@@ -63,6 +63,16 @@ result = datasplit(herd, data)
 See [Benchmarks](@ref benchmarks) for how the two splitters compare across
 kernels and dataset sizes.
 
+## Quality diagnostics
+
+`energydistance`/`mmd` accept an `estimator` keyword for large inputs — see
+[Methods](@ref methods) for what each `DiscrepancyEstimator` computes:
+
+```julia
+energydistance(X, Y; estimator = RandomSlices(256))
+mmd(X, Y, GaussianKernel(1.0); estimator = RandomFeatures(2048))
+```
+
 ## API Reference
 
 See the [Reference](@ref reference) section for complete API documentation.
@@ -94,6 +104,8 @@ See the [Reference](@ref reference) section for complete API documentation.
 4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
 
 5. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
+
+6. Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 
 ## Contributors
 

@@ -9,15 +9,18 @@ using Random
 
 # d_i = mean over all N rows of k(x_i, x_l), for every row i (including the
 # self-term k(x_i, x_i), matching Eq. (8) exactly); chunked over threads.
+# Computed on the transpose so each row is a contiguous column view.
 function _data_term(kernel::SplitKernel, X::Matrix{Float64}, n_threads::Int)
   N = size(X, 1)
+  Xt = permutedims(X)
   d = Vector{Float64}(undef, N)
   chunks = collect(Iterators.partition(1:N, cld(N, max(1, n_threads))))
   @sync for chunk in chunks
     Threads.@spawn for i in chunk
       s = 0.0
+      @views xi = Xt[:, i]
       @views for l = 1:N
-        s += kernelvalue(kernel, X[i, :], X[l, :])
+        s += kernelvalue(kernel, xi, Xt[:, l])
       end
       d[i] = s / N
     end
@@ -32,7 +35,10 @@ Select `n` rows of `X` by kernel herding: the first row maximizes the mean
 kernel value to the data, and each later row maximizes
 `mean_l k(x, x_l) − (1/(T+1)) Σ_t k(x, s_t)` over rows not yet selected
 (Chen, Welling & Smola 2010, Eq. 8). The data term is the exact mean over all
-`N` rows, including the self-term. The procedure is deterministic given the
+`N` rows, including the self-term, computed threaded (`O(N²)`); approximating
+it with a `DiscrepancyEstimator` was evaluated and rejected — the Benchmarks
+page records the measurement: the noise such estimators introduce is
+correlated across candidate rows and makes greedy selection unreliable. The procedure is deterministic given the
 data and a numeric kernel; ties go to the lowest row index. Cost
 `O(N² + nN)`.
 
@@ -84,9 +90,10 @@ end
 
 Split by greedy kernel herding (Chen, Welling & Smola 2010): the smaller
 subset is chosen row by row to minimize the MMD² (energy distance for
-`EnergyKernel`) to the whole data. Deterministic given the data and a numeric
-kernel; `rng` only feeds a `:median` bandwidth. See [`herd`](@ref) for the
-rule and cost.
+`EnergyKernel`) to the whole data. The data term is always computed exactly
+(threaded, `O(N²)`); see [`herd`](@ref) for why an approximate data term is
+not offered. Deterministic given the data and a numeric kernel; `rng` only
+feeds a `:median` bandwidth. See [`herd`](@ref) for the rule and cost.
 
 # Examples
 
