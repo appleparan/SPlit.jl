@@ -119,10 +119,21 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
 - Metrics per (dataset, method): energy distance and Gaussian-kernel MMD of
   the split (median-heuristic bandwidth resolved once per dataset), wall
   time; support-point methods use `kappa = 1_000` at $N = 10{,}000$.
-- Output: a Markdown table on stdout; `docs/src/20-benchmarks.md` holds the
-  committed table, the exact command, Julia/thread/CPU info, and a short
+- Output: a Markdown table on stdout plus figures written with CairoMakie
+  (a dependency of the benchmark environment only, never of the package) to
+  `docs/src/assets/benchmarks/`:
+  1. `quality.png` — grouped bars of energy distance and Gaussian MMD per
+     method, one panel per dataset (log scale, random split as the
+     reference);
+  2. `time.png` — wall time versus $N$ per method (log–log);
+  3. `selection.png` — the 2-D Gaussian-mixture data with the test rows
+     chosen by each method overlaid, one panel per method (the visual
+     argument for why the methods differ).
+  `docs/src/20-benchmarks.md` embeds the three figures and the committed
+  table, and records the exact command, Julia/thread/CPU info, and a short
   reading of the results (which method to prefer when). Re-running the script
-  regenerates the table for the page.
+  regenerates the table and the figures; both are committed so the docs
+  build needs no benchmark run.
 
 ## Documentation (deliverable)
 
@@ -130,7 +141,8 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
   empirical distribution, the $\Delta$ derivation above, the $O(1/T)$
   statement, the `kappa` estimate, and the function names (`herd`,
   `HerdingSplitter`).
-- `docs/src/20-benchmarks.md`: as above.
+- `docs/src/20-benchmarks.md`: as above, with the three figures embedded
+  (`![…](assets/benchmarks/….png)`; Documenter copies `docs/src/assets`).
 - `docs/src/index.md`: a Splitters paragraph showing both splitters;
   README: one bullet and one snippet for `HerdingSplitter`; AGENTS.md: one
   gotcha (herding is deterministic given the kernel; `rng` only feeds `kappa`
@@ -151,8 +163,9 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
    `HerdingSplitter`; `DataFrame` shows the `method` column; `best` works.
 6. Validation: `ratio`, `kappa`, unresolved kernel, unsupported kernel type
    errors; `DataFrame`/vector inputs.
-7. Benchmark script smoke test: runs on tiny sizes (`--quick` flag) and
-   prints a table with the expected rows.
+7. Benchmark script smoke test: runs on tiny sizes (`--quick` flag), prints
+   a table with the expected rows, and writes the three PNG files to a
+   temporary output directory (`--out`).
 
 ## Non-goals
 
