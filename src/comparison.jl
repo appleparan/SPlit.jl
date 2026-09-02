@@ -30,7 +30,8 @@ scoring discrepancy; a `:median` bandwidth is resolved once on the
 preprocessed data with `rng` and the resolved kernel is stored in the
 comparison. Remaining keyword arguments are forwarded to `splitquality`.
 
-`weights` is forwarded to both `datasplit` and `splitquality`.
+`weights` is forwarded to `datasplit`, to the `:median` resolution of the
+scoring kernel, and to `splitquality`.
 """
 function compare(
   methods::Vector{<:AbstractSplitter},

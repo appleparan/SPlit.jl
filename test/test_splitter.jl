@@ -182,7 +182,7 @@ end
     end
   end
 
-  @testset "a :median bandwidth is resolved with the weights" begin
+  @testset "a :median bandwidth resolves to a numeric kernel with weights" begin
     s = SupportPointSplitter(
       kernel = GaussianKernel(),
       max_iterations = 5,

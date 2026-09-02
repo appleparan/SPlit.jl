@@ -334,7 +334,9 @@ Which steps read the weights:
    ``\sigma_j^2 = \sum_i \bar w_i (x_{ij} - \mu_j)^2 / (1 - \sum_i \bar w_i^2)``,
    which is the usual ``n - 1`` denominator for uniform weights.
 2. **Resolve the kernel.** A `:median` bandwidth is the median pairwise
-   distance over rows drawn in proportion to the weights.
+   distance over rows drawn in proportion to the weights. This only changes
+   the resolved bandwidth for datasets above 1000 rows; below that every
+   row enters the median and the weights do not change it.
 3. **Choose ``n`` rows.** The data terms carry the weights:
    - The energy distance between the support points and ``P_w`` is
      ``\frac{2}{n} \sum_{m,i} \bar w_i \|\xi_m - x_i\| - \frac{1}{n^2}\sum_{m,o} \|\xi_m - \xi_o\| - \sum_{i,k} \bar w_i \bar w_k \|x_i - x_k\|``,
@@ -351,7 +353,10 @@ samples; every [`DiscrepancyEstimator`](@ref) has a weighted form
 (`Subsample` rescales the weights of the rows it draws, `RandomSlices` uses
 the weighted one-dimensional energy distance on each projection, and
 `RandomFeatures` uses weighted feature means). Weights proportional to
-duplication counts are equivalent to duplicating rows, which is what the
-tests check. How stochastic `kappa` subsampling combines with weights was
-decided by the experiment on the
+duplication counts are equivalent to duplicating rows, up to the common
+column rescaling of the weighted standardization, which changes nothing
+under `EnergyKernel` or a `:median` bandwidth but does matter for a fixed
+numeric Gaussian bandwidth, which is what the tests check. How stochastic
+`kappa` subsampling combines with weights was decided by the experiment on
+the
 [Design experiments](@ref weighted-kappa) page.

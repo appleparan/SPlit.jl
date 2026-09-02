@@ -200,6 +200,9 @@ becomes `Σ w̄ᵢ w̄ₖ k(xᵢ, xₖ) + Σ v̄ⱼ v̄ₗ k(yⱼ, yₗ) − 2 �
 one. Weights proportional to duplication counts are equivalent to
 duplicating rows. A constant weight vector is treated as `nothing`, so
 uniform weights take the unweighted path and reproduce its value exactly.
+A `:median` bandwidth is still resolved on the pooled rows without weights;
+pass a numeric bandwidth or resolve it with `datasplit`/`splitquality` for
+a weighted one.
 """
 function mmd(
   X::AbstractMatrix,

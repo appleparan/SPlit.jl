@@ -127,9 +127,13 @@ the method's own procedure; see the splitter types
 split target the weighted empirical distribution `Σ w̄ᵢ δ(xᵢ)`: the smaller
 subset is chosen to approximate it, preprocessing standardizes with the
 weighted mean and variance, and a `:median` bandwidth is resolved from rows
-drawn in proportion to the weights. The train/test labeling rule is
+drawn in proportion to the weights — this only changes the resolved
+bandwidth for datasets above 1000 rows; below that every row enters the
+median and the weights do not change it. The train/test labeling rule is
 unchanged. Weights proportional to duplication counts are equivalent to
-duplicating rows.
+duplicating rows, up to the common column rescaling of the weighted
+standardization, which changes nothing under `EnergyKernel` or a `:median`
+bandwidth but does matter for a fixed numeric Gaussian bandwidth.
 """
 function datasplit(
   s::SupportPointSplitter,

@@ -143,10 +143,12 @@ end
 Weighted form of [`resolve`](@ref): for `GaussianKernel(:median)` the rows
 behind the median heuristic are drawn with probability proportional to
 `weights` (without replacement), so the bandwidth reflects the weighted
-distribution. `weights = nothing` is the unweighted method; numeric kernels
-and `EnergyKernel` are returned unchanged. A constant weight vector is
-treated as `nothing`, so uniform weights take the unweighted path and
-reproduce it exactly.
+distribution. This only changes the resolved bandwidth for datasets above
+1000 rows; below that every row enters the median and the weights do not
+change it. `weights = nothing` is the unweighted method;
+numeric kernels and `EnergyKernel` are returned unchanged. A constant weight
+vector is treated as `nothing`, so uniform weights take the unweighted path
+and reproduce it exactly.
 """
 resolve(k::SplitKernel, data::AbstractMatrix, rng::AbstractRNG, ::Nothing) =
   resolve(k, data, rng)
