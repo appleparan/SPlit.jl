@@ -275,8 +275,8 @@ result is identical for every thread count, not just numerically close.
 
 `estimator = nothing` (the default) selects `Exact()` when the total row
 count is at most `exact_threshold` (20,000), and otherwise the fallback
-chosen by the selection experiment on the [Benchmarks](@ref benchmarks)
-page (`_fallback_estimator`).
+chosen by the [Estimator selection](@ref estimator-selection) experiment
+on the Design experiments page (`_fallback_estimator`).
 
 ### Why herding stays exact
 
@@ -286,8 +286,8 @@ shares the same random directions or features, so the estimator noise is
 correlated across rows, and the greedy `argmax` follows that correlated
 noise into a direction-dependent region of the data rather than averaging it
 out. At feasible budgets the selected subset was worse than a random subset.
-See "Approximate herding data terms (rejected)" on the
-[Benchmarks](@ref benchmarks) page for the table. `HerdingSplitter`'s data
+See [Approximate herding data terms (rejected)](@ref herding-estimators-rejected)
+on the Design experiments page for the table. `HerdingSplitter`'s data
 term (`_data_term`) therefore stays exact only.
 
 ## Optimal split ratio

@@ -287,13 +287,15 @@ mmd(data[1:500, :], data[501:1000, :], GaussianKernel(1.0); estimator = RandomFe
 
 `splitquality` chooses among these for you: it uses `Exact()` automatically
 whenever the train and test rows together number at most 20,000, and above
-that count switches to a fallback estimator chosen by the selection
-experiment described on the [Benchmarks](@ref benchmarks) page.
+that count switches to a fallback estimator chosen by the
+[Estimator selection](@ref estimator-selection) experiment on the Design
+experiments page.
 
 Kernel herding intentionally has no estimator mode. When the greedy pick at
 each step used an approximate comparison instead of the exact one, the
 measured result was worse than a plain random split, so its data term stays
-exact; see [Benchmarks](@ref benchmarks) for the measurement.
+exact; see [Approximate herding data terms (rejected)](@ref herding-estimators-rejected)
+on the Design experiments page for the measurement.
 
 ## Comparing splitters
 
@@ -327,10 +329,11 @@ method, result = best(comparison)   # the lowest-discrepancy pair
 The [Methods](@ref methods) page states the same ideas as formulas, with the
 exact function that implements each one; read it once the shapes above feel
 familiar and you want the precise definitions. The
-[Benchmarks](@ref benchmarks) page shows how the splitters and estimators
-actually perform, including the herding-estimator measurement mentioned
-above. The [Reference](@ref reference) section carries the full docstrings
-for every exported name.
+[Benchmarks](@ref benchmarks) page shows how the splitters compare against
+each other, and the [Design experiments](@ref design-experiments) page
+carries the estimator measurements mentioned above. The
+[Reference](@ref reference) section carries the full docstrings for every
+exported name.
 
 ## References
 

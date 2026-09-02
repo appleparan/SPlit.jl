@@ -36,11 +36,11 @@ output-matching tests. The design record is
   of order `1/m` (`Subsample(m, repeats)`), `RandomSlices`/`RandomFeatures`
   are unbiased.
   `splitquality` switches to the fallback `DiscrepancyEstimator` chosen by
-  the selection experiment (see Benchmarks) automatically above
+  the selection experiment (see Design experiments) automatically above
   `exact_threshold` (20,000 rows).
 - estimator/kernel combinations are methods of `_energydistance`/`_mmd`: add
   a method, never an `if`; herding has no estimator mode on purpose (measured
-  worse than random, see Benchmarks).
+  worse than random, see Design experiments).
 - Categorical columns are Helmert-encoded in canonical level order so splits
   do not depend on row order; `Union{Missing,T}` columns without missing values
   are accepted.

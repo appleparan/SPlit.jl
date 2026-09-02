@@ -36,9 +36,10 @@ kernel value to the data, and each later row maximizes
 `mean_l k(x, x_l) − (1/(T+1)) Σ_t k(x, s_t)` over rows not yet selected
 (Chen, Welling & Smola 2010, Eq. 8). The data term is the exact mean over all
 `N` rows, including the self-term, computed threaded (`O(N²)`); approximating
-it with a `DiscrepancyEstimator` was evaluated and rejected — the Benchmarks
-page records the measurement: the noise such estimators introduce is
-correlated across candidate rows and makes greedy selection unreliable. The procedure is deterministic given the
+it with a `DiscrepancyEstimator` was evaluated and rejected — the Design
+experiments page records the measurement: the noise such estimators
+introduce is correlated across candidate rows and makes greedy selection
+unreliable. The procedure is deterministic given the
 data and a numeric kernel; ties go to the lowest row index. Cost
 `O(N² + nN)`.
 
