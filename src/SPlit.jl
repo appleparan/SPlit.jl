@@ -1,6 +1,7 @@
 module SPlit
 
 include("kernels.jl")
+include("estimators.jl")
 include("preprocessing.jl")
 include("optimizer.jl")
 include("kdtree_selection.jl")
@@ -11,6 +12,7 @@ include("ratio.jl")
 include("comparison.jl")
 
 export SplitKernel, EnergyKernel, GaussianKernel
+export DiscrepancyEstimator, Exact, Subsample, RandomSlices, RandomFeatures
 export AbstractSplitter, SupportPointSplitter, HerdingSplitter, SplitResult, datasplit
 export train_indices, test_indices
 export energydistance, mmd, splitquality
