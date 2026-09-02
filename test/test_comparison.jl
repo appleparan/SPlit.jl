@@ -62,3 +62,21 @@ end
   @test c0.kernel == EnergyKernel()
   @test "energy_distance" in names(DataFrame(c0))
 end
+
+@testset "compare stores fitted splitters" begin
+  data = randn(MersenneTwister(53), 120, 2)
+  splitters = [
+    SupportPointSplitter(
+      kernel = GaussianKernel(),
+      max_iterations = 40,
+      rng = MersenneTwister(54),
+    ),
+    SupportPointSplitter(ratio = 0.3, max_iterations = 40, rng = MersenneTwister(55)),
+  ]
+  c = compare(splitters, data)
+  @test all(c.methods[i] === c.results[i].method for i in eachindex(c.methods))
+  @test c.methods[1].kernel isa GaussianKernel{Float64}
+  @test splitters[1].kernel.bandwidth === :median
+  m, r = best(c)
+  @test m === r.method
+end

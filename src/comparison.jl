@@ -7,7 +7,8 @@ using DataFrames
 """
     SplitComparison
 
-Result of [`compare`](@ref): the splitters, their results, their
+Result of [`compare`](@ref): the fitted splitters (with any `:median`
+bandwidth resolved from the data), their results, their
 [`splitquality`](@ref) values, and the `kernel` they were scored under,
 index-aligned.
 """
@@ -33,7 +34,7 @@ function compare(
 )
   results = [datasplit(m, data) for m in methods]
   qualities = [splitquality(data, r; kernel, kwargs...) for r in results]
-  return SplitComparison(collect(methods), results, qualities, kernel)
+  return SplitComparison([r.method for r in results], results, qualities, kernel)
 end
 
 """
