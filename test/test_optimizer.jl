@@ -205,3 +205,164 @@ end
     @test conv && 2 <= iters < 300
   end
 end
+
+@testset "weighted support points (energy kernel)" begin
+  @testset "nothing and uniform weights give identical points" begin
+    data = randn(MersenneTwister(70), 150, 2)
+    a, ca, ia = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(1),
+    )
+    b, cb, ib = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(1),
+      weights = ones(150),
+    )
+    c, cc, ic = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(1),
+      weights = fill(0.37, 150),
+    )
+    @test a == b == c
+    @test (ca, ia) == (cb, ib) == (cc, ic)
+    # stochastic mode too, both rules, for uniform weights
+    d, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      15;
+      kappa = 60,
+      max_iterations = 30,
+      rng = MersenneTwister(2),
+    )
+    e, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      15;
+      kappa = 60,
+      max_iterations = 30,
+      rng = MersenneTwister(2),
+      weights = ones(150),
+    )
+    @test d == e
+  end
+
+  @testset "one weighted sweep equals one sweep on duplicated rows" begin
+    rng = MersenneTwister(71)
+    data = randn(rng, 40, 2)
+    counts = rand(rng, 1:3, 40)
+    dup = vcat([data[i:i, :] for i = 1:40 for _ = 1:counts[i]]...)
+    n = 6
+    points = data[1:n, :] .+ 0.05
+    bounds_w = SPlit._data_bounds(data)
+    bounds_d = SPlit._data_bounds(dup)
+    new_w = similar(points)
+    new_d = similar(points)
+    cw = zeros(n)
+    cd = zeros(n)
+    SPlit._mm_sweep!(
+      new_w,
+      cw,
+      copy(points),
+      data,
+      SPlit._mean_one_weights(Float64.(counts)),
+      zeros(n),
+      1.0,
+      bounds_w,
+      1,
+    )
+    SPlit._mm_sweep!(
+      new_d,
+      cd,
+      copy(points),
+      dup,
+      ones(size(dup, 1)),
+      zeros(n),
+      1.0,
+      bounds_d,
+      1,
+    )
+    @test isapprox(new_w, new_d; atol = 1e-10)
+  end
+
+  @testset "weighted full-data MM monotonically decreases the weighted objective" begin
+    rng = MersenneTwister(72)
+    data = randn(rng, 150, 2)
+    w = rand(rng, 150) .^ 3
+    traj = SPlit._objective_trajectory(
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(3),
+      weights = w,
+    )
+    @test length(traj) >= 2
+    for t = 2:length(traj)
+      @test traj[t] <= traj[t-1] + 1e-8
+    end
+  end
+
+  @testset "concentrated weights pull support points toward the heavy cluster" begin
+    rng = MersenneTwister(73)
+    A = randn(rng, 200, 2) .- 4.0
+    B = randn(rng, 200, 2) .+ 4.0
+    data = vcat(A, B)
+    w = vcat(fill(9.0, 200), fill(1.0, 200))
+    in_A(pts) = count(<(0.0), pts[:, 1])
+    unweighted, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      40;
+      max_iterations = 100,
+      rng = MersenneTwister(4),
+    )
+    weighted, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      40;
+      max_iterations = 100,
+      rng = MersenneTwister(4),
+      weights = w,
+    )
+    @test in_A(weighted) > in_A(unweighted)
+    @test in_A(weighted) >= 30
+    for rule in (:uniform, :proportional)
+      stoch, _, _ = SPlit.support_points(
+        EnergyKernel(),
+        data,
+        40;
+        kappa = 120,
+        max_iterations = 100,
+        rng = MersenneTwister(5),
+        weights = w,
+        _subsampling = rule,
+      )
+      @test in_A(stoch) >= 28
+    end
+  end
+
+  @testset "validation" begin
+    data = randn(MersenneTwister(74), 50, 2)
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      weights = ones(49),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      weights = ones(50),
+      _subsampling = :other,
+    )
+  end
+end

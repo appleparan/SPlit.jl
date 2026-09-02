@@ -12,7 +12,7 @@ objective).
 
 using LinearAlgebra
 using Random
-using StatsBase: sample
+using StatsBase: sample, Weights
 using Statistics: median
 
 function _data_bounds(data::Matrix{Float64})
@@ -51,11 +51,21 @@ end
 
 # One MM sweep over all support points. Reads `points`, writes `new_points`
 # and `current_const`; each m is independent, so chunks run in parallel.
+# `subsample_weights` are ŵ (mean one) for the rows of `subsample_data`:
+# with normalized weights w̄ the update is
+#   ξ_m ← [ (1/n) Σ_{o≠m} (ξ_m − ξ_o)/‖ξ_m − ξ_o‖ + Σ_i w̄_i x_i/‖x_i − ξ_m‖ ]
+#         / Σ_i w̄_i/‖x_i − ξ_m‖
+# (Mak & Joseph 2018, Theorem 3, with the empirical measure replaced by
+# Σ w̄_i δ(x_i); the majorizer is the same bound term by term). Multiplying
+# numerator and denominator by n_sub gives the form below with ŵ = n_sub w̄
+# and the (n_sub/n) factor on the repulsion term. Uniform weights make
+# ŵ ≡ 1.0 exactly, so the arithmetic is the unweighted one bit for bit.
 function _mm_sweep!(
   new_points::Matrix{Float64},
   current_const::Vector{Float64},
   points::Matrix{Float64},
   subsample_data::AbstractMatrix{Float64},
+  subsample_weights::AbstractVector{Float64},
   running_const::Vector{Float64},
   alpha::Float64,
   bounds::Matrix{Float64},
@@ -86,9 +96,10 @@ function _mm_sweep!(
           s += (subsample_data[i, j] - points[m, j])^2
         end
         d = sqrt(s) + eps(Float64)
-        c += 1.0 / d
+        wi = subsample_weights[i]
+        c += wi / d
         for j = 1:p
-          xprime[j] += subsample_data[i, j] / d
+          xprime[j] += wi * subsample_data[i, j] / d
         end
       end
       current_const[m] = c
@@ -111,6 +122,30 @@ function _mm_sweep!(
   return nothing
 end
 
+# Stochastic-mode subsample: row indices and their ŵ (mean one within the
+# subsample). `:uniform` draws rows uniformly and rescales their weights;
+# `:proportional` draws rows with probability ∝ w and treats them as uniform.
+function _draw_subsample(
+  rng::AbstractRNG,
+  N::Int,
+  kappa::Int,
+  w_hat::Vector{Float64},
+  ::Val{:uniform},
+)
+  idx = sample(rng, 1:N, kappa; replace = false)
+  return idx, _mean_one_weights(w_hat[idx])
+end
+function _draw_subsample(
+  rng::AbstractRNG,
+  N::Int,
+  kappa::Int,
+  w_hat::Vector{Float64},
+  ::Val{:proportional},
+)
+  idx = sample(rng, 1:N, Weights(w_hat), kappa; replace = false)
+  return idx, ones(kappa)
+end
+
 """
     support_points(kernel, data, n; kwargs...) -> (points, converged, iterations)
 
@@ -126,6 +161,17 @@ there partly reflects this step-size decay rather than the objective
 flattening out. `n0 = 0.2n` is an implementation constant, not from the
 papers, chosen by a small convergence experiment (see `_n0_factor`, an
 internal tuning knob not exposed on `SupportPointSplitter`).
+
+`weights` (one non-negative entry per row, `nothing` for uniform) makes the
+points approximate the weighted empirical distribution `Σ w̄ᵢ δ(xᵢ)`: the
+data sums in the MM update carry `ŵᵢ = N w̄ᵢ`, which is exactly `1.0` for
+uniform weights. In stochastic mode `_subsampling` (internal) selects how
+the `kappa` rows are drawn: `:uniform` draws them uniformly and rescales
+their weights to mean one within the subsample; `:proportional` draws them
+with probability proportional to the weights and treats the subsample as
+uniform (this needs at least `kappa` rows with positive weight). The
+default was chosen by the weighted-`kappa` experiment on the Design
+experiments page.
 """
 function support_points(
   ::EnergyKernel,
@@ -137,7 +183,9 @@ function support_points(
   n_threads::Int = Threads.nthreads(),
   rng::AbstractRNG = Random.default_rng(),
   verbose::Bool = false,
+  weights::Union{Nothing,AbstractVector} = nothing,
   _n0_factor::Float64 = 0.2,
+  _subsampling::Symbol = :uniform,
 )
   N = size(data, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
@@ -146,6 +194,10 @@ function support_points(
     throw(ArgumentError("kappa must be positive, got $kappa"))
   max_iterations > 0 ||
     throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
+  _subsampling in (:uniform, :proportional) || throw(
+    ArgumentError("_subsampling must be :uniform or :proportional, got :$_subsampling"),
+  )
+  w_hat = weights === nothing ? ones(N) : _mean_one_weights(_check_weights(weights, N))
 
   bounds = _data_bounds(data)
   working = copy(data)
@@ -158,6 +210,7 @@ function support_points(
   running_const = zeros(n)
   current_const = zeros(n)
   stochastic = kappa !== nothing && kappa < N
+  rule = Val(_subsampling)
   # Implementation constant (not from the papers): running-average weight
   # n0 = 0.2n, chosen by a small convergence experiment; see docstring.
   n0 = _n0_factor * n
@@ -168,7 +221,12 @@ function support_points(
     iteration += 1
     verbose && print("\rIteration $iteration/$max_iterations")
 
-    sub = stochastic ? working[sample(rng, 1:N, kappa; replace = false), :] : working
+    if stochastic
+      idx, sub_w = _draw_subsample(rng, N, kappa, w_hat, rule)
+      sub = working[idx, :]
+    else
+      sub, sub_w = working, w_hat
+    end
     alpha = stochastic ? n0 / (iteration + n0) : 1.0
 
     _mm_sweep!(
@@ -176,6 +234,7 @@ function support_points(
       current_const,
       points,
       sub,
+      sub_w,
       running_const,
       alpha,
       bounds,
@@ -197,23 +256,39 @@ function support_points(
   return points, converged, iteration
 end
 
-# Test helper: energy objective E(points, data) after each full-data MM sweep.
+# Test helper: energy objective E(points, data) after each full-data MM sweep,
+# weighted when `weights` is given.
 function _objective_trajectory(
   data::Matrix{Float64},
   n::Int;
   max_iterations::Int,
   rng::AbstractRNG,
+  weights::Union{Nothing,AbstractVector} = nothing,
 )
+  N = size(data, 1)
+  w_hat = weights === nothing ? ones(N) : _mean_one_weights(_check_weights(weights, N))
+  w_bar = weights === nothing ? _uniform_weights(N) : _normalize_weights(weights, N)
+  u = _uniform_weights(n)
   bounds = _data_bounds(data)
   points = _initial_points(rng, copy(data), n, bounds)
   new_points = similar(points)
   running_const = zeros(n)
   current_const = zeros(n)
-  traj = Float64[_exact_energydistance(points, data)]
+  traj = Float64[_exact_energydistance(points, data, u, w_bar)]
   for _ = 1:max_iterations
-    _mm_sweep!(new_points, current_const, points, data, running_const, 1.0, bounds, 1)
+    _mm_sweep!(
+      new_points,
+      current_const,
+      points,
+      data,
+      w_hat,
+      running_const,
+      1.0,
+      bounds,
+      1,
+    )
     points, new_points = new_points, points
-    push!(traj, _exact_energydistance(points, data))
+    push!(traj, _exact_energydistance(points, data, u, w_bar))
   end
   return traj
 end
