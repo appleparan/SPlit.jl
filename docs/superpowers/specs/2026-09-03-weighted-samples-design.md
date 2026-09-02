@@ -139,8 +139,14 @@ every weight is `1/n`.
 
 Preprocessing. `preprocess(data, weights)` is a new method: the same
 Helmert encoding and constant-column rule, then weighted standardization
-with `μⱼ = Σ w̄ᵢ xᵢⱼ` and `σⱼ² = Σ w̄ᵢ (xᵢⱼ − μⱼ)²`. The unweighted method is
-unchanged (it keeps `std`'s `n − 1` denominator). `resolve(kernel, X, rng,
+with `μⱼ = Σ w̄ᵢ xᵢⱼ` and the unbiased weighted variance
+`σⱼ² = Σ w̄ᵢ (xᵢⱼ − μⱼ)² / (1 − Σ w̄ᵢ²)`, whose denominator is `(n − 1)/n`
+for uniform weights, so uniform weights reproduce the unweighted
+standardization up to rounding (the population form `Σ w̄ᵢ (xᵢⱼ − μⱼ)²`
+would be duplication-invariant instead, but would rescale every column by
+`√((n−1)/n)` and change the split under a numeric Gaussian bandwidth; the
+"uniform weights reproduce current results" property wins). The unweighted
+method is unchanged. `resolve(kernel, X, rng,
 weights)` draws the `MEDIAN_HEURISTIC_ROWS` rows for the median heuristic
 with probability proportional to `w` (without replacement) and is otherwise
 unchanged.
