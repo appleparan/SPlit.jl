@@ -38,19 +38,11 @@ function methods(N; rng_seed::Int)
     ),
     (
       "herding · energy",
-      HerdingSplitter(
-        kernel = EnergyKernel(),
-        kappa = big ? 2_000 : nothing,
-        rng = MersenneTwister(rng_seed),
-      ),
+      HerdingSplitter(kernel = EnergyKernel(), rng = MersenneTwister(rng_seed)),
     ),
     (
       "herding · gaussian",
-      HerdingSplitter(
-        kernel = GaussianKernel(),
-        kappa = big ? 2_000 : nothing,
-        rng = MersenneTwister(rng_seed),
-      ),
+      HerdingSplitter(kernel = GaussianKernel(), rng = MersenneTwister(rng_seed)),
     ),
   ]
 end
