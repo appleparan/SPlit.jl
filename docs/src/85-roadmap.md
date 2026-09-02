@@ -1,0 +1,214 @@
+# [Roadmap](@id roadmap)
+
+This page records where SPlit.jl is, where it is going, and why. It is a
+living document: milestones move between sections as work progresses, and
+open questions are resolved in place with a short note.
+
+## Vision
+
+SPlit.jl started as a Julia implementation of SPlit (Joseph & Vakayil,
+2021, *Technometrics* 63(4)): an optimal train/test splitting method for
+tabular data based on support points. The literature that followed SPlit
+has largely reframed the problem as distribution compression, choosing a
+subset whose empirical distribution stays close to a reference distribution
+under energy distance or MMD.
+
+The roadmap moves SPlit.jl from a data-splitting package toward a
+distribution-preserving subset selection library that serves two
+audiences with one interface:
+
+1. Tabular data science: optimal train/test and k-fold splits, the
+   original use case.
+2. Embedding-based data selection: choosing training subsets for LLM
+   fine-tuning or pretraining from embedding matrices (hundreds to
+   thousands of dimensions, N in the hundreds of thousands), where the
+   reference distribution may be a target set rather than the data itself,
+   and samples may carry quality weights.
+
+## Current state
+
+State of the exported API at v0.5.2.
+
+| Component | Status | Notes |
+|---|---|---|
+| `SupportPointSplitter` with `EnergyKernel` | done | MM update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2021); `select_nearest` rounds optimized points to data rows via a k-d tree. |
+| `SupportPointSplitter` with `GaussianKernel` | done | Minimizes squared MMD by projected gradient descent with Armijo backtracking. Has no `kappa` mode: the `SupportPointSplitter` constructor throws for `GaussianKernel` with `kappa` set. A `:median` bandwidth is resolved at `datasplit` time and the resolved kernel is stored in `result.method.kernel`. |
+| `HerdingSplitter` | done | Greedy kernel herding (Chen, Welling & Smola, 2010); exact `O(N^2)` data term, deterministic given the data and a numeric kernel. |
+| `optimal_split_ratio` | done | γ = 1/(√p + 1) (Joseph, 2022). |
+| Preprocessing | done | Helmert encoding of categorical columns in canonical level order, constant-column removal, standardization to mean 0 and variance 1. |
+| Quality diagnostics | done | `energydistance`, `mmd`, `splitquality` with `Exact`, `Subsample`, `RandomSlices`, `RandomFeatures` estimators and automatic fallback above `exact_threshold`; see [Design experiments](@ref design-experiments). |
+| `compare` / `best` | done | Splitter comparison on one dataset. |
+| Python package `splitiq` | done | Wraps the Julia package through juliacall; every computation still runs in Julia. See [Python](30-python.md). |
+| Weighted samples | not supported | |
+| Reference (target) distribution | not supported | The reference is always the data itself. |
+| k-fold splitting | not supported | Two-way splits only. |
+| High-dimensional data (p in the hundreds) | untested | [Benchmarks](@ref benchmarks) covers p up to 10 (`normal-10d`). `select_nearest` uses a k-d tree, which degrades in high dimension. |
+
+## Design principles
+
+- Backward compatibility. Existing public functions keep their signatures
+  and numerical results. New capability is added via new types, new
+  functions, or keyword arguments with defaults that reproduce current
+  behavior.
+- One interface, many algorithms. Every selection method is an
+  `AbstractSplitter` with a `datasplit` method: input data (matrix,
+  `DataFrame`, or vector, observations in rows), output a `SplitResult`.
+  A new method is a new `AbstractSplitter` subtype and a new `datasplit`
+  method, not a change to the existing ones.
+- Faithful to the source. Each algorithm follows its original paper.
+  Deviations are documented in the docstring under a "Differences from the
+  paper" heading.
+- Pure Julia core. The Julia package takes no Python or GPU dependency;
+  `splitiq` remains a thin wrapper over it, not the other way around.
+- Measurable. Every method is tested against the criterion that energy
+  distance or MMD to the reference is smaller than a uniform random subset
+  of the same size.
+- Paper-defined correctness. Correctness is judged against the source
+  papers, not against any other implementation. Tests encode the properties those papers guarantee
+  (monotone descent, beating random splits, reproducibility under a fixed
+  `rng`), and all randomness flows through the caller's `rng`.
+
+## Milestones
+
+Ordered by dependency. Each milestone is a self-contained PR or small PR
+series.
+
+### M1: weighted samples
+
+Planned. Add `weights::AbstractVector` to `energydistance`, `mmd`, and the
+`support_points` optimizer, plus `HerdingSplitter`'s data term.
+
+- Empirical distribution terms become weighted averages; formulas go in
+  docstrings.
+- The MM update and the MMD gradient must be re-derived with weights;
+  keep the derivation as comments.
+- The `DiscrepancyEstimator` methods (`Subsample`, `RandomSlices`,
+  `RandomFeatures`) also need weighted forms, added as new methods, never
+  as `if` branches, matching how estimator/kernel combinations are already
+  organized.
+- Decide and document how `kappa` subsampling interacts with weights
+  (weight-proportional vs. uniform sampling): open question below.
+- Tests: uniform weights reproduce current results exactly; concentrated
+  weights pull support points toward the weighted cluster.
+
+Why first: the smallest change, and M2-M5 build on it. Weighting is also
+the piece missing from the compression literature (Twinning, Kernel
+Thinning), and the piece LLM data-selection pipelines need to combine
+distribution matching with quality scores.
+
+### M2: reference (target) distribution
+
+Planned, depends on M1. Add a `reference::AbstractMatrix` keyword.
+Distances are computed against `reference` instead of the data; selection
+still happens among the data's own rows.
+
+- `preprocess` must become fit/apply, so the same transform can be fit on
+  one set and applied to both.
+- Tests: passing a sub-population of the data as reference concentrates
+  selection in that sub-population.
+
+Why: turns SPlit into a target-matching selector with a distance-based
+rather than density-ratio-based criterion.
+
+### M3: twinning and k-fold multiplets
+
+Planned, independent of M1/M2 but should adopt their keywords. Add
+`TwinningSplitter <: AbstractSplitter` implementing the sequential
+kd-tree assignment of Vakayil & Joseph (2022), and a `multiplet` function
+returning k distribution-balanced folds.
+
+- Benchmarks at N in {10^4, 10^5, 10^6}, p = 10 against the current
+  splitters (time and energy distance), plus a p = 768 case to quantify
+  k-d tree degradation. Scripts live in `benchmark/`, results on the
+  [Benchmarks](@ref benchmarks) page, matching the existing pattern.
+
+Why: Twinning is the direct successor to SPlit, orders of magnitude
+faster than the support-point splitters, and gives k-fold splitting for
+free.
+
+### M4: kernel thinning backend
+
+Planned, depends on M1 for weighted MMD. Add
+`KernelThinningSplitter <: AbstractSplitter` (KT-SPLIT + KT-SWAP, Dwivedi
+& Mackey, 2024), with Compress++ (Shetty, Dwivedi & Mackey, 2022) as an
+optional wrapper. Reuses the existing `GaussianKernel` type.
+
+- Output size is a power of two; document how arbitrary `n` is handled.
+- Tests: on a Gaussian mixture, MMD is significantly below a uniform
+  random subset.
+
+Why: selects directly from the data, with no continuous optimization and
+no nearest-neighbor assignment step, and comes with an MMD rate of
+O(sqrt(log n / n)) that neither the support-point splitters nor Twinning
+provide. Near-linear time makes it the realistic option at LLM scale.
+
+### M5: embedding workflow, docs, and comparison
+
+Planned, depends on M1-M4.
+
+- An example script under `examples/`: load an embedding matrix,
+  cosine-normalize, select with the M1-M4 combinations, compare energy
+  distance against uniform random and K-center greedy.
+- A new docs page for selecting LLM training data: a decision table (by
+  N, p, weighted?, target?) for which method to use.
+- Extend [Methods](@ref methods) with the new methods in the existing
+  format.
+
+### M6: MMD gradient-flow update (exploratory)
+
+Idea. Replace the Armijo projected gradient in the Gaussian-kernel path
+with the mean-shift-style update from MMD gradient-flow quantization
+(arXiv 2502.10600). Structurally similar to the current MM step. The
+Gaussian path has no `kappa` stochastic mode today, unlike `EnergyKernel`,
+so a cheaper update rule matters more there. Evaluate only after M4 gives
+a baseline.
+
+## Open questions
+
+- Weighted `kappa` subsampling (M1). Weight-proportional sampling gives
+  unbiased weighted estimates but wastes draws on low-weight regions;
+  uniform sampling with reweighting is simpler. Decide empirically.
+- High-dimensional nearest neighbours (M3). A k-d tree is the wrong
+  structure for p around 768. Options: brute-force with BLAS, a
+  NearestNeighbors.jl ball tree, or random projection before assignment.
+  Benchmark before choosing.
+- Categorical handling in embedding mode (M5). Helmert contrasts do not
+  apply. Should embedding mode bypass preprocessing entirely, or expose a
+  separate preprocessing entry point?
+- Is weighted energy distance the right combination rule? Combining a
+  quality score with distribution matching via a weighted empirical
+  distribution is natural but not validated in the literature. M5's
+  comparison is the first test; if it underperforms, alternatives include
+  stratified selection by quality quantile.
+
+## References
+
+1. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data
+   Splitting. *Technometrics*, 63(4), 492-502.
+2. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical
+   Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
+3. Vakayil, A., & Joseph, V. R. (2022). Data Twinning. *Statistical
+   Analysis and Data Mining: The ASA Data Science Journal*.
+4. Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of
+   Statistics*, 46(6A), 2562-2592.
+5. Joseph, V. R., & Mak, S. (2021). Supervised compression of big data.
+   *Statistical Analysis and Data Mining: The ASA Data Science Journal*.
+6. Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine
+   Learning Research*.
+7. Shetty, A., Dwivedi, R., & Mackey, L. (2022). Distribution compression
+   in near-linear time. *ICLR*.
+8. arXiv:2502.10600 (2025). Weighted quantization via MMD gradient flows.
+9. arXiv:2502.04194 (2025). The best instruction-tuning data are those
+   that fit.
+10. Xie, S. M., et al. (2023). Data selection for language models via
+    importance resampling (DSIR). *NeurIPS*.
+11. Xia, M., et al. (2024). LESS: Selecting influential data for targeted
+    instruction tuning. *ICML*.
+12. Bukharin, A., et al. (2024). Data diversity matters for robust
+    instruction tuning (QDIT). *Findings of EMNLP*.
+13. Liu, W., et al. (2024). What makes good data for alignment? (Deita).
+    *ICLR*.
+
+## Changelog
+
+- 2026-09-03: initial roadmap.
