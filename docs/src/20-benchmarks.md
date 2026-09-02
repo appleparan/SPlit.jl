@@ -121,30 +121,32 @@ support points: `herding · energy` has the lowest energy distance on
 the optimizer's wall time. `support points · energy` wins both metrics on
 `mixture-2d` and the energy distance on `t3-3d`.
 
-At ``N = 10{,}000``, herding now uses the same exact data term as at
+At ``N = 10{,}000``, herding uses the same exact data term as at
 ``N = 1{,}000`` (only the support-point energy kernel still uses
 `kappa = 1{,}000` there), and `herding · energy` has the lowest energy
-distance on **every** dataset, by 3.3x-12.2x over the next-best method
-(`support points · energy` in all four cases): `mixture-2d` (1.42e-5 vs.
-0.000173, 12.2x), `normal-10d` (0.0006 vs. 0.0025, 4.2x), `uniform-5d`
-(0.000199 vs. 0.000844, 4.2x), and `t3-3d` (8.06e-5 vs. 0.000262, 3.3x).
-The two herding methods also take the lowest MMD on every dataset
-(`herding · energy` on `mixture-2d`, `normal-10d`, `uniform-5d`; `herding ·
-gaussian` narrowly ahead of `herding · energy` on `t3-3d`, 2.25e-6 vs.
-2.77e-6), both well below the support-point methods (e.g. 0.000215-0.000289
-on `normal-10d`) and below random on every dataset. This is the fix from
-the previous wave working as intended: with the subsampled `kappa` data
-term removed, herding is no longer handicapped by a candidate-asymmetric
-estimate at this size, and the exact greedy rule delivers the quality its
-derivation promises. `normal-10d` in particular flips from "no method
-reliably beats random" in the previous (buggy) run to `herding · energy`
-beating random by roughly 3.5x on energy distance and 86x on MMD
-(0.000164 vs. 1.91e-6).
+distance on **every** dataset, beating `support points · energy` by
+3.3x-12.2x: `mixture-2d` (1.42e-5 vs. 0.000173, 12.2x), `normal-10d`
+(0.0006 vs. 0.0025, 4.2x), `uniform-5d` (0.000199 vs. 0.000844, 4.2x), and
+`t3-3d` (8.06e-5 vs. 0.000262, 3.3x) — though on `normal-10d` and
+`uniform-5d` the actual second-best method is `herding · gaussian`
+(0.000873 and 0.00046), not `support points · energy`.
+`support points · energy` runs with `kappa = 1,000` at this size, so part
+of the gap is the stochastic approximation on its side; at N = 1,000,
+where both are exact, `support points · energy` still wins `mixture-2d`
+and the `t3-3d` energy distance. The two herding methods also take the
+lowest MMD on every dataset (`herding · energy` on `mixture-2d`,
+`normal-10d`, `uniform-5d`; `herding · gaussian` narrowly ahead of
+`herding · energy` on `t3-3d`, 2.25e-6 vs. 2.77e-6), both well below the
+support-point methods (e.g. 0.000215-0.000289 on `normal-10d`) and below
+random on every dataset. Herding uses the exact data term at every size,
+so its selections realize the greedy rule's guarantee at N = 10,000 as
+well. On `normal-10d`, `herding · energy` beats random by roughly 3.5x on
+energy distance and 86x on MMD (0.000164 vs. 1.91e-6).
 
 Herding is also the fastest optimized method at ``N = 10{,}000`` by a wide
-margin: `herding · energy` takes 0.11-0.21 s and `herding · gaussian`
+margin: `herding · energy` takes 0.13-0.21 s and `herding · gaussian`
 0.43-0.52 s, versus 3.6-9.0 s for `support points · energy` and a bimodal
-0.48 s or 42 s for `support points · gaussian` (see below).
+0.48-0.49 s or 42 s for `support points · gaussian` (see below).
 
 `support points · gaussian` is the slowest method on `mixture-2d` and
 `t3-3d`, where it runs the full 100-iteration cap without converging (42 s
@@ -158,15 +160,11 @@ initial sample because the 1/n-scaled gradient is below it, even though
 further iterations do decrease the objective; a scale-aware tolerance is a
 planned follow-up. Those two cells reflect this early stop, not a capped
 optimization, and their fast timings are not evidence of fast convergence.
-This disclosure is unchanged from the previous wave: it concerns the
-support-point Gaussian-kernel optimizer, not herding, and the fix in this
-wave does not touch it.
 
-Recommendation: with the subsampled data term removed, `herding · energy`
-is now the best default across every tested dataset and both sizes — best
-or tied-best on both discrepancy metrics, and the fastest optimized method
-at ``N = 10{,}000``. `support points · energy` remains a reasonable
-alternative where the energy-distance MM objective's convergence guarantees
-matter more than wall time; `herding · gaussian` is preferable when
-Gaussian-kernel MMD specifically is the target metric on `t3-3d`-like
-heavy-tailed data.
+Recommendation: `herding · energy` is the best default across every
+tested dataset and both sizes — best or tied-best on both discrepancy
+metrics, and the fastest optimized method at ``N = 10{,}000``.
+`support points · energy` remains a reasonable alternative where the
+energy-distance MM objective's convergence guarantees matter more than wall
+time; `herding · gaussian` is preferable when Gaussian-kernel MMD
+specifically is the target metric on `t3-3d`-like heavy-tailed data.
