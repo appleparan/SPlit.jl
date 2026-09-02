@@ -81,3 +81,62 @@ using DataFrames
     @test !isdefined(SPlit, :EnergyDistance)
   end
 end
+
+@testset "GaussianKernel through datasplit" begin
+  @testset "constructor rejects kappa with GaussianKernel" begin
+    @test_throws ArgumentError SupportPointSplitter(kernel = GaussianKernel(), kappa = 50)
+    @test SupportPointSplitter(kernel = GaussianKernel()).kernel.bandwidth === :median
+  end
+
+  @testset "split works and stores the resolved bandwidth" begin
+    data = randn(MersenneTwister(70), 200, 2)
+    s = SupportPointSplitter(
+      kernel = GaussianKernel(),
+      max_iterations = 100,
+      rng = MersenneTwister(71),
+    )
+    r = datasplit(s, data)
+    @test length(test_indices(r)) == 40
+    @test sort(vcat(train_indices(r), test_indices(r))) == collect(1:200)
+    @test r.method.kernel isa GaussianKernel{Float64}
+    @test r.method.kernel.bandwidth > 0
+    @test r.method.ratio == 0.2
+    # the original splitter is untouched
+    @test s.kernel.bandwidth === :median
+  end
+
+  @testset "reproducible: same rng ⇒ same bandwidth and indices" begin
+    data = randn(MersenneTwister(72), 150, 3)
+    r1 = datasplit(
+      SupportPointSplitter(
+        kernel = GaussianKernel(),
+        max_iterations = 60,
+        rng = MersenneTwister(73),
+      ),
+      data,
+    )
+    r2 = datasplit(
+      SupportPointSplitter(
+        kernel = GaussianKernel(),
+        max_iterations = 60,
+        rng = MersenneTwister(73),
+      ),
+      data,
+    )
+    @test r1.method.kernel.bandwidth == r2.method.kernel.bandwidth
+    @test test_indices(r1) == test_indices(r2)
+  end
+
+  @testset "DataFrame input with categoricals" begin
+    df = DataFrame(x = randn(MersenneTwister(74), 90), g = repeat(["a", "b", "c"], 30))
+    r = datasplit(
+      SupportPointSplitter(
+        kernel = GaussianKernel(1.0),
+        max_iterations = 50,
+        rng = MersenneTwister(75),
+      ),
+      df,
+    )
+    @test length(test_indices(r)) == 18
+  end
+end
