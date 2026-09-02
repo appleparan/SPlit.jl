@@ -18,7 +18,7 @@ end
 function _block_pairs(nx::Int, ny::Int, block::Int)
   xr = _block_ranges(nx, block)
   yr = _block_ranges(ny, block)
-  return [(ix, iy) for ix in xr for iy in yr]
+  return [(xblock, yblock) for xblock in xr for yblock in yr]
 end
 
 # Sum f(pair) over `pairs`, split across n_threads spawned tasks that each
@@ -48,9 +48,9 @@ function _mean_pairwise(
   n_threads::Int = Threads.nthreads(),
 )
   pairs = _block_pairs(size(X, 1), size(Y, 1), block)
-  total = _threaded_block_sum(pairs, n_threads) do (ix, iy)
-    i0, i1 = ix
-    j0, j1 = iy
+  total = _threaded_block_sum(pairs, n_threads) do (xblock, yblock)
+    i0, i1 = xblock
+    j0, j1 = yblock
     @views sum(pairwise(Euclidean(), X[i0:i1, :], Y[j0:j1, :]; dims = 1))
   end
   return total / (size(X, 1) * size(Y, 1))
@@ -76,9 +76,9 @@ function _mean_kernel(
 )
   scale = -1 / (2 * k.bandwidth^2)
   pairs = _block_pairs(size(X, 1), size(Y, 1), block)
-  total = _threaded_block_sum(pairs, n_threads) do (ix, iy)
-    i0, i1 = ix
-    j0, j1 = iy
+  total = _threaded_block_sum(pairs, n_threads) do (xblock, yblock)
+    i0, i1 = xblock
+    j0, j1 = yblock
     @views D = pairwise(SqEuclidean(), X[i0:i1, :], Y[j0:j1, :]; dims = 1)
     sum(d -> exp(scale * d), D)
   end
