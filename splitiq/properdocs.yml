@@ -10,7 +10,7 @@ site_dir: site/
 docs_dir: docs/
 
 theme:
-  name: "material"
+  name: "materialx"
 
   #favicon: 'assets/images/favicon.png'
 
@@ -115,7 +115,7 @@ validation:
 # | Material uses this section for different custom settings that wouldn't fit in the theme section.       |
 # |                                                                                                        |
 # | Read More:                                                                                             |
-# | - https://www.mkdocs.org/user-guide/configuration/#extra                                               |
+# | - https://properdocs.org/user-guide/configuration/#extra                                               |
 # |                                                                                                        |
 # +--------------------------------------------------------------------------------------------------------+
 # extra:

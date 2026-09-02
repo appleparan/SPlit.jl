@@ -93,7 +93,7 @@ make test                          # run pytest against .julia_dev/
 make format                        # ruff format
 make lint                          # ruff check --fix
 make typecheck                     # ty check
-make docs                          # mkdocs build --strict
+make docs                          # properdocs build --strict
 make build                         # uv build
 ```
 

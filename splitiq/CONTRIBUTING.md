@@ -50,7 +50,7 @@ make test        # pytest, against .julia_dev/ built by `make julia-dev`
 make lint         # ruff check --fix
 make format       # ruff format
 make typecheck    # ty check
-make docs         # mkdocs build --strict
+make docs         # properdocs build --strict
 ```
 
 Pre-commit hooks are configured at the repository root and must be run from there, not from

@@ -48,7 +48,7 @@ jobs:
       - name: Type check
         run: uv run ty check
       - name: Build docs
-        run: uv run mkdocs build --strict
+        run: uv run properdocs build --strict
       - name: Build wheel
         run: uv build
 

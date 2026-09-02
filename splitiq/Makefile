@@ -25,7 +25,7 @@ test:
 	PYTHON_JULIACALL_PROJECT=$(CURDIR)/.julia_dev PYTHON_JULIACALL_EXE=$$(command -v julia) uv run pytest
 
 docs:
-	uv run mkdocs build --strict
+	uv run properdocs build --strict
 
 build:
 	uv build
