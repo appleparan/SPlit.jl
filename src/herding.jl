@@ -28,8 +28,32 @@ function _data_term(kernel::SplitKernel, X::Matrix{Float64}, n_threads::Int)
   return d
 end
 
+# Weighted data term d_i = Σ_l w̄_l k(x_i, x_l), w̄ scaled to sum one.
+function _data_term(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  w_bar::AbstractVector{Float64},
+  n_threads::Int,
+)
+  N = size(X, 1)
+  Xt = permutedims(X)
+  d = Vector{Float64}(undef, N)
+  chunks = collect(Iterators.partition(1:N, cld(N, max(1, n_threads))))
+  @sync for chunk in chunks
+    Threads.@spawn for i in chunk
+      s = 0.0
+      @views xi = Xt[:, i]
+      @views for l = 1:N
+        s += w_bar[l] * kernelvalue(kernel, xi, Xt[:, l])
+      end
+      d[i] = s
+    end
+  end
+  return d
+end
+
 """
-    herd(kernel, X, n; n_threads = Threads.nthreads()) -> Vector{Int}
+    herd(kernel, X, n; weights = nothing, n_threads = Threads.nthreads()) -> Vector{Int}
 
 Select `n` rows of `X` by kernel herding: the first row maximizes the mean
 kernel value to the data, and each later row maximizes
@@ -43,6 +67,12 @@ unreliable. The procedure is deterministic given the
 data and a numeric kernel; ties go to the lowest row index. Cost
 `O(N² + nN)`.
 
+`weights` (one non-negative entry per row, `nothing` for uniform) replaces
+the data term by `Σₗ w̄ₗ k(x, xₗ)` with `w̄` scaled to sum one, so the
+selection targets the weighted empirical distribution; the selected-set term
+is unchanged. A constant weight vector is treated as `nothing`, so uniform
+weights take the unweighted path and reproduce it exactly.
+
 # Examples
 
 ```julia
@@ -54,14 +84,19 @@ function herd(
   kernel::SplitKernel,
   X::Matrix{Float64},
   n::Int;
+  weights::Union{Nothing,AbstractVector} = nothing,
   n_threads::Int = Threads.nthreads(),
 )
   isresolved(kernel) ||
     throw(ArgumentError("kernel parameters must be resolved; call resolve first"))
   N = size(X, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
+  weights === nothing || _check_weights(weights, N)
+  weights = _uniform_as_nothing(weights)
 
-  d = _data_term(kernel, X, n_threads)
+  d =
+    weights === nothing ? _data_term(kernel, X, n_threads) :
+    _data_term(kernel, X, _normalize_weights(weights, N), n_threads)
   c = zeros(N)
   used = falses(N)
   selected = Vector{Int}(undef, n)
@@ -122,15 +157,19 @@ function HerdingSplitter(;
   return HerdingSplitter(kernel, ratio, n_threads, rng)
 end
 
-function datasplit(s::HerdingSplitter, data)
-  X = preprocess(data)
+function datasplit(
+  s::HerdingSplitter,
+  data;
+  weights::Union{Nothing,AbstractVector} = nothing,
+)
+  X = preprocess(data, weights)
   n_total = size(X, 1)
   n_small = round(Int, min(s.ratio, 1 - s.ratio) * n_total)
   0 < n_small < n_total ||
     throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
-  kernel = resolve(s.kernel, X, s.rng)
+  kernel = resolve(s.kernel, X, s.rng, weights)
   fitted = HerdingSplitter(kernel, s.ratio, s.n_threads, s.rng)
-  small = herd(kernel, X, n_small; n_threads = s.n_threads)
+  small = herd(kernel, X, n_small; weights, n_threads = s.n_threads)
   rest = setdiff(1:n_total, small)
   test, train = s.ratio <= 0.5 ? (small, rest) : (rest, small)
   return SplitResult(collect(train), collect(test), true, n_small, fitted)
