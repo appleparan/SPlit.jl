@@ -57,7 +57,7 @@ using Statistics
     @test_throws ArgumentError SPlit.preprocess(df)
   end
 
-  @testset "Union{Missing,T} columns with no actual missings are accepted" begin
+  @testset "Union{Missing,T} columns without missing values are accepted" begin
     plain =
       DataFrame(x = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], g = ["a", "b", "c", "a", "b", "c"])
     unioned = DataFrame(
