@@ -123,35 +123,42 @@ methods_order = [
   "random",
 ]
 colors = Makie.wong_colors()[1:5]
+markers = [:circle, :rect, :utriangle, :diamond]
 
-fig = Figure(size = (1100, 700))
-for (j, N) in enumerate(sizes()), (i, dname) in enumerate(unique(rows.dataset))
+# 8 (dataset, N) cells in the order rows were generated: N = 1,000 first, then N = 10,000
+dataset_names = unique(rows.dataset)
+cells = [(N, dname) for N in sizes() for dname in dataset_names]
+cell_labels = ["$dname\n$(N ÷ 1000)k" for (N, dname) in cells]
+metric_panels = [(:energy_distance, "Energy distance"), (:mmd, "Gaussian MMD")]
+
+# for each optimized method, its discrepancy relative to the random split's, per cell
+function relative_quality(metric)
+  return map(methods_order[1:4]) do m
+    map(cells) do (N, dname)
+      sub = filter(r -> r.dataset == dname && r.N == N, rows)
+      rand_val = only(filter(r -> r.method == "random", sub)[!, metric])
+      m_val = only(filter(r -> r.method == m, sub)[!, metric])
+      m_val / rand_val
+    end
+  end
+end
+
+fig = Figure(size = (1200, 460))
+for (j, (metric, title)) in enumerate(metric_panels)
   ax = Axis(
-    fig[i, j],
-    title = "$dname, N = $N",
+    fig[1, j],
+    title = title,
     yscale = log10,
-    xticks = (1:5, ["SP·E", "SP·G", "H·E", "H·G", "rand"]),
-    ylabel = i == 1 ? "discrepancy" : "",
+    xticks = (1:8, cell_labels),
+    xticklabelsize = 12,
+    ylabel = j == 1 ? "relative to random split (lower is better)" : "",
   )
-  sub = filter(r -> r.dataset == dname && r.N == N, rows)
-  idx = [findfirst(==(m), sub.method) for m in methods_order]
-  barplot!(
-    ax,
-    (1:5) .- 0.2,
-    max.(sub.energy_distance[idx], 1e-6);
-    width = 0.4,
-    color = (:gray30, 0.9),
-    label = "energy distance",
-  )
-  barplot!(
-    ax,
-    (1:5) .+ 0.2,
-    max.(sub.mmd[idx], 1e-6);
-    width = 0.4,
-    color = (:steelblue, 0.9),
-    label = "MMD",
-  )
-  i == 1 && j == 1 && axislegend(ax; position = :rt)
+  hlines!(ax, [1.0]; color = :gray50, linestyle = :dash)
+  vlines!(ax, [4.5]; color = :gray80)
+  for (m, col, mk, r) in zip(methods_order[1:4], colors, markers, relative_quality(metric))
+    scatter!(ax, 1:8, r; markersize = 14, marker = mk, color = col, label = m)
+  end
+  j == 2 && axislegend(ax; position = :rt)
 end
 save(joinpath(OUT, "quality.png"), fig; px_per_unit = 2)
 

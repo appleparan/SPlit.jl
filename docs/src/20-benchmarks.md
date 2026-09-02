@@ -1,35 +1,92 @@
 # [Benchmarks](@id benchmarks)
 
-**Use `herding · energy` by default.** It has the lowest energy distance in
-6 of the 8 (dataset, N) cases and the lowest Gaussian MMD in 3 of 4 at
-``N = 10{,}000``, and it is the fastest optimized method at every size. At
-``N = 1{,}000``, `support points · energy` wins `mixture-2d` on both
-metrics and the `t3-3d` energy distance, and `herding · gaussian` has the
-lowest MMD on the other three datasets. Reproduce with the command under
-[Environment](@ref benchmarks-environment).
+**Use `herding · energy` by default.** On four synthetic datasets at
+N = 1,000 and 10,000 it has the lowest energy distance in 6 of 8 cases and
+is never far from the best. It also runs 30-100x faster than the
+support-point optimizer. Sections 1 and 2 are the evidence; section 3 is
+why support points fall behind. The setup is under
+[How it was run](@ref benchmarks-environment).
 
-## Summary
+## 1. Quality: `herding · energy` is best or close to best
 
-| dataset | N | lowest energy distance | lowest MMD | fastest |
-|---|---:|---|---|---|
-| mixture-2d | 1000 | support points · energy | support points · energy | herding · energy |
-| normal-10d | 1000 | herding · energy | herding · gaussian | herding · energy |
-| uniform-5d | 1000 | herding · energy | herding · gaussian | herding · energy |
-| t3-3d | 1000 | support points · energy | herding · gaussian | herding · energy |
-| mixture-2d | 10000 | herding · energy | herding · energy | herding · energy |
-| normal-10d | 10000 | herding · energy | herding · energy | herding · energy |
-| uniform-5d | 10000 | herding · energy | herding · energy | herding · energy |
-| t3-3d | 10000 | herding · energy | herding · gaussian | herding · energy |
+![Discrepancy relative to the random split](assets/benchmarks/quality.png)
 
-Smaller discrepancy is better; times exclude JIT warm-up. Full per-cell
-numbers are in the tables under [Results](@ref benchmarks-results). For
-large inputs, `splitquality`'s automatic estimator is `RandomSlices(64)`
-(`EnergyKernel`) or `RandomFeatures(512)` (`GaussianKernel`), chosen by the
-selection experiment recorded under Results below ("Estimators").
+Each marker is one method on one (dataset, N) cell. The y axis is that
+method's discrepancy divided by the random split's, so 1 means no better
+than random and lower is better. Left: energy distance, the quantity
+`support points · energy` and `herding · energy` minimize. Right: Gaussian
+MMD, the quantity the two `gaussian` methods minimize.
 
-## Setup
+- `herding · energy` has the lowest energy distance in 6 of 8 cells. In the
+  other two (`mixture-2d` and `t3-3d` at N = 1,000) `support points · energy`
+  wins and herding is within 1.4x of it.
+- On MMD, herding is best in every cell at N = 10,000. At N = 1,000
+  `herding · gaussian` wins three datasets and `support points · energy`
+  wins `mixture-2d`.
+- `support points · gaussian` is no better than random on `normal-10d` and
+  `uniform-5d` at either N, and `support points · energy` on `normal-10d`
+  at N = 10,000. Section 3 explains why.
+- `herding · gaussian` is 4.9x worse than random on the `mixture-2d`
+  energy distance at N = 10,000. A method only controls the metric it
+  optimizes, so pick the kernel that matches how you will judge the split.
 
-### Datasets
+| dataset | N | lowest energy distance | lowest MMD |
+|---|---:|---|---|
+| mixture-2d | 1000 | support points · energy | support points · energy |
+| normal-10d | 1000 | herding · energy | herding · gaussian |
+| uniform-5d | 1000 | herding · energy | herding · gaussian |
+| t3-3d | 1000 | support points · energy | herding · gaussian |
+| mixture-2d | 10000 | herding · energy | herding · energy |
+| normal-10d | 10000 | herding · energy | herding · energy |
+| uniform-5d | 10000 | herding · energy | herding · energy |
+| t3-3d | 10000 | herding · energy | herding · gaussian |
+
+Every cell's fastest optimized method is `herding · energy`. All numbers:
+[`assets/benchmarks/results.md`](assets/benchmarks/results.md).
+
+## 2. Speed: 30-100x faster at N = 10,000
+
+![Wall time by method](assets/benchmarks/time.png)
+
+Wall time against N, log-log, JIT warm-up excluded; the random split is
+not shown because it does no work. At N = 10,000 `herding · energy` takes
+0.11-0.19 s and `herding · gaussian` 0.38-0.50 s. The two support-point
+methods take 3.4-8.7 s and 3.5-12.0 s, a 30-100x gap. Herding's cost is
+one `O(N²)` pass for the data term plus `O(nN)` for the selections, with no
+iterations, step sizes or `kappa` to tune.
+
+## 3. Why support points fall behind on `normal-10d` and `uniform-5d`
+
+![Rows kept from the initial sample](assets/benchmarks/rounding.png)
+
+`SupportPointSplitter` optimizes continuous points, then rounds each one to
+its nearest unclaimed data row. The points start at a random sample of
+rows. If the optimizer moves a point less than the spacing between rows, it
+rounds back to its own starting row. When that happens to every point, the
+split is the initial random sample and the optimization is discarded.
+
+The figure shows the fraction of starting rows each method keeps. On
+`normal-10d` and `uniform-5d` at N = 10,000 it is 87-100%. On `normal-10d`
+the median move is 0.14 (standardized units) against a row spacing of 1.37.
+
+The optimizer is not the problem. Its continuous points reach an MMD of
+2.3e-6 to the data, the same level as `herding · gaussian`. The rounding
+step throws that away. Starting the points away from data rows does not
+help (12-18x worse than random on `normal-10d`). Herding selects rows
+directly and has no rounding step. Details: `benchmark/rounding.jl` and
+[`assets/benchmarks/rounding.md`](assets/benchmarks/rounding.md).
+
+## What each method picks
+
+![Test rows selected on the 2-D mixture](assets/benchmarks/selection.png)
+
+The 2-D mixture at N = 1,000 with each method's test rows overlaid. Herding
+and support points both spread the test rows over the four components in
+proportion; the random split leaves gaps and clumps. `support points · energy`
+wins this cell, so the picture shows what a good selection looks like, not
+a difference between the families.
+
+## [How it was run](@id benchmarks-environment)
 
 | dataset | distribution | dimensions |
 |---|---|---:|
@@ -38,316 +95,23 @@ selection experiment recorded under Results below ("Estimators").
 | uniform-5d | uniform on ``[0, 1]^5`` | 5 |
 | t3-3d | Student-``t``, 3 degrees of freedom (heavy-tailed) | 3 |
 
-All four datasets are seeded, and each is split with `ratio = 0.2` at
-``N \in \{1{,}000, 10{,}000\}``.
-
-### Methods
-
 | method | splitter | N = 1,000 | N = 10,000 |
 |---|---|---|---|
 | support points · energy | `SupportPointSplitter(EnergyKernel())` | `kappa = nothing` (full data) | `kappa = 1_000` |
-| support points · gaussian | `SupportPointSplitter(GaussianKernel())` | `max_iterations = 200` | `max_iterations = 100`; no stochastic mode |
-| herding · energy | `HerdingSplitter(EnergyKernel())` | exact data term, no `kappa` | exact data term, no `kappa` |
-| herding · gaussian | `HerdingSplitter(GaussianKernel())` | exact data term, no `kappa` | exact data term, no `kappa` |
+| support points · gaussian | `SupportPointSplitter(GaussianKernel())` | `max_iterations = 200` | `max_iterations = 100` |
+| herding · energy | `HerdingSplitter(EnergyKernel())` | exact data term | exact data term |
+| herding · gaussian | `HerdingSplitter(GaussianKernel())` | exact data term | exact data term |
 | random | uniform random split | mean of 5 seeds | mean of 5 seeds |
 
-### Protocol
+- Every dataset is seeded and split with `ratio = 0.2`. Scores are the
+  energy distance and Gaussian MMD between the train and test rows. The
+  MMD bandwidth is the median heuristic, resolved once per dataset. Both
+  are computed exactly (`splitquality(...; exact_threshold = typemax(Int))`).
+- Each splitter's JIT warm-up runs on a throwaway copy with its own rng,
+  so compilation never consumes the timed splitter's random draws.
+- Command: `julia -t auto --project=benchmark benchmark/run.jl`. Recorded
+  on Julia 1.10.12, 16 threads (`-t auto`), AMD Ryzen 7 7800X3D.
 
-- Measures energy distance and Gaussian-kernel MMD (median-heuristic
-  bandwidth, resolved once per dataset) between the resulting train and
-  test rows, plus wall-clock time.
-- Every score is computed exactly via `splitquality(...; exact_threshold =
-  typemax(Int))`, never the subsampled estimator, so there is no
-  subsampling noise even at ``N = 10{,}000``.
-- Each splitter's JIT warm-up runs on a throwaway copy seeded with
-  `MersenneTwister(0)`, then the timed run uses a separate
-  `MersenneTwister(1)`-seeded copy, so warm-up compilation never consumes
-  the timed splitter's own random draws.
-- The random split is the mean of 5 seeds.
-
-### [Environment](@id benchmarks-environment)
-
-Exact command:
-
-```sh
-julia -t auto --project=benchmark benchmark/run.jl
-```
-
-Recorded when the run below was produced:
-
-- Julia: 1.10.12
-- Threads: 16 (`-t auto`)
-- CPU: AMD Ryzen 7 7800X3D 8-Core Processor
-
-## [Results](@id benchmarks-results)
-
-Best value per row in **bold**. The raw per-run table is
-`assets/benchmarks/results.md`.
-
-### Energy distance
-
-| dataset | N | support points · energy | support points · gaussian | herding · energy | herding · gaussian | random |
-|---|---:|---:|---:|---:|---:|---:|
-| mixture-2d | 1000 | **0.000323** | 0.00264 | 0.000439 | 0.00772 | 0.012 |
-| normal-10d | 1000 | 0.0215 | 0.0247 | **0.00822** | 0.00927 | 0.0255 |
-| uniform-5d | 1000 | 0.0047 | 0.0158 | **0.00343** | 0.00535 | 0.0173 |
-| t3-3d | 1000 | **0.00163** | 0.00586 | 0.00174 | 0.0035 | 0.0161 |
-| mixture-2d | 10000 | 0.000173 | 0.0003 | **1.42e-5** | 0.00432 | 0.000885 |
-| normal-10d | 10000 | 0.0025 | 0.00299 | **0.0006** | 0.000873 | 0.00208 |
-| uniform-5d | 10000 | 0.000844 | 0.00187 | **0.000199** | 0.00046 | 0.00146 |
-| t3-3d | 10000 | 0.000262 | 0.000583 | **8.06e-5** | 0.00082 | 0.00151 |
-
-### Gaussian MMD
-
-Bandwidth ``\sigma`` is the median-heuristic value, resolved once per
-dataset.
-
-| dataset | N | support points · energy | support points · gaussian | herding · energy | herding · gaussian | random |
-|---|---:|---:|---:|---:|---:|---:|
-| mixture-2d | 1000 | **1.57e-6** | 3.21e-5 | 1.08e-5 | 1.9e-5 | 0.00258 |
-| normal-10d | 1000 | 0.00187 | 0.00224 | 0.000114 | **9.82e-5** | 0.00227 |
-| uniform-5d | 1000 | 0.000255 | 0.00189 | 3.62e-5 | **3.54e-5** | 0.00217 |
-| t3-3d | 1000 | 0.000116 | 0.000841 | 9.8e-5 | **7.58e-5** | 0.00375 |
-| mixture-2d | 10000 | 3.2e-5 | 1.74e-6 | **1.87e-7** | 2.85e-7 | 0.000166 |
-| normal-10d | 10000 | 0.000215 | 0.000289 | **1.91e-6** | 2.17e-6 | 0.000164 |
-| uniform-5d | 10000 | 7.24e-5 | 0.000243 | **3.2e-7** | 4.64e-7 | 0.00016 |
-| t3-3d | 10000 | 4.82e-5 | 8.06e-5 | 2.77e-6 | **2.25e-6** | 0.000305 |
-
-### Wall time (seconds)
-
-The random split does no optimization, so it is omitted here.
-
-| dataset | N | support points · energy | support points · gaussian | herding · energy | herding · gaussian |
-|---|---:|---:|---:|---:|---:|
-| mixture-2d | 1000 | 0.29 | 0.17 | **0.0022** | 0.051 |
-| normal-10d | 1000 | 0.56 | 1.3 | **0.0031** | 0.022 |
-| uniform-5d | 1000 | 0.35 | 0.32 | **0.0023** | 0.041 |
-| t3-3d | 1000 | 0.27 | 0.78 | **0.0019** | 0.014 |
-| mixture-2d | 10000 | 3.7 | 3.7 | **0.12** | 0.47 |
-| normal-10d | 10000 | 9.6 | 10.0 | **0.2** | 0.48 |
-| uniform-5d | 10000 | 5.6 | 11.0 | **0.16** | 0.48 |
-| t3-3d | 10000 | 4.3 | 14.0 | **0.14** | 0.43 |
-
-### Estimators
-
-Selection experiment for the `DiscrepancyEstimator` `splitquality` falls
-back to above `exact_threshold`: on the four datasets above at
-N = 10,000, absolute error against the exact value and wall time of every
-candidate, measured on the split from `support points · energy`,
-`herding · energy` (energy distance) and `herding · gaussian` (MMD), over 5
-rng seeds. Full table:
-[`assets/benchmarks/estimators.md`](assets/benchmarks/estimators.md).
-
-| estimator | max abs error (worst over rows) | mean time (s) (over rows) |
-|---|---:|---:|
-| `Subsample(2000, 8)` (EnergyKernel) | 0.00197 | 0.208 |
-| `RandomSlices(64)` | 0.00014 | 0.0189 |
-| `RandomSlices(256)` | 7.65e-5 | 0.0835 |
-| `RandomSlices(1024)` | 4.14e-5 | 0.331 |
-| `Subsample(2000, 8)` (GaussianKernel) | 0.000175 | 0.298 |
-| `RandomFeatures(512)` | 5.36e-7 | 0.0658 |
-| `RandomFeatures(2048)` | 3.85e-7 | 0.325 |
-
-Rule: an estimator becomes the automatic fallback if, at no more than
-`Subsample(2000, 8)`'s mean wall time, its worst-case max error over every
-row is at most one third of `Subsample(2000, 8)`'s; otherwise
-`Subsample(2000, 8)` stays the fallback.
-
-Decision: `RandomSlices(64)` for `EnergyKernel` and `RandomFeatures(512)`
-for `GaussianKernel`. Worst-case max error is 14× lower for
-`RandomSlices(64)` (0.00197 to 0.00014) at 9% of `Subsample(2000, 8)`'s mean
-time, and 330× lower for `RandomFeatures(512)` (0.000175 to 5.36e-7) at 22%
-of its time. `ENERGY_FALLBACK` and `GAUSSIAN_FALLBACK` in `quality.jl` are
-set accordingly.
-
-### Approximate herding data terms (rejected)
-
-Kernel herding's data term (`mean_l k(x_i, x_l)`, Chen, Welling & Smola
-2010, Eq. 8) was tried with `RandomSlices`/`RandomFeatures` approximations
-and rejected: all candidate rows share the same random directions or
-features, so the estimator's noise is correlated across rows, and greedy
-`argmax` selection tracks that noise rather than averaging it out. In the
-table below the smallest budgets (k = 64 and 256, D = 512) select subsets
-*worse than a random subset*. Larger budgets beat random but stay 7-35×
-from exact herding, and only k = 8192 and D = 32768 come within about 3.5×.
-At that budget the estimator's own cost
-(`O(kN log N)` for slices, `O(NDp)` for Fourier features) matches the exact
-`O(N²)` data term for `N` around 10⁵. `RandomSlices`/`RandomFeatures` remain
-available for `energydistance`/`mmd` quality diagnostics only;
-`HerdingSplitter`'s data term is exact only. N = 1500, p = 3, n = 300, 3 rng
-seeds per row.
-
-| kernel | estimator | selected-subset discrepancy (3 seeds) | exact herding | random | ratio to exact |
-|---|---|---|---:|---:|---:|
-| EnergyKernel | RandomSlices(64) | 0.0255, 0.0561, 0.0692 (mean 0.0503) | 0.000643 | 0.00713 | 78.2× |
-| EnergyKernel | RandomSlices(256) | 0.0181, 0.0222, 0.0262 (mean 0.0222) | 0.000643 | 0.00713 | 34.5× |
-| EnergyKernel | RandomSlices(2048) | 0.00467, 0.00486, 0.0108 (mean 0.00679) | 0.000643 | 0.00713 | 10.6× |
-| EnergyKernel | RandomSlices(8192) | 0.00138, 0.00252, 0.00228 (mean 0.00206) | 0.000643 | 0.00713 | 3.2× |
-| GaussianKernel | RandomFeatures(512) | 0.00448, 0.00385, 0.00407 (mean 0.00413) | 5.88e-5 | 0.00268 | 70.3× |
-| GaussianKernel | RandomFeatures(2048) | 0.0019, 0.00168, 0.00171 (mean 0.00177) | 5.88e-5 | 0.00268 | 30.0× |
-| GaussianKernel | RandomFeatures(8192) | 0.000474, 0.000503, 0.000343 (mean 0.00044) | 5.88e-5 | 0.00268 | 7.48× |
-| GaussianKernel | RandomFeatures(32768) | 0.000203, 0.000225, 0.000187 (mean 0.000205) | 5.88e-5 | 0.00268 | 3.48× |
-
-## Figures
-
-![Split quality by method](assets/benchmarks/quality.png)
-
-Grouped bars of energy distance and Gaussian MMD per method, one panel per
-dataset and size, on a log scale; shorter bars are better splits.
-
-![Split time by method](assets/benchmarks/time.png)
-
-Wall time versus ``N`` for each method, log-log; the random split is
-excluded since it does no optimization.
-
-![Test-row selection on the 2-D mixture](assets/benchmarks/selection.png)
-
-The 2-D Gaussian-mixture data with the test rows each method selects
-overlaid, showing why the methods disagree on which rows to hold out.
-
-## Key findings
-
-- At N = 1,000, herding is competitive or ahead. `herding · energy` has the
-  lowest energy distance on `normal-10d` and `uniform-5d`, and
-  `herding · gaussian` has the lowest MMD on `normal-10d`, `uniform-5d`, and
-  `t3-3d`, all at a small fraction of the optimizer's wall time.
-- At N = 1,000, `support points · energy` still wins on two datasets. It
-  takes both metrics on `mixture-2d` and the energy distance on `t3-3d`.
-- At N = 10,000, `herding · energy` has the lowest energy distance on every
-  dataset, 3.3x-12.2x below `support points · energy`. Part of that gap is
-  the `kappa = 1_000` stochastic approximation on the support-point side; on
-  `normal-10d` and `uniform-5d` the runner-up is `herding · gaussian`, not
-  `support points · energy`.
-- At N = 10,000, the two herding methods take the lowest MMD on every
-  dataset, well below both support-point methods and random (e.g.
-  `normal-10d`: 1.91e-6 for `herding · energy` versus 0.000215 for
-  `support points · energy`).
-- On `normal-10d` and `uniform-5d` at N = 10,000 the support-point splits
-  are the initial random sample. The optimizer moves the points less than
-  the spacing between data rows, so `select_nearest` rounds every point
-  back to its own starting row; see "Nearest-neighbor assignment returns
-  the initial sample" under Caveats.
-- Herding is also the fastest optimized method at N = 10,000.
-  `herding · energy` takes 0.12-0.2 s and `herding · gaussian` 0.43-0.48 s,
-  versus 3.7-9.6 s for `support points · energy` and 3.7-14.0 s for
-  `support points · gaussian`. Caveats explains the quality/time trade
-  behind the Gaussian timings.
-- Herding uses the exact data term at every size, so its selections realize
-  the greedy rule's guarantee at ``N = 10{,}000`` as well as at
-  ``N = 1{,}000``.
-- `RandomSlices(64)`/`RandomFeatures(512)` cut `splitquality`'s wall time
-  above `exact_threshold` at errors within a few percent of the value.
-  Approximating herding's data term the same way was measured and rejected,
-  because the greedy selection amplifies the estimators' row-correlated
-  noise; see "Approximate herding data terms (rejected)" under Results.
-
-## Caveats
-
-`support points · gaussian` stops on the two-part convergence rule after a
-scale-aware first step (`support_points(::GaussianKernel, …)`; see
-[Methods](@ref methods)). The timings above depend on that rule. An earlier
-version of the optimizer used a fixed first step, and because the objective's
-``1/n^2`` and ``1/(nN)`` scaling makes the initial gradient row-norms of
-order ``10^{-6}``, the displacement tolerance fired at the initial sample on
-`normal-10d` and `uniform-5d` (0.48-0.49 s, `result.converged == true`) even
-though further iterations still decreased the objective, while on
-`mixture-2d` and `t3-3d` the optimizer ran the full 100-iteration cap
-without reporting convergence (42 s). Measured against that version, the
-current rule behaves as follows.
-
-- On `normal-10d` and `uniform-5d` it iterates instead of stopping at the
-  initial sample. The runs take 10.0 s and 11.0 s (up from 0.48-0.49 s) and
-  reach essentially the same quality: energy distance unchanged to 3
-  significant figures, MMD 0.000289 vs 0.000289 and 0.000243 vs 0.000244.
-  The single accepted step of the fixed-step version was already close to a
-  local optimum; the current rule reaches the same point by iteration rather
-  than by an accidentally tight tolerance. This is a convergence fix, not a
-  quality fix. The selected rows are the same under both versions, because
-  on these two datasets the nearest-neighbor assignment returns the initial
-  sample; see the next caveat.
-- On `mixture-2d` and `t3-3d` it converges well before the iteration cap,
-  in 3.7 s and 14.0 s (down from 42 s, an 11x and 3x speedup), at a slightly
-  higher final MMD (mixture-2d: 1.74e-6 versus 7.76e-7; t3-3d: 8.06e-5
-  versus 7.64e-5). The relative-decrease rule (`rtol = 1e-8`) accepts
-  diminishing returns earlier than running to the cap would, trading a small
-  amount of quality for the speedup.
-- At ``N = 1{,}000`` the same trade appears on all four datasets: wall time
-  drops 2-6x (e.g. `mixture-2d`: 1.0 s to 0.17 s) alongside a modest
-  increase in `support points · gaussian`'s own MMD score (`mixture-2d`:
-  9.1e-6 to 3.21e-5).
-
-None of this changes which method the Summary recommends: `support points ·
-gaussian` is not the lowest-discrepancy method on any (dataset, N) cell, so
-its exact stopping point does not affect the "use `herding · energy` by
-default" recommendation.
-
-### Nearest-neighbor assignment returns the initial sample
-
-`SupportPointSplitter` optimizes continuous support points and then maps
-each one to its nearest unclaimed data row (`select_nearest`, sequential
-nearest-neighbor, Joseph & Vakayil 2021). The points start at a random
-sample of data rows jittered by 0.1% of the per-dimension range
-(`_initial_points`). On `normal-10d` and `uniform-5d` at N = 10,000, the
-optimizer moves each point far less than the spacing between rows: on
-`normal-10d`, the Gaussian optimizer's median displacement is 0.144
-standardized units against a median nearest-neighbor spacing of 1.37 (0.0845
-versus 0.376 on `uniform-5d`), so `select_nearest` maps almost every point
-straight back to its own starting row.
-
-`normal-10d`, N = 10,000:
-
-| method | continuous MMD | rows kept | test-vs-train MMD |
-|---|---:|---:|---:|
-| initial sample | – | – | 0.000215 |
-| initial sample (datasplit path) | – | – | 0.000289 |
-| support points · gaussian | 2.29e-6 | 2000/2000 | 0.000215 |
-| support points · gaussian (datasplit path) | – | 2000/2000 | 0.000289 |
-| support points · energy, `kappa = 1_000` | 7.72e-5 | 2000/2000 | 0.000215 |
-| support points · energy, full data | 1.88e-6 | 2000/2000 | 0.000215 |
-| random (5 seeds) | – | – | 0.000164 |
-
-The "(datasplit path)" rows call `datasplit` exactly as `run.jl` does.
-`datasplit` resolves the `:median` bandwidth from the splitter's `rng`
-before the points are initialized, so the Gaussian run starts from a
-different random sample than the energy run (whose kernel needs no
-resolution) and than the plain rows above, which pre-resolve the kernel.
-That is the whole difference between the Results table's `support points ·
-gaussian` (0.000289) and `support points · energy` (0.000215): each is the
-test-vs-train score of the initial sample its run started from. The
-optimizer itself works: the continuous Gaussian support points reach an MMD
-of 2.29e-6 to the full dataset, on par with `herding · gaussian` (2.17e-6).
-But every optimized method rounds back to exactly its own 2,000 starting
-rows, so "`support points · gaussian` scores worse than random" is one
-seed-1 draw against the 5-seed random mean of 0.000164, not the optimization
-making the split worse.
-
-On `uniform-5d`, where the standardized data fills the unit box rather than
-clustering near the origin, the rounding step is less lossy: `support points
-· gaussian` keeps 1998 of the 2,000 initial rows, full-data `support points
-· energy` keeps 1929/2000, and the stochastic `kappa = 1_000` update moves
-points far enough to keep only 1731/2000, which is why `support points ·
-energy` is the one support-point method that beats random on this dataset
-(MMD 7.24e-5 versus random's 0.00016).
-
-Starting the points away from data rows is not a fix. Two alternative
-initializations were run through the same optimizer and rounding step:
-uniform in the standardized bounding box, and the initial sample plus ±50%
-per-dimension-range jitter. On `normal-10d` both land on outlier-adjacent
-rows and score 12-18x worse than random (uniform-box init: MMD 0.003, energy
-distance 0.0258, against random's 0.000164 / 0.00208). On `uniform-5d`,
-where the rows already fill the box, the same initializations instead score
-2-11x *better* than random, so the direction of the effect depends on the
-dataset, not on the initialization being an improvement in general.
-
-The loss happens entirely at the rounding step: `select_nearest` claims
-whichever unclaimed row is closest, and in high dimension on standardized
-data that is usually the point's own starting row. `HerdingSplitter` selects
-data rows directly, with no continuous optimization or rounding step, so it
-is unaffected.
-
-Reproduce with `julia -t auto --project=benchmark benchmark/rounding.jl`;
-the full table is in `assets/benchmarks/rounding.md`.
-
-`support points · energy` runs with `kappa = 1_000` at ``N = 10{,}000``,
-so its ``N = 10{,}000`` numbers include stochastic-MM approximation error;
-at ``N = 1{,}000`` both it and herding are exact.
+The measurements that fixed `splitquality`'s automatic estimator and
+herding's exact data term are on the
+[Design experiments](@ref design-experiments) page.
