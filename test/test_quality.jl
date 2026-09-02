@@ -106,6 +106,8 @@ end
     Y = randn(MersenneTwister(31), 120, 2)
     @test mmd(X, Y, k) >= -1e-12
     @test mmd(X, Y .+ 1.5, k) > mmd(X, Y, k)
+    # subsample larger than both samples falls back to the exact computation
+    @test mmd(X, Y, k; subsample = 10_000) == mmd(X, Y, k)
   end
 
   @testset "block accumulation matches naive computation" begin

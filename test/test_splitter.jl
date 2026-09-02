@@ -139,4 +139,18 @@ end
     )
     @test length(test_indices(r)) == 18
   end
+
+  @testset "duplicate rows take the jitter path" begin
+    data = repeat(randn(MersenneTwister(76), 30, 2), 3)
+    r = datasplit(
+      SupportPointSplitter(
+        kernel = GaussianKernel(1.0),
+        max_iterations = 30,
+        rng = MersenneTwister(77),
+      ),
+      data,
+    )
+    @test length(test_indices(r)) == 18
+    @test sort(vcat(train_indices(r), test_indices(r))) == collect(1:90)
+  end
 end
