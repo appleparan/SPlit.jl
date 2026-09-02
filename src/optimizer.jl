@@ -336,7 +336,7 @@ fires before the second iteration, and then when either the largest squared
 displacement is below `tolerance` or the relative objective decrease
 `|f_{t-1} - f_t| / max(|f_t|, 1e-12)` is below `rtol`. `f` is
 `_mmd_objective`, which omits the constant data self-term and is bounded in
-`[-1, 1]` for a Gaussian kernel on standardized data, so `rtol` acts as an
+`[-1, 1]` for a Gaussian kernel, so `rtol` acts as an
 absolute per-iteration tolerance on that bounded objective, not a relative
 tolerance on the (orders-of-magnitude smaller) true MMD².
 """

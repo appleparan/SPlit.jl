@@ -100,13 +100,17 @@ end
   rng = MersenneTwister(20)
   x = randn(rng, 4)
   y = randn(rng, 4)
-  errs = Float64[]
-  for D in (64, 1024, 16_384)
-    φ = SPlit.FourierFeatureMap(k, 4, D, MersenneTwister(21))
-    push!(errs, abs(dot(φ(x), φ(y)) - SPlit.kernelvalue(k, x, y)))
+  exact_value = SPlit.kernelvalue(k, x, y)
+  small_D_errs = Float64[]
+  for s = 1:8
+    φ = SPlit.FourierFeatureMap(k, 4, 64, MersenneTwister(21 + s))
+    push!(small_D_errs, abs(dot(φ(x), φ(y)) - exact_value))
   end
-  @test errs[3] < errs[1]
-  @test errs[3] < 0.05
+  mean_small_D_err = sum(small_D_errs) / length(small_D_errs)
+  φ_large = SPlit.FourierFeatureMap(k, 4, 16_384, MersenneTwister(21))
+  large_D_err = abs(dot(φ_large(x), φ_large(y)) - exact_value)
+  @test large_D_err < mean_small_D_err
+  @test large_D_err < 0.05
   X = randn(rng, 300, 4)
   Y = randn(rng, 200, 4) .+ 0.4
   exact = mmd(X, Y, k)

@@ -1,7 +1,7 @@
 """
-Discrepancy estimators: how `energydistance`, `mmd`, `splitquality`, and
-`HerdingSplitter` evaluate (or approximate) pairwise-kernel quantities.
-Which estimator/kernel combinations exist is expressed by method dispatch.
+Discrepancy estimators: how `energydistance`, `mmd`, and `splitquality`
+evaluate (or approximate) pairwise-kernel quantities. Which estimator/kernel
+combinations exist is expressed by method dispatch.
 """
 
 using LinearAlgebra: norm
@@ -141,11 +141,12 @@ function _sliced_energydistance(
 )
   p = size(X, 2)
   Θ = _project_directions(rng, p, k)
-  U = X * Θ
-  V = Y * Θ
   total = 0.0
   for j = 1:k
-    @views total += _ed1d(U[:, j], V[:, j])
+    θ = view(Θ, :, j)
+    u = X * θ
+    v = Y * θ
+    total += _ed1d(u, v)
   end
   return total / (k * sphere_constant(p))
 end
