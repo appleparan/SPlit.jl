@@ -115,11 +115,12 @@ are unbiased, so they avoid the membership bias that removed `kappa` in Phase
 2b. They were still rejected on measurement ($N = 1{,}500$, $n = 300$, three
 seeds; `benchmark/herding_estimators.jl` reproduces the table on the
 Benchmarks page): with `RandomSlices(64)` the selected subset's energy
-distance to the data was 2–9× *worse than a random subset*,
+distance to the data was 4–10× *worse than a random subset*,
 `RandomSlices(256)` was still worse than random, and only $k \approx 8{,}192$
 came within 3.5× of exact herding; `RandomFeatures` behaved the same way
-($D = 512$ and $2{,}048$ worse than random, $D = 32{,}768$ within 3.5×). The
-cause is structural: every row's estimate shares the same directions or
+($D = 512$ worse than random, $D = 2{,}048$ only 1.5× better than random,
+$D = 32{,}768$ within 3.5×). The cause is structural: every row's estimate
+shares the same directions or
 features, so the estimator noise is strongly correlated across rows, and the
 greedy argmax follows that correlated noise into a direction-dependent region
 of the data. Budgets that work cost as much as the exact $O(N^2)$ term.

@@ -84,8 +84,8 @@ second iteration, and then when *either* the largest squared displacement is
 below `tolerance` *or* the relative objective decrease
 ``|f_{t-1} - f_t| / \max(|f_t|, 10^{-12})`` is below `rtol` (default
 ``10^{-8}``); `f` here is the shifted objective above, which omits the
-constant data self-term and is bounded in ``[-1, 1]`` for a Gaussian kernel
-on standardized data, so `rtol` acts as an absolute-in-effect tolerance
+constant data self-term and is bounded in ``[-1, 1]`` for a Gaussian kernel,
+so `rtol` acts as an absolute-in-effect tolerance
 rather than a tolerance on the (orders-of-magnitude smaller) true MMD².
 When `bandwidth = :median`, ``\sigma`` is the median pairwise distance over
 (a sample of) the standardized rows (Gretton et al., 2012), resolved once

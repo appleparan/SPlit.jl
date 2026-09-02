@@ -154,9 +154,11 @@ row is at most one third of `Subsample(2000, 8)`'s; otherwise
 `Subsample(2000, 8)` stays the fallback.
 
 **Decision: `RandomSlices(64)` for `EnergyKernel`, `RandomFeatures(512)` for
-`GaussianKernel`** — both clear the rule by two to four orders of magnitude
-on error, at roughly a tenth of `Subsample`'s time; `ENERGY_FALLBACK` and
-`GAUSSIAN_FALLBACK` in `quality.jl` are set accordingly.
+`GaussianKernel`** — worst-case max error is 14× lower for `RandomSlices(64)`
+(0.00197 → 0.00014) at 9% of `Subsample(2000, 8)`'s mean time, and 330×
+lower for `RandomFeatures(512)` (0.000175 → 5.36e-7) at 22% of its time;
+`ENERGY_FALLBACK` and `GAUSSIAN_FALLBACK` in `quality.jl` are set
+accordingly.
 
 ### Approximate herding data terms (rejected)
 
@@ -165,9 +167,10 @@ Kernel herding's data term (`mean_l k(x_i, x_l)`, Chen, Welling & Smola
 and rejected: all candidate rows share the same random directions or
 features, so the estimator's noise is correlated across rows, and greedy
 `argmax` selection tracks that noise rather than averaging it out. In the
-table below the small budgets select subsets *worse than a random subset*,
-the mid budgets roughly match random, and only the largest budgets come
-within about 3× of exact herding — at which point the estimator's own cost
+table below the smallest budgets (k = 64 and 256, D = 512) select subsets
+*worse than a random subset*; larger budgets beat random but stay 7–35×
+from exact herding; only k = 8192 and D = 32768 come within about 3.5× —
+at which point the estimator's own cost
 (`O(kN log N)` for slices, `O(NDp)` for Fourier features) matches the exact
 `O(N²)` data term for `N` around 10⁵. `RandomSlices`/`RandomFeatures` remain
 available for `energydistance`/`mmd` quality diagnostics only;
@@ -228,10 +231,10 @@ overlaid, showing why the methods disagree on which rows to hold out.
   realize the greedy rule's guarantee at ``N = 10{,}000`` as well as at
   ``N = 1{,}000``.
 - **`RandomSlices(64)`/`RandomFeatures(512)` cut `splitquality`'s wall time
-  above `exact_threshold` at negligible error**, but approximating
-  herding's data term the same way was measured and rejected — the greedy
-  selection amplifies the estimators' row-correlated noise; see
-  "Approximate herding data terms (rejected)" under Results.
+  above `exact_threshold` at errors within a few percent of the value**, but
+  approximating herding's data term the same way was measured and
+  rejected — the greedy selection amplifies the estimators' row-correlated
+  noise; see "Approximate herding data terms (rejected)" under Results.
 
 ## Caveats
 
@@ -252,7 +255,11 @@ instead ran the full 100-iteration cap without ever reporting convergence
   unchanged to 3 significant figures; MMD 0.000289 vs 0.000289, and
   0.000243 vs 0.000244) — the single accepted step the old code reported was
   already close to a local optimum, but the fix now reaches it by real
-  iteration rather than an accidentally-tight tolerance.
+  iteration rather than an accidentally-tight tolerance. This is a
+  convergence fix, not a quality fix: on Gaussian MMD at N = 10,000,
+  `support points · gaussian` scores worse than the random split both
+  before and after the fix, on `normal-10d` (0.000289 versus random's
+  0.000164) and `uniform-5d` (0.000243 versus random's 0.00016).
 - `mixture-2d` and `t3-3d` now converge honestly well before the
   iteration cap, in 3.7 s and 14.0 s (down from 42 s, an 11x and 3x
   speedup), at a slightly higher final MMD (mixture-2d: 1.74e-6 versus

@@ -33,7 +33,8 @@ output-matching tests. The design record is
   an implementation constant, not from the papers.
 - `energydistance`/`mmd` are exact unless an `estimator` (or the compatibility
   `subsample` keyword) is passed; `Subsample`'s estimate has a positive bias
-  of order `1/subsample`, `RandomSlices`/`RandomFeatures` are unbiased.
+  of order `1/m` (`Subsample(m, repeats)`), `RandomSlices`/`RandomFeatures`
+  are unbiased.
   `splitquality` switches to the fallback `DiscrepancyEstimator` chosen by
   the selection experiment (see Benchmarks) automatically above
   `exact_threshold` (20,000 rows).

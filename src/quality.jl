@@ -208,10 +208,10 @@ energydistance(X::AbstractVector, Y::AbstractVector; kwargs...) = energydistance
 # Automatic fallback for splitquality's estimator = nothing above
 # exact_threshold, chosen by the selection experiment
 # (docs/src/assets/benchmarks/estimators.md, embedded on the Benchmarks
-# page): on the four Phase 2b datasets at N = 10,000, RandomSlices(64) and
-# RandomFeatures(512) each clear the decision rule (max error at most a
-# third of Subsample(2_000, 8)'s, at no more than its mean time) by two to
-# four orders of magnitude on error, at roughly a tenth of its time.
+# page): on the four Phase 2b datasets at N = 10,000, worst-case max error
+# is 14x lower for RandomSlices(64) (0.00197 -> 0.00014) at 9% of
+# Subsample(2_000, 8)'s mean time, and 330x lower for RandomFeatures(512)
+# (0.000175 -> 5.36e-7) at 22% of its time.
 const ENERGY_FALLBACK = RandomSlices(64)
 const GAUSSIAN_FALLBACK = RandomFeatures(512)
 

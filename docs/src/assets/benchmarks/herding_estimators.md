@@ -5,9 +5,10 @@ Kernel herding's data term (`mean_l k(x_i, x_l)`, Chen, Welling & Smola
 and rejected: all candidate rows share the same random directions or
 features, so the estimator's noise is correlated across rows, and greedy
 `argmax` selection tracks that noise rather than averaging it out. In the
-table below the small budgets select subsets *worse than a random subset*,
-the mid budgets roughly match random, and only the largest budgets come
-within about 3× of exact herding — at which point the estimator's own cost
+table below the smallest budgets (k = 64 and 256, D = 512) select subsets
+*worse than a random subset*; larger budgets beat random but stay 7–35×
+from exact herding; only k = 8192 and D = 32768 come within about 3.5× —
+at which point the estimator's own cost
 (`O(kN log N)` for slices, `O(NDp)` for Fourier features) matches the exact
 `O(N²)` data term for `N` around 10⁵. `RandomSlices`/`RandomFeatures`
 remain available for `energydistance`/`mmd` quality diagnostics;
