@@ -5,9 +5,9 @@ Kernel types selecting the discrepancy that support points minimize.
 """
     SplitKernel
 
-Abstract supertype of kernels usable with [`SupportPointSplitter`](@ref).
-Each kernel defines the discrepancy between the support-point set and the
-data distribution that the optimizer minimizes.
+Abstract supertype of kernels usable with [`SupportPointSplitter`](@ref) and
+[`HerdingSplitter`](@ref). Each kernel defines the discrepancy between the
+selected subset and the data distribution that the splitter minimizes.
 """
 abstract type SplitKernel end
 

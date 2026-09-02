@@ -83,6 +83,11 @@ destructuring) partition the input rows.
   deterministic given the data and a numeric kernel; `kappa` estimates the
   data term from a row subsample for large datasets.
 
+```julia
+herding = HerdingSplitter(kernel = EnergyKernel(), rng = MersenneTwister(2))
+result = datasplit(herding, data)
+```
+
 ### Quality diagnostics
 
 `energydistance(X, Y)` computes the energy distance between two samples
@@ -109,8 +114,9 @@ intercept).
 
 ### Comparison
 
-`compare(methods, data)` runs several `SupportPointSplitter` configurations
-on the same data and scores each with `splitquality`, returning a
+`compare(methods, data)` runs several splitter configurations
+(`SupportPointSplitter` or `HerdingSplitter`) on the same data and scores
+each with `splitquality`, returning a
 `SplitComparison` (convertible to a `DataFrame`); `best(comparison)` returns
 the method/result pair with the lowest energy distance.
 

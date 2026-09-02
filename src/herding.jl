@@ -63,6 +63,13 @@ happens to be one of the rows averaged over. With `kappa`, this mean is
 estimated from `kappa` rows drawn with `rng`; otherwise the procedure is
 deterministic and `rng` is unused. Ties go to the lowest row index. Cost
 `O(N·|rows| + nN)`.
+
+# Examples
+
+```julia
+X = randn(MersenneTwister(1), 200, 3)
+herd(GaussianKernel(1.0), X, 40)
+```
 """
 function herd(
   kernel::SplitKernel,
@@ -114,6 +121,13 @@ subset is chosen row by row to minimize the MMD² (energy distance for
 `EnergyKernel`) to the whole data. Deterministic given the data and a numeric
 kernel; `rng` only drives the `kappa` subsample and a `:median` bandwidth.
 See [`herd`](@ref) for the rule and cost.
+
+# Examples
+
+```julia
+data = randn(MersenneTwister(1), 200, 3)
+result = datasplit(HerdingSplitter(rng = MersenneTwister(2)), data)
+```
 """
 struct HerdingSplitter{K<:SplitKernel,R<:AbstractRNG} <: AbstractSplitter
   kernel::K

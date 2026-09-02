@@ -9,6 +9,8 @@ using Random
     AbstractSplitter
 
 Supertype of every splitting method usable with [`datasplit`](@ref).
+Concrete splitters expose `kernel` and `ratio` fields, which
+`compare`/`DataFrame(::SplitComparison)` read.
 """
 abstract type AbstractSplitter end
 
@@ -19,7 +21,8 @@ abstract type AbstractSplitter end
                           rng = Random.default_rng(), verbose = false)
 
 Configuration for optimal data splitting via support points
-(Joseph & Vakayil 2021).
+(Joseph & Vakayil 2021): the smaller side is computed as a set of support
+points and mapped to data rows by sequential nearest-neighbor selection.
 
 - `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`
   bandwidth is resolved from the data at `datasplit` time and the resolved
@@ -109,10 +112,9 @@ test_indices(r::SplitResult) = r.test_indices
     datasplit(splitter::AbstractSplitter, data) -> SplitResult
 
 Split `data` (matrix, `DataFrame`, or vector; observations in rows) into
-train and test sets whose distributions are as similar as possible, by
-computing support points for the smaller side and mapping them to data rows
-by sequential nearest-neighbor selection. Methods exist for
-[`SupportPointSplitter`](@ref) and [`HerdingSplitter`](@ref).
+train and test sets whose distributions are as similar as possible, using
+the method's own procedure; see the splitter types
+([`SupportPointSplitter`](@ref), [`HerdingSplitter`](@ref)).
 """
 function datasplit(s::SupportPointSplitter, data)
   X = preprocess(data)
