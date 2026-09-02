@@ -22,6 +22,8 @@ The package also implements the optimal split ratio result of Joseph (2022):
 for a linear model with `p` parameters, the test fraction that minimizes
 the variance of the fitted model is `γ = 1 / (√p + 1)`.
 
+New to support points? Read [How SPlit works](@ref intuition) first.
+
 ## Quick Start
 
 ```julia
