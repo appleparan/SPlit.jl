@@ -114,6 +114,11 @@ end
     @test isapprox(X_weighted, X_unweighted; atol = 1e-12)
   end
 
+  @testset "constant weight vector is treated as nothing and matches exactly" begin
+    data = randn(MersenneTwister(32), 60, 2)
+    @test SPlit.preprocess(data, ones(60)) == SPlit.preprocess(data)
+  end
+
   @testset "all weight on one row errors" begin
     w = zeros(10)
     w[3] = 1.0

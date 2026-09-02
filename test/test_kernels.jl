@@ -77,6 +77,8 @@ end
   @test SPlit.resolve(EnergyKernel(), X, MersenneTwister(1), ones(300)) == EnergyKernel()
   @test SPlit.resolve(GaussianKernel(2.0), X, MersenneTwister(1), ones(300)) ==
         GaussianKernel(2.0)
+  @test SPlit.resolve(GaussianKernel(), X, MersenneTwister(1), ones(300)) ==
+        SPlit.resolve(GaussianKernel(), X, MersenneTwister(1))
 
   # Two clusters far apart, more rows than the 1_000 the heuristic draws:
   # weight concentrated on one cluster makes most drawn pairs intra-cluster,

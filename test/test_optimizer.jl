@@ -384,6 +384,16 @@ end
     )
     @test a == b
     @test (ca, ia) == (cb, ib)
+    c, cc, ic = SPlit.support_points(
+      k,
+      data,
+      12;
+      max_iterations = 40,
+      rng = MersenneTwister(1),
+      weights = fill(0.37, 120),
+    )
+    @test a == c
+    @test (ca, ia) == (cc, ic)
   end
 
   @testset "weighted gradient matches finite differences of the weighted objective" begin
@@ -450,5 +460,17 @@ end
   @testset "validation" begin
     data = randn(MersenneTwister(84), 50, 2)
     @test_throws ArgumentError SPlit.support_points(k, data, 5; weights = ones(49))
+  end
+
+  @testset "threaded weighted gradient equals serial" begin
+    rng = MersenneTwister(85)
+    data = randn(rng, 40, 2)
+    points = randn(rng, 6, 2)
+    w_hat = SPlit._mean_one_weights(rand(MersenneTwister(85), 40))
+    G1 = similar(points)
+    G4 = similar(points)
+    SPlit._mmd_gradient!(G1, k, points, data, w_hat, 1)
+    SPlit._mmd_gradient!(G4, k, points, data, w_hat, 4)
+    @test G1 == G4
   end
 end

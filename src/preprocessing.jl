@@ -103,13 +103,17 @@ weighted mean `μⱼ = Σ w̄ᵢ xᵢⱼ` and the unbiased weighted variance
 `σⱼ² = Σ w̄ᵢ (xᵢⱼ − μⱼ)² / (1 − Σ w̄ᵢ²)` with `w̄` the weights scaled to sum
 one, which reduces to the `n − 1` denominator of `std` for uniform weights;
 the encoding steps are the same. `weights = nothing` is the unweighted
-method.
+method. A constant weight vector is treated as `nothing`, so uniform
+weights take the unweighted path and reproduce it exactly.
 """
 preprocess(data) = _standardize!(_encode(data))
 preprocess(data, ::Nothing) = preprocess(data)
 function preprocess(data, weights::AbstractVector)
   M = _encode(data)
-  return _standardize!(M, _normalize_weights(weights, size(M, 1)))
+  _check_weights(weights, size(M, 1))
+  w = _uniform_as_nothing(weights)
+  w === nothing && return _standardize!(M)
+  return _standardize!(M, _normalize_weights(w, size(M, 1)))
 end
 
 # Weighted standardization in place, `w` scaled to sum one. The variance

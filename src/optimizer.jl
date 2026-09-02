@@ -171,7 +171,8 @@ their weights to mean one within the subsample; `:proportional` draws them
 with probability proportional to the weights and treats the subsample as
 uniform (this needs at least `kappa` rows with positive weight). The
 default was chosen by the weighted-`kappa` experiment on the Design
-experiments page.
+experiments page. A constant weight vector is treated as `nothing`, so
+uniform weights take the unweighted path and reproduce it exactly.
 """
 function support_points(
   ::EnergyKernel,
@@ -197,7 +198,9 @@ function support_points(
   _subsampling in (:uniform, :proportional) || throw(
     ArgumentError("_subsampling must be :uniform or :proportional, got :$_subsampling"),
   )
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(_check_weights(weights, N))
+  weights === nothing || _check_weights(weights, N)
+  weights = _uniform_as_nothing(weights)
+  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
 
   bounds = _data_bounds(data)
   working = copy(data)
@@ -266,7 +269,9 @@ function _objective_trajectory(
   weights::Union{Nothing,AbstractVector} = nothing,
 )
   N = size(data, 1)
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(_check_weights(weights, N))
+  weights === nothing || _check_weights(weights, N)
+  weights = _uniform_as_nothing(weights)
+  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
   w_bar = weights === nothing ? _uniform_weights(N) : _normalize_weights(weights, N)
   u = _uniform_weights(n)
   bounds = _data_bounds(data)
@@ -302,8 +307,12 @@ function _mmd_objective(
   return _mean_kernel(k, points, points) - 2 * _mean_kernel(k, points, data)
 end
 
-_mmd_objective(k::GaussianKernel{Float64}, points, data, ::Nothing) =
-  _mmd_objective(k, points, data)
+_mmd_objective(
+  k::GaussianKernel{Float64},
+  points::AbstractMatrix{Float64},
+  data::AbstractMatrix{Float64},
+  ::Nothing,
+) = _mmd_objective(k, points, data)
 
 # Weighted MMD² objective up to the constant data self-term:
 # mean k(ξ, ξ) − 2 Σ_l w̄_l mean_m k(ξ_m, x_l), with w̄ scaled to sum one.
@@ -464,7 +473,9 @@ function support_points(
   max_iterations > 0 ||
     throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
   rtol > 0 || throw(ArgumentError("rtol must be positive, got $rtol"))
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(_check_weights(weights, N))
+  weights === nothing || _check_weights(weights, N)
+  weights = _uniform_as_nothing(weights)
+  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
   w_bar = weights === nothing ? nothing : _normalize_weights(weights, N)
 
   bounds = _data_bounds(data)
@@ -512,7 +523,9 @@ function _mmd_trajectory(
   weights::Union{Nothing,AbstractVector} = nothing,
 )
   N = size(data, 1)
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(_check_weights(weights, N))
+  weights === nothing || _check_weights(weights, N)
+  weights = _uniform_as_nothing(weights)
+  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
   w_bar = weights === nothing ? nothing : _normalize_weights(weights, N)
   bounds = _data_bounds(data)
   points = _initial_points(rng, copy(data), n, bounds)
