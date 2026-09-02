@@ -37,6 +37,21 @@ splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
 ```
 
+## Kernels
+
+`SupportPointSplitter` accepts any `SplitKernel`. The default,
+`EnergyKernel`, minimizes the energy distance of Mak & Joseph (2018).
+`GaussianKernel` minimizes the squared maximum mean discrepancy (MMD²,
+Gretton et al., 2012) instead, by projected gradient descent with Armijo
+backtracking; see [Methods](@ref methods) for both objectives.
+
+```julia
+gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
+result = datasplit(gauss, data)
+result.method.kernel            # GaussianKernel with the resolved bandwidth
+splitquality(data, result; kernel = result.method.kernel)   # MMD under the fitted kernel
+```
+
 ## API Reference
 
 See the [Reference](@ref reference) section for complete API documentation.
@@ -49,7 +64,9 @@ See the [Reference](@ref reference) section for complete API documentation.
 2. **Support-point computation**: the kernel's majorization-minimization
    update iteratively moves a candidate point set to minimize its energy
    distance to the data (Mak & Joseph, 2018); `kappa` switches to the
-   stochastic variant that resamples rows each iteration for large `n`.
+   stochastic variant that resamples rows each iteration for large `n` —
+   or, for `GaussianKernel`, projected gradient descent on the squared MMD;
+   see [Methods](@ref methods).
 3. **Nearest-neighbor assignment**: each support point claims its nearest
    not-yet-claimed data row via a k-d tree (Joseph & Vakayil, 2021).
 4. **Partitioning**: the claimed rows form the smaller subset; the rest form
@@ -62,6 +79,8 @@ See the [Reference](@ref reference) section for complete API documentation.
 2. Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 
 3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
+
+4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
 
 ## Contributors
 

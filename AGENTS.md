@@ -35,10 +35,18 @@ output-matching tests. The design record is
   estimate has a positive bias of order `1/subsample`. `splitquality`
   switches to it automatically above `exact_threshold`.
 - Categorical columns are Helmert-encoded in canonical level order so splits
-  do not depend on row order; `Union{Missing,T}` columns without missings
+  do not depend on row order; `Union{Missing,T}` columns without missing values
   are accepted.
 - All randomness goes through the caller's `rng`; nothing in `src/` seeds or
   prints on a default path.
+- `GaussianKernel` has no `kappa` mode; its `:median` bandwidth is resolved
+  at `datasplit` time and the resolved kernel is stored in
+  `result.method.kernel`.
+- `:median` fails with an `ArgumentError` when at least half of all row
+  pairs coincide (e.g. a single binary categorical column) — pass a numeric
+  bandwidth then. Choose `σ` on the scale of the standardized data (`:median`
+  does this), since a bandwidth far below the row spacing makes the
+  objective flat and the optimizer stops at the initial sample.
 
 ## Workflow
 

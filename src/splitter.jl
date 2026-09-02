@@ -14,6 +14,9 @@ using Random
 Configuration for optimal data splitting via support points
 (Joseph & Vakayil 2021).
 
+- `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`
+  bandwidth is resolved from the data at `datasplit` time and the resolved
+  kernel is stored in `result.method`.
 - `ratio`: fraction of rows assigned to the test set, in (0, 1).
 - `kappa`: absolute per-iteration subsample size for stochastic optimization;
   `nothing` uses all rows every iteration.
@@ -53,6 +56,8 @@ function SupportPointSplitter(;
   kappa === nothing ||
     kappa > 0 ||
     throw(ArgumentError("kappa must be positive, got $kappa"))
+  (kernel isa GaussianKernel && kappa !== nothing) &&
+    throw(ArgumentError("stochastic mode (kappa) is not available for GaussianKernel yet"))
   max_iterations > 0 ||
     throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
   tolerance > 0 || throw(ArgumentError("tolerance must be positive, got $tolerance"))
@@ -108,8 +113,20 @@ function datasplit(s::SupportPointSplitter, data)
   0 < n_small < n_total ||
     throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
 
+  kernel = resolve(s.kernel, X, s.rng)
+  fitted = SupportPointSplitter(
+    kernel,
+    s.ratio,
+    s.kappa,
+    s.max_iterations,
+    s.tolerance,
+    s.n_threads,
+    s.rng,
+    s.verbose,
+  )
+
   points, converged, iterations = support_points(
-    s.kernel,
+    kernel,
     X,
     n_small;
     kappa = s.kappa,
@@ -123,7 +140,7 @@ function datasplit(s::SupportPointSplitter, data)
   rest = setdiff(1:n_total, small)
 
   test, train = s.ratio <= 0.5 ? (small, rest) : (rest, small)
-  return SplitResult(collect(train), collect(test), converged, iterations, s)
+  return SplitResult(collect(train), collect(test), converged, iterations, fitted)
 end
 
 # `train, test = result`

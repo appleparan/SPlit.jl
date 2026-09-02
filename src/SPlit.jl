@@ -9,10 +9,10 @@ include("quality.jl")
 include("ratio.jl")
 include("comparison.jl")
 
-export SplitKernel, EnergyKernel
+export SplitKernel, EnergyKernel, GaussianKernel
 export SupportPointSplitter, SplitResult, datasplit
 export train_indices, test_indices
-export energydistance, splitquality
+export energydistance, mmd, splitquality
 export optimal_split_ratio
 export compare, SplitComparison, best
 

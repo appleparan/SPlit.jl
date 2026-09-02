@@ -96,3 +96,63 @@ end
     @test est != exact   # estimation path actually taken
   end
 end
+
+@testset "mmd" begin
+  k = GaussianKernel(1.0)
+
+  @testset "identical samples give zero; shift increases it" begin
+    X = randn(MersenneTwister(30), 150, 2)
+    @test isapprox(mmd(X, copy(X), k), 0.0; atol = 1e-12)
+    Y = randn(MersenneTwister(31), 120, 2)
+    @test mmd(X, Y, k) >= -1e-12
+    @test mmd(X, Y .+ 1.5, k) > mmd(X, Y, k)
+    # subsample larger than both samples falls back to the exact computation
+    @test mmd(X, Y, k; subsample = 10_000) == mmd(X, Y, k)
+  end
+
+  @testset "block accumulation matches naive computation" begin
+    X = randn(MersenneTwister(32), 70, 2)
+    Y = randn(MersenneTwister(33), 45, 2)
+    naive(A, B) =
+      sum(SPlit.kernelvalue(k, A[i, :], B[j, :]) for i in axes(A, 1), j in axes(B, 1)) /
+      (size(A, 1) * size(B, 1))
+    exact = naive(X, X) + naive(Y, Y) - 2 * naive(X, Y)
+    @test isapprox(mmd(X, Y, k), exact; atol = 1e-10)
+    @test isapprox(SPlit._exact_mmd(k, X, Y; block = 13), exact; atol = 1e-10)
+  end
+
+  @testset "EnergyKernel delegates to energydistance; :median resolves on pooled rows" begin
+    X = randn(MersenneTwister(34), 80, 2)
+    Y = randn(MersenneTwister(35), 60, 2)
+    @test mmd(X, Y, EnergyKernel()) == energydistance(X, Y)
+    v1 = mmd(X, Y, GaussianKernel(); rng = MersenneTwister(5))
+    v2 = mmd(X, Y, GaussianKernel(); rng = MersenneTwister(5))
+    @test v1 == v2 && v1 >= 0
+  end
+
+  @testset "subsampled estimate agrees with exact on a skewed split" begin
+    data = randn(MersenneTwister(36), 400, 2)
+    order = sortperm(data[:, 1])
+    X = data[order[1:320], :]
+    Y = data[order[321:400], :]
+    exact = mmd(X, Y, k)
+    est = mmd(X, Y, k; subsample = 300, repeats = 20, rng = MersenneTwister(37))
+    @test exact > 0.05
+    @test isapprox(est, exact; rtol = 0.5)
+    @test est != exact
+  end
+
+  @testset "splitquality with kernel keyword" begin
+    data = randn(MersenneTwister(38), 200, 2)
+    r =
+      datasplit(SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(39)), data)
+    @test splitquality(data, r) == splitquality(data, r; kernel = EnergyKernel())
+    q = splitquality(data, r; kernel = k)
+    @test q isa Float64 && q >= -1e-12
+    @test q == mmd(
+      SPlit.preprocess(data)[r.train_indices, :],
+      SPlit.preprocess(data)[r.test_indices, :],
+      k,
+    )
+  end
+end

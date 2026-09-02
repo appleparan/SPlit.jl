@@ -99,3 +99,83 @@ end
     @test_throws ArgumentError SPlit.support_points(EnergyKernel(), data, 5; kappa = 0)
   end
 end
+
+@testset "support_points with GaussianKernel" begin
+  k = GaussianKernel(1.0)
+
+  @testset "gradient matches finite differences" begin
+    data = randn(MersenneTwister(60), 40, 2)
+    points = randn(MersenneTwister(61), 6, 2)
+    G = zeros(6, 2)
+    SPlit._mmd_gradient!(G, k, points, data, 1)
+    h = 1e-6
+    for m = 1:6, j = 1:2
+      plus = copy(points)
+      plus[m, j] += h
+      minus = copy(points)
+      minus[m, j] -= h
+      fd =
+        (SPlit._mmd_objective(k, plus, data) - SPlit._mmd_objective(k, minus, data)) / (2h)
+      @test isapprox(G[m, j], fd; rtol = 1e-5, atol = 1e-9)
+    end
+    # threaded gradient equals serial gradient
+    G4 = zeros(6, 2)
+    SPlit._mmd_gradient!(G4, k, points, data, 4)
+    @test G4 == G
+  end
+
+  @testset "objective is non-increasing along accepted steps" begin
+    data = randn(MersenneTwister(62), 150, 2)
+    traj =
+      SPlit._mmd_trajectory(k, data, 15; max_iterations = 40, rng = MersenneTwister(63))
+    @test length(traj) >= 2
+    for t = 2:length(traj)
+      @test traj[t] <= traj[t-1] + 1e-10
+    end
+  end
+
+  @testset "shape, bounds, honest convergence, reproducibility" begin
+    data = randn(MersenneTwister(64), 200, 3)
+    pts, conv, iters =
+      SPlit.support_points(k, data, 20; max_iterations = 200, rng = MersenneTwister(65))
+    @test size(pts) == (20, 3)
+    @test conv isa Bool && 1 <= iters <= 200
+    for j = 1:3
+      lo, hi = extrema(view(data, :, j))
+      @test all(lo .<= pts[:, j] .<= hi)
+    end
+    _, conv2, iters2 = SPlit.support_points(
+      k,
+      data,
+      20;
+      max_iterations = 2,
+      tolerance = 1e-30,
+      rng = MersenneTwister(65),
+    )
+    @test conv2 == false && iters2 == 2
+    a, _, _ = SPlit.support_points(
+      k,
+      data,
+      12;
+      max_iterations = 30,
+      rng = MersenneTwister(7),
+      n_threads = 1,
+    )
+    b, _, _ = SPlit.support_points(
+      k,
+      data,
+      12;
+      max_iterations = 30,
+      rng = MersenneTwister(7),
+      n_threads = 4,
+    )
+    @test a == b
+  end
+
+  @testset "argument validation" begin
+    data = randn(MersenneTwister(66), 30, 2)
+    @test_throws ArgumentError SPlit.support_points(k, data, 5; kappa = 10)
+    @test_throws ArgumentError SPlit.support_points(GaussianKernel(), data, 5)
+    @test_throws ArgumentError SPlit.support_points(k, data, 0)
+  end
+end

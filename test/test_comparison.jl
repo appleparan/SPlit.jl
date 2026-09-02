@@ -46,3 +46,52 @@ using DataFrames
     )
   end
 end
+
+@testset "compare with a quality kernel" begin
+  data = randn(MersenneTwister(50), 120, 2)
+  splitters = [
+    SupportPointSplitter(ratio = 0.2, max_iterations = 40, rng = MersenneTwister(51)),
+    SupportPointSplitter(ratio = 0.3, max_iterations = 40, rng = MersenneTwister(52)),
+  ]
+  c = compare(splitters, data; kernel = GaussianKernel(1.0))
+  @test c.kernel == GaussianKernel(1.0)
+  df = DataFrame(c)
+  @test "mmd" in names(df)
+  @test !("energy_distance" in names(df))
+  c0 = compare(splitters, data)
+  @test c0.kernel == EnergyKernel()
+  @test "energy_distance" in names(DataFrame(c0))
+end
+
+@testset "compare stores fitted splitters" begin
+  data = randn(MersenneTwister(53), 120, 2)
+  splitters = [
+    SupportPointSplitter(
+      kernel = GaussianKernel(),
+      max_iterations = 40,
+      rng = MersenneTwister(54),
+    ),
+    SupportPointSplitter(ratio = 0.3, max_iterations = 40, rng = MersenneTwister(55)),
+  ]
+  c = compare(splitters, data)
+  @test all(c.methods[i] === c.results[i].method for i in eachindex(c.methods))
+  @test c.methods[1].kernel isa GaussianKernel{Float64}
+  @test splitters[1].kernel.bandwidth === :median
+  m, r = best(c)
+  @test m === r.method
+end
+
+@testset "compare resolves a :median scoring kernel once" begin
+  data = randn(MersenneTwister(60), 1_500, 2)
+  splitters = [
+    SupportPointSplitter(ratio = 0.2, max_iterations = 20, rng = MersenneTwister(61)),
+    SupportPointSplitter(ratio = 0.3, max_iterations = 20, rng = MersenneTwister(62)),
+  ]
+  c = compare(splitters, data; kernel = GaussianKernel(), rng = MersenneTwister(63))
+  @test c.kernel isa GaussianKernel{Float64}
+  X = SPlit.preprocess(data)
+  expected = [mmd(X[r.train_indices, :], X[r.test_indices, :], c.kernel) for r in c.results]
+  @test c.qualities == expected
+  m, r = best(c)
+  @test r === c.results[argmin(c.qualities)]
+end
