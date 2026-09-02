@@ -11,8 +11,8 @@ A Julia implementation of optimal data splitting via support points, based on
 
 SPlit.jl splits a dataset into training and test sets so that both subsets
 represent the original data distribution as closely as possible. It does so
-by computing *support points* — the sample of a given size that minimizes
-the energy distance to the full data (Mak & Joseph, 2018) — and mapping each
+by computing *support points*, the sample of a given size that minimizes
+the energy distance to the full data (Mak & Joseph, 2018), and mapping each
 support point to its nearest unclaimed data row (Joseph & Vakayil, 2021).
 Unlike random splitting, this makes both the train and test distributions
 close to the population distribution, which improves the reliability of
@@ -24,7 +24,7 @@ the variance of the fitted model is `γ = 1 / (√p + 1)`.
 
 New to support points? Read [How SPlit works](@ref intuition) first.
 
-## Quick Start
+## Quick start
 
 ```julia
 using SPlit, Random
@@ -67,7 +67,7 @@ kernels and dataset sizes.
 
 ## Quality diagnostics
 
-`energydistance`/`mmd` accept an `estimator` keyword for large inputs — see
+`energydistance`/`mmd` accept an `estimator` keyword for large inputs. See
 [Methods](@ref methods) for what each `DiscrepancyEstimator` computes:
 
 ```julia
@@ -75,25 +75,25 @@ energydistance(X, Y; estimator = RandomSlices(256))
 mmd(X, Y, GaussianKernel(1.0); estimator = RandomFeatures(2048))
 ```
 
-## API Reference
+## API reference
 
 See the [Reference](@ref reference) section for complete API documentation.
 
-## Algorithm Details
+## Algorithm details
 
-1. **Preprocessing**: categorical columns are Helmert-encoded, constant
-   columns are dropped, and every remaining column is standardized to mean 0
-   and variance 1.
-2. **Support-point computation**: the kernel's majorization-minimization
-   update iteratively moves a candidate point set to minimize its energy
-   distance to the data (Mak & Joseph, 2018); `kappa` switches to the
-   stochastic variant that resamples rows each iteration for large `n` —
-   or, for `GaussianKernel`, projected gradient descent on the squared MMD;
-   see [Methods](@ref methods).
-3. **Nearest-neighbor assignment**: each support point claims its nearest
-   not-yet-claimed data row via a k-d tree (Joseph & Vakayil, 2021).
-4. **Partitioning**: the claimed rows form the smaller subset; the rest form
-   the larger one, split into train/test according to `ratio`.
+1. Preprocessing. Categorical columns are Helmert-encoded, constant columns
+   are dropped, and every remaining column is standardized to mean 0 and
+   variance 1.
+2. Support-point computation. The kernel's majorization-minimization update
+   moves a candidate point set, sweep by sweep, to minimize its energy
+   distance to the data (Mak & Joseph, 2018). For large `n`, `kappa`
+   switches to the stochastic variant that resamples rows each iteration.
+   Under `GaussianKernel` the optimizer is projected gradient descent on the
+   squared MMD instead; see [Methods](@ref methods).
+3. Nearest-neighbor assignment. Each support point claims its nearest
+   unclaimed data row via a k-d tree (Joseph & Vakayil, 2021).
+4. Partitioning. The claimed rows form the smaller subset and the rest form
+   the larger one; `ratio` decides which of the two is the test set.
 
 ## References
 

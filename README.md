@@ -19,8 +19,8 @@ A Julia implementation of optimal data splitting via support points, based on
 
 SPlit.jl splits a dataset into training and test sets so that both subsets
 represent the original data distribution as closely as possible. It does so
-by computing *support points* — the sample of a given size that minimizes
-the energy distance to the full data (Mak & Joseph, 2018) — and mapping each
+by computing *support points*, the sample of a given size that minimizes
+the energy distance to the full data (Mak & Joseph, 2018), and mapping each
 support point to its nearest unclaimed data row (Joseph & Vakayil, 2021).
 Unlike random splitting, this makes both the train and test distributions
 close to the population distribution, which improves the reliability of
@@ -43,7 +43,7 @@ Or from the Julia REPL:
 ] add SPlit
 ```
 
-## Quick Start
+## Quick start
 
 ```julia
 using SPlit, Random
@@ -58,7 +58,7 @@ splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
 ```
 
-## API Reference
+## API reference
 
 ### Splitting
 
@@ -96,8 +96,7 @@ kernel)` generalizes this to any `SplitKernel` (the squared maximum mean
 discrepancy). `splitquality(data, result; kernel = EnergyKernel())` applies
 the matching statistic to the train/test partition of a `SplitResult`,
 switching to an estimator automatically once the row count crosses a
-threshold — lower values indicate a split whose two sides are more alike in
-distribution.
+threshold. Lower values mean the two sides are closer in distribution.
 
 ```julia
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
@@ -129,19 +128,19 @@ See the [Benchmarks](docs/src/20-benchmarks.md)
 page for how `SupportPointSplitter` and `HerdingSplitter` compare across
 kernels and dataset sizes.
 
-## Algorithm Details
+## Algorithm details
 
-1. **Preprocessing**: categorical columns are Helmert-encoded, constant
-   columns are dropped, and every remaining column is standardized to mean 0
-   and variance 1.
-2. **Support-point computation**: the kernel's majorization-minimization
-   update iteratively moves a candidate point set to minimize its energy
-   distance to the data (Mak & Joseph, 2018); `kappa` switches to the
-   stochastic variant that resamples rows each iteration for large `n`.
-3. **Nearest-neighbor assignment**: each support point claims its nearest
-   not-yet-claimed data row via a k-d tree (Joseph & Vakayil, 2021).
-4. **Partitioning**: the claimed rows form the smaller subset; the rest form
-   the larger one, split into train/test according to `ratio`.
+1. Preprocessing. Categorical columns are Helmert-encoded, constant columns
+   are dropped, and every remaining column is standardized to mean 0 and
+   variance 1.
+2. Support-point computation. The kernel's majorization-minimization update
+   moves a candidate point set, sweep by sweep, to minimize its energy
+   distance to the data (Mak & Joseph, 2018). For large `n`, `kappa`
+   switches to the stochastic variant that resamples rows each iteration.
+3. Nearest-neighbor assignment. Each support point claims its nearest
+   unclaimed data row via a k-d tree (Joseph & Vakayil, 2021).
+4. Partitioning. The claimed rows form the smaller subset and the rest form
+   the larger one; `ratio` decides which of the two is the test set.
 
 ## References
 
@@ -157,13 +156,13 @@ kernels and dataset sizes.
 
 6. Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 
-## How to Cite
+## How to cite
 
 If you use SPlit.jl in your work, please cite using the reference given in [CITATION.cff](https://github.com/appleparan/SPlit.jl/blob/main/CITATION.cff).
 
 ## Contributing
 
-If you want to make contributions of any kind, please first that a look into our [contributing guide directly on GitHub](docs/src/90-contributing.md).
+If you want to make contributions of any kind, please first take a look at our [contributing guide directly on GitHub](docs/src/90-contributing.md).
 
 ---
 

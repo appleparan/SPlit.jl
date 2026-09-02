@@ -7,14 +7,14 @@ docstring, and `test/` is the executable spec.
 ## Source of truth
 
 Correctness is judged against three papers, not against any other
-implementation — do not cite or compare with other implementations in code,
+implementation. Do not cite or compare with other implementations in code,
 comments, or docs:
 
-- Mak & Joseph (2018), Support points, *Annals of Statistics* 46(6A) — the
+- Mak & Joseph (2018), Support points, *Annals of Statistics* 46(6A): the
   MM update and the energy-distance objective.
-- Joseph & Vakayil (2021), SPlit, *Technometrics* 63(4) — the splitting
+- Joseph & Vakayil (2021), SPlit, *Technometrics* 63(4): the splitting
   procedure, stochastic MM, nearest-neighbor subsampling.
-- Joseph (2022), Optimal Ratio for Data Splitting, *SADM* 15(4) —
+- Joseph (2022), Optimal Ratio for Data Splitting, *SADM* 15(4):
   γ = 1/(√p + 1).
 
 Tests encode properties those papers guarantee (monotone descent, beating
@@ -26,7 +26,7 @@ output-matching tests. The design record is
 
 - `kappa` is an absolute row count; stochastic mode runs only when it is
   below the number of data rows. Full-data mode is the pure MM step and must
-  stay monotone — the descent test enforces it.
+  stay monotone; the descent test enforces it.
 - `tolerance` compares the largest *squared* per-point displacement.
 - The MM sweep in `optimizer.jl` is the hot loop and is written as explicit
   coordinate loops on purpose: keep it allocation-free. `n0 = 0.2n` there is
@@ -38,7 +38,7 @@ output-matching tests. The design record is
   `splitquality` switches to the fallback `DiscrepancyEstimator` chosen by
   the selection experiment (see Benchmarks) automatically above
   `exact_threshold` (20,000 rows).
-- estimator/kernel combinations are methods of `_energydistance`/`_mmd` — add
+- estimator/kernel combinations are methods of `_energydistance`/`_mmd`: add
   a method, never an `if`; herding has no estimator mode on purpose (measured
   worse than random, see Benchmarks).
 - Categorical columns are Helmert-encoded in canonical level order so splits
@@ -50,7 +50,7 @@ output-matching tests. The design record is
   at `datasplit` time and the resolved kernel is stored in
   `result.method.kernel`.
 - `:median` fails with an `ArgumentError` when at least half of all row
-  pairs coincide (e.g. a single binary categorical column) — pass a numeric
+  pairs coincide (e.g. a single binary categorical column); pass a numeric
   bandwidth then. Choose `σ` on the scale of the standardized data (`:median`
   does this), since a bandwidth far below the row spacing makes the
   objective flat and the optimizer stops at the initial sample.

@@ -153,12 +153,12 @@ Rule: an estimator becomes the automatic fallback if, at no more than
 row is at most one third of `Subsample(2000, 8)`'s; otherwise
 `Subsample(2000, 8)` stays the fallback.
 
-**Decision: `RandomSlices(64)` for `EnergyKernel`, `RandomFeatures(512)` for
-`GaussianKernel`** — worst-case max error is 14× lower for `RandomSlices(64)`
-(0.00197 → 0.00014) at 9% of `Subsample(2000, 8)`'s mean time, and 330×
-lower for `RandomFeatures(512)` (0.000175 → 5.36e-7) at 22% of its time;
-`ENERGY_FALLBACK` and `GAUSSIAN_FALLBACK` in `quality.jl` are set
-accordingly.
+Decision: `RandomSlices(64)` for `EnergyKernel` and `RandomFeatures(512)`
+for `GaussianKernel`. Worst-case max error is 14× lower for
+`RandomSlices(64)` (0.00197 to 0.00014) at 9% of `Subsample(2000, 8)`'s mean
+time, and 330× lower for `RandomFeatures(512)` (0.000175 to 5.36e-7) at 22%
+of its time. `ENERGY_FALLBACK` and `GAUSSIAN_FALLBACK` in `quality.jl` are
+set accordingly.
 
 ### Approximate herding data terms (rejected)
 
@@ -168,9 +168,9 @@ and rejected: all candidate rows share the same random directions or
 features, so the estimator's noise is correlated across rows, and greedy
 `argmax` selection tracks that noise rather than averaging it out. In the
 table below the smallest budgets (k = 64 and 256, D = 512) select subsets
-*worse than a random subset*; larger budgets beat random but stay 7–35×
-from exact herding; only k = 8192 and D = 32768 come within about 3.5× —
-at which point the estimator's own cost
+*worse than a random subset*. Larger budgets beat random but stay 7-35×
+from exact herding, and only k = 8192 and D = 32768 come within about 3.5×.
+At that budget the estimator's own cost
 (`O(kN log N)` for slices, `O(NDp)` for Fourier features) matches the exact
 `O(N²)` data term for `N` around 10⁵. `RandomSlices`/`RandomFeatures` remain
 available for `energydistance`/`mmd` quality diagnostics only;
@@ -197,7 +197,7 @@ dataset and size, on a log scale; shorter bars are better splits.
 
 ![Split time by method](assets/benchmarks/time.png)
 
-Wall time versus ``N`` for each method, log–log; the random split is
+Wall time versus ``N`` for each method, log-log; the random split is
 excluded since it does no optimization.
 
 ![Test-row selection on the 2-D mixture](assets/benchmarks/selection.png)
@@ -207,66 +207,66 @@ overlaid, showing why the methods disagree on which rows to hold out.
 
 ## Key findings
 
-- **At N = 1,000, herding is competitive or ahead.** `herding · energy` has
-  the lowest energy distance on `normal-10d` and `uniform-5d`, and
+- At N = 1,000, herding is competitive or ahead. `herding · energy` has the
+  lowest energy distance on `normal-10d` and `uniform-5d`, and
   `herding · gaussian` has the lowest MMD on `normal-10d`, `uniform-5d`, and
   `t3-3d`, all at a small fraction of the optimizer's wall time.
-- **At N = 1,000, `support points · energy` still wins on two datasets.** It
+- At N = 1,000, `support points · energy` still wins on two datasets. It
   takes both metrics on `mixture-2d` and the energy distance on `t3-3d`.
-- **At N = 10,000, `herding · energy` has the lowest energy distance on
-  every dataset**, 3.3x-12.2x below `support points · energy`. Part of that
-  gap is the `kappa = 1_000` stochastic approximation on the support-point
-  side; on `normal-10d` and `uniform-5d` the runner-up is
-  `herding · gaussian`, not `support points · energy`.
-- **At N = 10,000, the two herding methods take the lowest MMD on every
-  dataset**, well below both support-point methods and random (e.g.
+- At N = 10,000, `herding · energy` has the lowest energy distance on every
+  dataset, 3.3x-12.2x below `support points · energy`. Part of that gap is
+  the `kappa = 1_000` stochastic approximation on the support-point side; on
+  `normal-10d` and `uniform-5d` the runner-up is `herding · gaussian`, not
+  `support points · energy`.
+- At N = 10,000, the two herding methods take the lowest MMD on every
+  dataset, well below both support-point methods and random (e.g.
   `normal-10d`: 1.91e-6 for `herding · energy` versus 0.000215 for
   `support points · energy`).
-- **Herding is also the fastest optimized method at N = 10,000.**
+- Herding is also the fastest optimized method at N = 10,000.
   `herding · energy` takes 0.12-0.2 s and `herding · gaussian` 0.43-0.48 s,
   versus 3.7-9.6 s for `support points · energy` and 3.7-14.0 s for
-  `support points · gaussian`, which now converges honestly on every
-  cell — see Caveats for the quality/time trade that brings.
-- **Herding uses the exact data term at every size**, so its selections
-  realize the greedy rule's guarantee at ``N = 10{,}000`` as well as at
+  `support points · gaussian`. Caveats explains the quality/time trade
+  behind the Gaussian timings.
+- Herding uses the exact data term at every size, so its selections realize
+  the greedy rule's guarantee at ``N = 10{,}000`` as well as at
   ``N = 1{,}000``.
-- **`RandomSlices(64)`/`RandomFeatures(512)` cut `splitquality`'s wall time
-  above `exact_threshold` at errors within a few percent of the value**, but
-  approximating herding's data term the same way was measured and
-  rejected — the greedy selection amplifies the estimators' row-correlated
+- `RandomSlices(64)`/`RandomFeatures(512)` cut `splitquality`'s wall time
+  above `exact_threshold` at errors within a few percent of the value.
+  Approximating herding's data term the same way was measured and rejected,
+  because the greedy selection amplifies the estimators' row-correlated
   noise; see "Approximate herding data terms (rejected)" under Results.
 
 ## Caveats
 
-`support points · gaussian` now converges honestly on every cell, via the
-scale-aware first step and two-part convergence rule
-(`support_points(::GaussianKernel, …)`; see [Methods](@ref methods)). Before
-that fix, the objective's ``1/n^2`` and ``1/(nN)`` scaling made the initial
-gradient row-norms of order ``10^{-6}``, so on `normal-10d` and `uniform-5d`
-the absolute displacement tolerance fired at the initial sample
-(0.48-0.49 s, `result.converged == true`) even though further iterations
-still decreased the objective; on `mixture-2d` and `t3-3d` the optimizer
-instead ran the full 100-iteration cap without ever reporting convergence
-(42 s). With the fix:
+`support points · gaussian` stops on the two-part convergence rule after a
+scale-aware first step (`support_points(::GaussianKernel, …)`; see
+[Methods](@ref methods)). The timings above depend on that rule. An earlier
+version of the optimizer used a fixed first step, and because the objective's
+``1/n^2`` and ``1/(nN)`` scaling makes the initial gradient row-norms of
+order ``10^{-6}``, the displacement tolerance fired at the initial sample on
+`normal-10d` and `uniform-5d` (0.48-0.49 s, `result.converged == true`) even
+though further iterations still decreased the objective, while on
+`mixture-2d` and `t3-3d` the optimizer ran the full 100-iteration cap
+without reporting convergence (42 s). Measured against that version, the
+current rule behaves as follows.
 
-- `normal-10d` and `uniform-5d` no longer stop at the initial sample: they
-  now take 10.0 s and 11.0 s (up from 0.48-0.49 s) and converge on the
-  two-part rule to essentially the same quality as before (energy distance
-  unchanged to 3 significant figures; MMD 0.000289 vs 0.000289, and
-  0.000243 vs 0.000244) — the single accepted step the old code reported was
-  already close to a local optimum, but the fix now reaches it by real
-  iteration rather than an accidentally-tight tolerance. This is a
-  convergence fix, not a quality fix: on Gaussian MMD at N = 10,000,
-  `support points · gaussian` scores worse than the random split both
-  before and after the fix, on `normal-10d` (0.000289 versus random's
-  0.000164) and `uniform-5d` (0.000243 versus random's 0.00016).
-- `mixture-2d` and `t3-3d` now converge honestly well before the
-  iteration cap, in 3.7 s and 14.0 s (down from 42 s, an 11x and 3x
-  speedup), at a slightly higher final MMD (mixture-2d: 1.74e-6 versus
-  7.76e-7 before; t3-3d: 8.06e-5 versus 7.64e-5 before) — the
-  relative-decrease rule (`rtol = 1e-8`) accepts diminishing returns earlier
-  than running to the cap would, trading a small amount of quality for the
-  speedup.
+- On `normal-10d` and `uniform-5d` it iterates instead of stopping at the
+  initial sample. The runs take 10.0 s and 11.0 s (up from 0.48-0.49 s) and
+  reach essentially the same quality: energy distance unchanged to 3
+  significant figures, MMD 0.000289 vs 0.000289 and 0.000243 vs 0.000244.
+  The single accepted step of the fixed-step version was already close to a
+  local optimum; the current rule reaches the same point by iteration rather
+  than by an accidentally tight tolerance. This is a convergence fix, not a
+  quality fix. On Gaussian MMD at N = 10,000, `support points · gaussian`
+  scores worse than the random split under both versions, on `normal-10d`
+  (0.000289 versus random's 0.000164) and `uniform-5d` (0.000243 versus
+  random's 0.00016).
+- On `mixture-2d` and `t3-3d` it converges well before the iteration cap,
+  in 3.7 s and 14.0 s (down from 42 s, an 11x and 3x speedup), at a slightly
+  higher final MMD (mixture-2d: 1.74e-6 versus 7.76e-7; t3-3d: 8.06e-5
+  versus 7.64e-5). The relative-decrease rule (`rtol = 1e-8`) accepts
+  diminishing returns earlier than running to the cap would, trading a small
+  amount of quality for the speedup.
 - At ``N = 1{,}000`` the same trade appears on all four datasets: wall time
   drops 2-6x (e.g. `mixture-2d`: 1.0 s to 0.17 s) alongside a modest
   increase in `support points · gaussian`'s own MMD score (`mixture-2d`:
