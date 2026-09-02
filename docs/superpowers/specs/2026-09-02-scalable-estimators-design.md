@@ -14,11 +14,13 @@ reports convergence at the initial sample. (B) and (C) introduce a
 `RandomFeatures` — selected by an `estimator` keyword on `energydistance`,
 `mmd`, `splitquality`, and `HerdingSplitter`; which combinations exist is
 expressed by method dispatch, not runtime checks. `RandomSlices` estimates the
-energy distance (and herding's energy data term) from random 1-D projections
-in $O(kN\log N)$; `RandomFeatures` estimates Gaussian MMD (and herding's
-Gaussian data term) with random Fourier features in $O(NDp)$. Both are
-candidate-symmetric, so herding regains a large-$N$ mode without the bias
-that removed `kappa` in Phase 2b. Exact estimators are threaded and the exact
+energy distance from random 1-D projections in $O(kN\log N)$;
+`RandomFeatures` estimates Gaussian MMD with random Fourier features in
+$O(NDp)$. Both are candidate-symmetric, but as *herding data terms* they were
+measured and rejected: the greedy argmax amplifies estimator noise that is
+correlated across rows, and at feasible budgets the selections are worse than
+random. Herding stays exact (threaded, contiguous layout) and the negative
+result is documented. Exact estimators are threaded and the exact
 threshold of `splitquality` rises; the automatic fallback above it is chosen
 by a recorded selection experiment. Non-breaking, v0.5.0.
 
@@ -48,14 +50,15 @@ an `ArgumentError` by one fallback method):
 |------------------|-----------------------------------|--------------------------|-------------------|
 | `Exact`          | yes (threaded)                    | yes (threaded)           | yes (threaded)    |
 | `Subsample`      | yes (existing)                    | yes (existing)           | no                |
-| `RandomSlices`         | yes                               | no                       | `EnergyKernel`    |
-| `RandomFeatures` | no                                | yes                      | `GaussianKernel`  |
+| `RandomSlices`   | yes                               | no                       | no (rejected)     |
+| `RandomFeatures` | no                                | yes                      | no (rejected)     |
 
 Keyword form: `energydistance(X, Y; estimator = Exact(), rng)`,
 `mmd(X, Y, kernel; estimator = Exact(), rng)`,
 `splitquality(data, result; kernel, estimator = nothing, rng)` — `nothing`
-means the automatic rule below —, `HerdingSplitter(; kernel, estimator =
-Exact(), ratio, n_threads, rng)`. The existing `subsample = m, repeats = r`
+means the automatic rule below —, `HerdingSplitter(; kernel, ratio,
+n_threads, rng)` — no estimator keyword, see "Herding data terms: a negative
+result". The existing `subsample = m, repeats = r`
 keywords stay as a thin compatibility path mapping to `Subsample(m, r)`.
 Estimator objects hold specifications only; random draws (directions,
 features) come from the call's `rng`, so results are reproducible and the
@@ -86,12 +89,6 @@ prefix sums of one sorted sample and the ranks of the other. Same $\theta$ for
 all three terms, so their Monte-Carlo errors partially cancel. Cost
 $O(k (n+m) \log(n+m) + k(n+m)p)$.
 
-Herding data term under `EnergyKernel`: $d_i = -\frac{1}{N}\sum_l \|x_i - x_l\|
-\approx -\frac{1}{k\kappa_p N}\sum_\theta \sum_l |u^\theta_i - u^\theta_l|$, and
-with the projections sorted and prefix-summed ($P_r = \sum_{l \le r} u_{(l)}$),
-a point of rank $r$ has $\sum_l |u_i - u_l| = u_i(2r - N) - 2P_r + P_N$ —
-$O(N\log N)$ per direction, every candidate treated identically.
-
 ### RandomFeatures — random Fourier features
 
 For the Gaussian kernel $k(x,y) = \exp(-\|x-y\|^2/2\sigma^2)$, with
@@ -105,17 +102,36 @@ z(x) = \sqrt{2/D}\,\big[\cos(\omega_j^\top x + b_j)\big]_{j=1}^{D}, \qquad
 
 Hence $\|\bar z_X - \bar z_Y\|^2$ with $\bar z_X = \frac{1}{n}\sum_i z(x_i)$ is
 an unbiased estimator of the V-statistic $\mathrm{MMD}^2(X, Y)$, cost
-$O((n+m)Dp)$; and the herding data term $d_i = \frac1N\sum_l k(x_i, x_l)
-\approx z(x_i)^\top \bar z$ is unbiased for every candidate. The drawn
+$O((n+m)Dp)$. The drawn
 $(\omega, b)$ live in an internal callable `FourierFeatureMap` created once
 per call from `rng` (the `resolve` pattern of Phase 2a); `RandomFeatures(D)`
 itself stores only $D$.
+
+### Herding data terms: a negative result
+
+For every candidate $x_i$ the sliced estimate of $-\frac1N\sum_l\|x_i - x_l\|$
+and the Fourier-feature estimate $z(x_i)^\top \bar z$ of $\frac1N\sum_l k(x_i, x_l)$
+are unbiased, so they avoid the membership bias that removed `kappa` in Phase
+2b. They were still rejected on measurement ($N = 1{,}500$, $n = 300$, three
+seeds; `benchmark/herding_estimators.jl` reproduces the table on the
+Benchmarks page): with `RandomSlices(64)` the selected subset's energy
+distance to the data was 2–9× *worse than a random subset*,
+`RandomSlices(256)` was still worse than random, and only $k \approx 8{,}192$
+came within 3.5× of exact herding; `RandomFeatures` behaved the same way
+($D = 512$ and $2{,}048$ worse than random, $D = 32{,}768$ within 3.5×). The
+cause is structural: every row's estimate shares the same directions or
+features, so the estimator noise is strongly correlated across rows, and the
+greedy argmax follows that correlated noise into a direction-dependent region
+of the data. Budgets that work cost as much as the exact $O(N^2)$ term.
+Herding therefore keeps the exact data term; the estimators serve quality
+diagnostics, where one number is estimated and the three terms' errors
+partially cancel.
 
 ### Exact — threaded
 
 `_mean_pairwise` and `_mean_kernel` split their outer block loop across
 `n_threads` tasks with one accumulator per task, summed in a fixed order, so
-results are identical for every thread count. `_data_term(::Exact, …)` uses a
+results are identical for every thread count. Herding's `_data_term` uses a
 column-major `permutedims(X)` copy for contiguous row access.
 
 ### Automatic rule for `splitquality`
@@ -186,10 +202,9 @@ early-stop disclosure is rewritten once the new numbers are in.
    from the sorted formulas equals the pairwise definition on small data.
 2. RandomFeatures: $z(x)^\top z(y) \to k(x,y)$ as $D$ grows; RFF MMD converges
    to exact MMD; feature map reproducible under `rng`.
-3. Herding with `RandomSlices`/`RandomFeatures`: data term converges to the exact
-   data term; selections not concentrated (no subset bias); approximate
-   herding beats random and is within a factor 2 of exact herding on ED/MMD
-   at $N = 2{,}000$; an $N = 10^5$ smoke run finishes.
+3. Herding: the exact data term is unchanged (bit-identical after the layout
+   change); `benchmark/herding_estimators.jl` regenerates the negative-result
+   table.
 4. Dispatch: undefined combinations raise `ArgumentError` with both names;
    compatibility keywords map to `Subsample`.
 5. Threaded exact estimators are bit-identical across `n_threads`.
