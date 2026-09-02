@@ -185,3 +185,95 @@ end
     exact_threshold = 10,
   ) == splitquality(data, r; estimator = Subsample(100, 3), rng = MersenneTwister(4))
 end
+
+@testset "weighted energydistance and mmd" begin
+  rng = MersenneTwister(50)
+  X = randn(rng, 30, 2)
+  Y = randn(rng, 25, 2) .+ 0.5
+
+  @testset "uniform weights give exactly the unweighted value" begin
+    @test energydistance(X, Y; weights_x = ones(30), weights_y = ones(25)) ==
+          energydistance(X, Y)
+    @test energydistance(X, Y; weights_x = fill(0.2, 30)) == energydistance(X, Y)
+    k = GaussianKernel(1.0)
+    @test mmd(X, Y, k; weights_x = ones(30), weights_y = ones(25)) == mmd(X, Y, k)
+    @test mmd(X, Y, EnergyKernel(); weights_x = ones(30)) == energydistance(X, Y)
+  end
+
+  @testset "hand-computed weighted 1-D values" begin
+    # X = {0, 1} with weights (3, 1), Y = {1}:
+    # 2·E|X−Y| = 2·(0.75·1 + 0.25·0) = 1.5; E|X−X'| = 2·0.75·0.25·1 = 0.375; E|Y−Y'| = 0
+    @test isapprox(
+      energydistance(
+        reshape([0.0, 1.0], :, 1),
+        reshape([1.0], :, 1);
+        weights_x = [3.0, 1.0],
+      ),
+      1.5 - 0.375;
+      atol = 1e-12,
+    )
+  end
+
+  @testset "duplication invariance: weights as counts equal duplicated rows" begin
+    Xdup = vcat(X[1:1, :], X)               # row 1 twice
+    wx = vcat([2.0], ones(29))
+    @test isapprox(
+      energydistance(X, Y; weights_x = wx),
+      energydistance(Xdup, Y);
+      atol = 1e-12,
+    )
+    k = GaussianKernel(0.8)
+    @test isapprox(mmd(X, Y, k; weights_x = wx), mmd(Xdup, Y, k); atol = 1e-12)
+    # both sides weighted
+    Ydup = vcat(Y, Y[end:end, :])
+    wy = vcat(ones(24), [2.0])
+    @test isapprox(
+      energydistance(X, Y; weights_x = wx, weights_y = wy),
+      energydistance(Xdup, Ydup);
+      atol = 1e-12,
+    )
+  end
+
+  @testset "block accumulation matches the unblocked weighted value" begin
+    wx = rand(MersenneTwister(51), 30)
+    wy = rand(MersenneTwister(52), 25)
+    a = energydistance(X, Y; weights_x = wx, weights_y = wy)
+    b = SPlit._exact_energydistance(X, Y, wx ./ sum(wx), wy ./ sum(wy); block = 7)
+    @test isapprox(a, b; atol = 1e-10)
+  end
+
+  @testset "Subsample with weights runs, and is exact below m" begin
+    wx = rand(MersenneTwister(53), 30)
+    exact = energydistance(X, Y; weights_x = wx)
+    @test energydistance(X, Y; weights_x = wx, estimator = Subsample(100)) == exact
+    big = randn(MersenneTwister(54), 400, 2)
+    wbig = rand(MersenneTwister(55), 400)
+    est = energydistance(
+      big,
+      Y;
+      weights_x = wbig,
+      estimator = Subsample(150, 20),
+      rng = MersenneTwister(1),
+    )
+    @test isapprox(est, energydistance(big, Y; weights_x = wbig); rtol = 0.3)
+    k = GaussianKernel(1.0)
+    @test isapprox(
+      mmd(
+        big,
+        Y,
+        k;
+        weights_x = wbig,
+        estimator = Subsample(150, 20),
+        rng = MersenneTwister(1),
+      ),
+      mmd(big, Y, k; weights_x = wbig);
+      rtol = 0.3,
+    )
+  end
+
+  @testset "validation" begin
+    @test_throws ArgumentError energydistance(X, Y; weights_x = ones(29))
+    @test_throws ArgumentError energydistance(X, Y; weights_y = -ones(25))
+    @test_throws ArgumentError mmd(X, Y, GaussianKernel(1.0); weights_x = zeros(30))
+  end
+end
