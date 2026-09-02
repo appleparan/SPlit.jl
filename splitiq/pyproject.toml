@@ -1,6 +1,6 @@
 [project]
 name = "splitiq"
-version = "0.5.1"
+version = "0.5.2"
 description = "Optimal train/test splitting via support points, backed by SPlit.jl"
 authors = [
     {name="Jongsu Liam Kim", email="jongsukim8@gmail.com"}
