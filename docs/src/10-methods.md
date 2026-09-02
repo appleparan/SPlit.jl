@@ -3,15 +3,63 @@
 See [How SPlit works](@ref intuition) for the same quantities explained with
 analogies instead of formulas.
 
-This page states the quantities SPlit.jl computes and names the function that
-implements each one. Rows of the data matrix are observations
-``x_1, \dots, x_N`` after preprocessing (`preprocess`: Helmert encoding of
-categorical columns, constant-column removal, standardization). Support
-points are ``\xi_1, \dots, \xi_n`` with ``n`` the size of the smaller subset.
+This page first walks through the procedure `datasplit` runs, then states
+the quantity each step computes and names the function that implements it.
+Throughout, ``x_1, \dots, x_N`` are the rows of the data after preprocessing
+and ``\xi_1, \dots, \xi_n`` are support points, with ``n`` the size of the
+smaller subset.
+
+## The procedure
+
+`datasplit(splitter, data)` runs the same five steps for every splitter; the
+sections that follow define the quantities involved. Given ``N`` rows and
+`ratio` ``= r``:
+
+1. **Preprocess.** `preprocess` Helmert-encodes categorical columns in
+   canonical level order, drops constant columns, and standardizes every
+   remaining column to mean ``0`` and variance ``1``. The result is the matrix
+   ``X \in \mathbb{R}^{N \times p}`` on which every distance below is
+   measured.
+2. **Size the smaller subset.** ``n = \operatorname{round}(\min(r, 1 - r)\,N)``.
+   `datasplit` raises an `ArgumentError` if this leaves either subset empty.
+3. **Resolve the kernel.** `resolve` replaces a `:median` bandwidth with the
+   median pairwise distance of the standardized rows; a numeric bandwidth and
+   `EnergyKernel` pass through unchanged. The splitter carrying the resolved
+   kernel is stored as `result.method`.
+4. **Choose ``n`` rows that represent all ``N``.** This is where the splitters
+   differ and what the next four sections are about.
+   - `SupportPointSplitter` first places ``n`` free points. `_initial_points`
+     draws ``n`` rows of ``X`` without replacement and jitters each by
+     ``10^{-3}`` of its column range; `support_points` then moves the points
+     to minimize the discrepancy between ``\{\xi\}`` and ``\{x\}``, by the
+     MM update under `EnergyKernel` or by projected gradient descent under
+     `GaussianKernel`. The optimized points are locations, not rows, so
+     `select_nearest` finally rounds each one to its nearest unclaimed data
+     row.
+   - `HerdingSplitter` skips the free points: `herd` picks rows of ``X``
+     directly, one greedy selection at a time.
+5. **Label the two subsets.** The ``n`` chosen rows are the test set when
+   ``r \le 1/2`` and the training set otherwise; the remaining ``N - n`` rows
+   form the other side. `SplitResult` carries both index vectors together
+   with `converged` and `iterations` (MM sweeps or gradient steps for support
+   points; the number of selections, ``n``, for herding).
+
+Every random draw in these steps (the initial sample, the stochastic
+`kappa` subsets, and the sample behind `:median`) comes from the splitter's
+`rng`, so a fixed `rng` reproduces the split exactly. `HerdingSplitter`
+draws nothing beyond `:median`, which is why it is deterministic for a
+numeric kernel.
+
+`splitquality(data, result)` closes the loop. It repeats step 1 on the
+original data and evaluates the same discrepancy, energy distance or MMD²,
+between the resulting train and test rows; for large data it does so through
+the [Estimators](@ref estimators) below rather than exactly.
 
 ## Energy distance and support points
 
-The energy distance between two samples (Székely & Rizzo) is
+Under `EnergyKernel`, the discrepancy step 4 minimizes (and `splitquality`
+reports) is the energy distance. Between two samples it is (Székely &
+Rizzo)
 
 ```math
 \mathrm{ED}(X, Y) = \frac{2}{|X||Y|} \sum_{x \in X} \sum_{y \in Y} \|x - y\|
@@ -46,7 +94,9 @@ the largest squared displacement of any point falls below `tolerance`.
 
 ## Maximum mean discrepancy and the Gaussian kernel
 
-For a kernel ``k`` the squared maximum mean discrepancy (Gretton et al.,
+Under `GaussianKernel`, step 4 minimizes the squared maximum mean
+discrepancy instead, and `support_points` switches from the MM update to
+projected gradient descent. For a kernel ``k`` the squared maximum mean discrepancy (Gretton et al.,
 2012) between two samples is
 
 ```math
@@ -102,7 +152,8 @@ per `datasplit` and stored in `result.method.kernel`. The stochastic
 
 ## Kernel herding
 
-`HerdingSplitter` builds the smaller subset row by row. With data
+`HerdingSplitter` replaces the place-then-round scheme of step 4 with a
+direct greedy selection: it builds the smaller subset row by row. With data
 ``x_1, \dots, x_N`` and rows ``s_1, \dots, s_T`` already selected, the next
 row is (Chen, Welling & Smola, 2010, Eq. 8, applied to the empirical
 distribution and restricted to unselected rows)
@@ -131,10 +182,28 @@ equivalence with MMD²/energy-distance minimization above is claimed, not the
 running sum over selected rows in ``O(N)`` per selection, for a total cost of
 ``O(N^2 + nN)``; the procedure is deterministic for a numeric kernel.
 
-## Estimators
+## Nearest-neighbor assignment
 
-`energydistance`, `mmd`, and `splitquality` accept an `estimator` keyword
-that selects how the discrepancy above is computed. Which estimator/kernel
+The last part of step 4 for `SupportPointSplitter` turns optimized
+locations into rows. Each support point, in order, claims its nearest not-yet-claimed data row
+(Joseph & Vakayil, 2021). `select_nearest` serves the queries from a k-d
+tree, doubling the neighbor count and retrying when every returned neighbor
+is already claimed. The claimed rows form the smaller subset.
+
+This rounding step has a limitation: when the optimizer's displacement is
+below the spacing between data rows, as is typical in high dimension on
+standardized data, every point's nearest row is still its own starting row,
+so the claimed subset is exactly the initial random sample and the
+optimization has no effect on which rows are selected. Measured on the
+Benchmarks page. `HerdingSplitter` selects rows directly and has no rounding
+step, so it is unaffected.
+
+## [Estimators](@id estimators)
+
+The optimizers in step 4 always work with the exact objective. Measuring a
+finished split is a separate matter: `energydistance`, `mmd`, and
+`splitquality` accept an `estimator` keyword that selects how the
+discrepancy above is computed. Which estimator/kernel
 combinations exist is expressed by method dispatch (a method per
 combination, never an `if`); an undefined combination raises an
 `ArgumentError`.
@@ -221,24 +290,10 @@ See "Approximate herding data terms (rejected)" on the
 [Benchmarks](@ref benchmarks) page for the table. `HerdingSplitter`'s data
 term (`_data_term`) therefore stays exact only.
 
-## Nearest-neighbor assignment
-
-Each support point, in order, claims its nearest not-yet-claimed data row
-(Joseph & Vakayil, 2021). `select_nearest` serves the queries from a k-d
-tree, doubling the neighbor count and retrying when every returned neighbor
-is already claimed. The claimed rows form the smaller subset.
-
-This rounding step has a limitation: when the optimizer's displacement is
-below the spacing between data rows, as is typical in high dimension on
-standardized data, every point's nearest row is still its own starting row,
-so the claimed subset is exactly the initial random sample and the
-optimization has no effect on which rows are selected. Measured on the
-Benchmarks page. `HerdingSplitter` selects rows directly and has no rounding
-step, so it is unaffected.
-
 ## Optimal split ratio
 
-For a linear model with ``p`` parameters (intercept included), Joseph (2022,
+Step 2 takes `ratio` as given; `optimal_split_ratio` is one way to choose
+it. For a linear model with ``p`` parameters (intercept included), Joseph (2022,
 Eq. 11) gives the test fraction that minimizes the variance of the fitted
 model:
 
