@@ -67,12 +67,6 @@ function _exact_energydistance(
          _mean_pairwise(X, X; block, n_threads) - _mean_pairwise(Y, Y; block, n_threads)
 end
 
-# True when every entry is bit-identical to the first — detects the
-# uniform-weight case so the weighted statistic can fall back to the
-# unweighted computation and reproduce it bit for bit (`dot` and `sum`
-# accumulate in different orders and are not otherwise guaranteed to agree).
-_isuniform(w::AbstractVector) = all(==(first(w)), w)
-
 # Weighted mean pairwise distance Σᵢⱼ wxᵢ wyⱼ ‖xᵢ − yⱼ‖ with both weight
 # vectors scaled to sum one (so no 1/(nm) division), block-wise.
 function _mean_pairwise(
@@ -100,7 +94,6 @@ function _exact_energydistance(
   block::Int = 1_024,
   n_threads::Int = Threads.nthreads(),
 )
-  _isuniform(wx) && _isuniform(wy) && return _exact_energydistance(X, Y; block, n_threads)
   return 2 * _mean_pairwise(X, Y, wx, wy; block, n_threads) -
          _mean_pairwise(X, X, wx, wx; block, n_threads) -
          _mean_pairwise(Y, Y, wy, wy; block, n_threads)
@@ -166,7 +159,6 @@ function _exact_mmd(
   block::Int = 1_024,
   n_threads::Int = Threads.nthreads(),
 )
-  _isuniform(wx) && _isuniform(wy) && return _exact_mmd(k, X, Y; block, n_threads)
   return _mean_kernel(k, X, X, wx, wx; block, n_threads) +
          _mean_kernel(k, Y, Y, wy, wy; block, n_threads) -
          2 * _mean_kernel(k, X, Y, wx, wy; block, n_threads)
@@ -206,7 +198,8 @@ distribution, `Σᵢ w̄ᵢ δ(xᵢ)` with `w̄` scaled to sum one, and the stat
 becomes `Σ w̄ᵢ w̄ₖ k(xᵢ, xₖ) + Σ v̄ⱼ v̄ₗ k(yⱼ, yₗ) − 2 Σ w̄ᵢ v̄ⱼ k(xᵢ, yⱼ)`.
 `Subsample` draws rows uniformly and rescales the drawn weights to sum
 one. Weights proportional to duplication counts are equivalent to
-duplicating rows.
+duplicating rows. A constant weight vector is treated as `nothing`, so
+uniform weights take the unweighted path and reproduce its value exactly.
 """
 function mmd(
   X::AbstractMatrix,
@@ -223,6 +216,10 @@ function mmd(
   size(X, 2) == size(Y, 2) ||
     throw(ArgumentError("Samples must have the same number of columns."))
   subsample === nothing || (estimator = Subsample(subsample, repeats))
+  weights_x === nothing || _check_weights(weights_x, size(X, 1))
+  weights_y === nothing || _check_weights(weights_y, size(Y, 1))
+  weights_x = _uniform_as_nothing(weights_x)
+  weights_y = _uniform_as_nothing(weights_y)
   kernel isa EnergyKernel &&
     return energydistance(X, Y; estimator, rng, n_threads, weights_x, weights_y)
   k = isresolved(kernel) ? kernel : resolve(kernel, vcat(X, Y), rng)
@@ -291,7 +288,8 @@ means uniform) give the energy distance between the weighted empirical
 distributions `Σᵢ w̄ᵢ δ(xᵢ)` and `Σⱼ v̄ⱼ δ(yⱼ)`, with the weights scaled to
 sum one: `2 Σ w̄ᵢ v̄ⱼ ‖xᵢ − yⱼ‖ − Σ w̄ᵢ w̄ₖ ‖xᵢ − xₖ‖ − Σ v̄ⱼ v̄ₗ ‖yⱼ − yₗ‖`.
 Weights proportional to duplication counts are equivalent to duplicating
-rows.
+rows. A constant weight vector is treated as `nothing`, so uniform weights
+take the unweighted path and reproduce its value exactly.
 
 Vectors are treated as single-column samples.
 """
@@ -309,6 +307,10 @@ function energydistance(
   size(X, 2) == size(Y, 2) ||
     throw(ArgumentError("Samples must have the same number of columns."))
   subsample === nothing || (estimator = Subsample(subsample, repeats))
+  weights_x === nothing || _check_weights(weights_x, size(X, 1))
+  weights_y === nothing || _check_weights(weights_y, size(Y, 1))
+  weights_x = _uniform_as_nothing(weights_x)
+  weights_y = _uniform_as_nothing(weights_y)
   weights_x === nothing &&
     weights_y === nothing &&
     return _energydistance(estimator, X, Y, rng, n_threads)

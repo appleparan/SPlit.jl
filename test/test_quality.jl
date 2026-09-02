@@ -198,6 +198,21 @@ end
     k = GaussianKernel(1.0)
     @test mmd(X, Y, k; weights_x = ones(30), weights_y = ones(25)) == mmd(X, Y, k)
     @test mmd(X, Y, EnergyKernel(); weights_x = ones(30)) == energydistance(X, Y)
+    @test energydistance(
+      X,
+      Y;
+      weights_x = ones(30),
+      estimator = RandomSlices(4),
+      rng = MersenneTwister(1),
+    ) == energydistance(X, Y; estimator = RandomSlices(4), rng = MersenneTwister(1))
+    @test mmd(
+      X,
+      Y,
+      k;
+      weights_y = fill(0.5, 25),
+      estimator = RandomFeatures(8),
+      rng = MersenneTwister(1),
+    ) == mmd(X, Y, k; estimator = RandomFeatures(8), rng = MersenneTwister(1))
   end
 
   @testset "hand-computed weighted 1-D values" begin
