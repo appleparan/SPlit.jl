@@ -222,6 +222,14 @@ Each support point, in order, claims its nearest not-yet-claimed data row
 tree, doubling the neighbor count and retrying when every returned neighbor
 is already claimed. The claimed rows form the smaller subset.
 
+This rounding step has a limitation: when the optimizer's displacement is
+below the spacing between data rows, as is typical in high dimension on
+standardized data, every point's nearest row is still its own starting row,
+so the claimed subset is exactly the initial random sample and the
+optimization has no effect on which rows are selected. Measured on the
+Benchmarks page. `HerdingSplitter` selects rows directly and has no rounding
+step, so it is unaffected.
+
 ## Optimal split ratio
 
 For a linear model with ``p`` parameters (intercept included), Joseph (2022,
