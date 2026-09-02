@@ -178,4 +178,28 @@ end
     @test_throws ArgumentError SPlit.support_points(GaussianKernel(), data, 5)
     @test_throws ArgumentError SPlit.support_points(k, data, 0)
   end
+
+  @testset "does not stop at the initial sample on high-dimensional data" begin
+    data = randn(MersenneTwister(140), 4_000, 10)
+    k = SPlit.resolve(GaussianKernel(), data, MersenneTwister(141))
+    pts, conv, iters =
+      SPlit.support_points(k, data, 800; max_iterations = 50, rng = MersenneTwister(142))
+    @test iters >= 2
+    traj =
+      SPlit._mmd_trajectory(k, data, 800; max_iterations = 10, rng = MersenneTwister(142))
+    @test traj[end] < traj[1]
+  end
+
+  @testset "relative-decrease rule stops a flat objective honestly" begin
+    data = randn(MersenneTwister(143), 200, 2)
+    _, conv, iters = SPlit.support_points(
+      GaussianKernel(1.0),
+      data,
+      20;
+      max_iterations = 300,
+      rtol = 1e-3,
+      rng = MersenneTwister(144),
+    )
+    @test conv && 2 <= iters < 300
+  end
 end
