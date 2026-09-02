@@ -10,10 +10,10 @@
 Three changes, one vocabulary. (A) The Gaussian-kernel support-point optimizer
 gets a scale-aware first step and a minimum iteration count so it no longer
 reports convergence at the initial sample. (B) and (C) introduce a
-`DiscrepancyEstimator` type hierarchy — `Exact`, `Subsample`, `Slices`,
+`DiscrepancyEstimator` type hierarchy — `Exact`, `Subsample`, `RandomSlices`,
 `RandomFeatures` — selected by an `estimator` keyword on `energydistance`,
 `mmd`, `splitquality`, and `HerdingSplitter`; which combinations exist is
-expressed by method dispatch, not runtime checks. `Slices` estimates the
+expressed by method dispatch, not runtime checks. `RandomSlices` estimates the
 energy distance (and herding's energy data term) from random 1-D projections
 in $O(kN\log N)$; `RandomFeatures` estimates Gaussian MMD (and herding's
 Gaussian data term) with random Fourier features in $O(NDp)$. Both are
@@ -29,7 +29,7 @@ by a recorded selection experiment. Non-breaking, v0.5.0.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics. *JSPI* 143(8). —
   energy distance; Gretton et al. (2012) — MMD; Chen, Welling & Smola (2010)
   — herding; Mak & Joseph (2018) — support points.
-- The projection identity used by `Slices` is elementary and derived below.
+- The projection identity used by `RandomSlices` is elementary and derived below.
 
 ## Estimator vocabulary (B, C)
 
@@ -37,7 +37,7 @@ by a recorded selection experiment. Non-breaking, v0.5.0.
 abstract type DiscrepancyEstimator end
 struct Exact          <: DiscrepancyEstimator end
 struct Subsample      <: DiscrepancyEstimator; m::Int; repeats::Int; end
-struct Slices         <: DiscrepancyEstimator; k::Int; end
+struct RandomSlices         <: DiscrepancyEstimator; k::Int; end
 struct RandomFeatures <: DiscrepancyEstimator; D::Int; end
 ```
 
@@ -48,7 +48,7 @@ an `ArgumentError` by one fallback method):
 |------------------|-----------------------------------|--------------------------|-------------------|
 | `Exact`          | yes (threaded)                    | yes (threaded)           | yes (threaded)    |
 | `Subsample`      | yes (existing)                    | yes (existing)           | no                |
-| `Slices`         | yes                               | no                       | `EnergyKernel`    |
+| `RandomSlices`         | yes                               | no                       | `EnergyKernel`    |
 | `RandomFeatures` | no                                | yes                      | `GaussianKernel`  |
 
 Keyword form: `energydistance(X, Y; estimator = Exact(), rng)`,
@@ -123,7 +123,7 @@ column-major `permutedims(X)` copy for contiguous row access.
 `estimator = nothing` selects `Exact()` when the total row count is at most
 `exact_threshold` (new default **20,000**, up from 4,000 — exact evaluation at
 that size takes under a second on 16 threads), and otherwise the **fallback
-chosen by the selection experiment** below (`Slices(k)` for the energy kernel,
+chosen by the selection experiment** below (`RandomSlices(k)` for the energy kernel,
 `RandomFeatures(D)` for Gaussian kernels, or `Subsample(2_000, 8)` if the
 experiment does not justify the change). The chosen fallback and its
 parameters are constants in `quality.jl` with a comment citing the experiment.
@@ -132,7 +132,7 @@ parameters are constants in `quality.jl` with a comment citing the experiment.
 
 On the four Phase 2b datasets at $N = 10{,}000$ with the exact value as
 reference: absolute error and wall time of `Subsample(2000, 8)`,
-`Slices(64)`, `Slices(256)`, `Slices(1024)`, `RandomFeatures(512)`,
+`RandomSlices(64)`, `RandomSlices(256)`, `RandomSlices(1024)`, `RandomFeatures(512)`,
 `RandomFeatures(2048)` for the split produced by `support points · energy`
 and `herding · energy` (ED) and `herding · gaussian` (MMD), over 5 rng seeds
 (mean and max error). Decision rule: an estimator becomes the automatic
@@ -186,7 +186,7 @@ early-stop disclosure is rewritten once the new numbers are in.
    from the sorted formulas equals the pairwise definition on small data.
 2. RandomFeatures: $z(x)^\top z(y) \to k(x,y)$ as $D$ grows; RFF MMD converges
    to exact MMD; feature map reproducible under `rng`.
-3. Herding with `Slices`/`RandomFeatures`: data term converges to the exact
+3. Herding with `RandomSlices`/`RandomFeatures`: data term converges to the exact
    data term; selections not concentrated (no subset bias); approximate
    herding beats random and is within a factor 2 of exact herding on ED/MMD
    at $N = 2{,}000$; an $N = 10^5$ smoke run finishes.
@@ -199,12 +199,12 @@ early-stop disclosure is rewritten once the new numbers are in.
 
 ## Non-goals
 
-- `Slices` for Gaussian MMD, `RandomFeatures` for the energy kernel.
+- `RandomSlices` for Gaussian MMD, `RandomFeatures` for the energy kernel.
 - Learning bandwidths or feature counts.
 - $N = 10^5$ benchmark tables (smoke test only).
 
 ## Breaking changes
 
-None. New exports: `DiscrepancyEstimator`, `Exact`, `Subsample`, `Slices`,
+None. New exports: `DiscrepancyEstimator`, `Exact`, `Subsample`, `RandomSlices`,
 `RandomFeatures`. `splitquality`'s default exact threshold changes from 4,000
 to 20,000 (more exact results, no API change). Version 0.4.0 → 0.5.0.
