@@ -91,7 +91,9 @@ datasplit(::HerdingSplitter, data) -> SplitResult
 - `herd` computes the data term $d_i = \frac{1}{N}\sum_l k(x_i, x_l)$ for
   every row once — $O(N^2)$, chunked over `n_threads` with block-wise
   accumulation, no $N\times N$ matrix — or, with `kappa`, from `kappa` rows
-  drawn with `rng` (unbiased estimate, Corollary 2). It then keeps a running
+  drawn with `rng` — leave-self-out mean over `kappa` rows, unbiased for
+  every row and free of the self-term bias that would otherwise favor
+  sampled rows; Corollary 2. It then keeps a running
   sum $c_i = \sum_t k(x_i, s_t)$ updated in $O(N)$ per selection. Total
   $O(N^2 + nN)$ time, $O(N)$ extra memory.
 - `EnergyKernel` gains `kernelvalue(k, u, v) = -\|u - v\|` so both kernels
@@ -154,7 +156,7 @@ Unchanged in behavior: `splitquality(data, result; kernel)` and
 1. Greedy correctness: on a small dataset, each herding selection equals the
    brute-force $\arg\min_x \Delta(x)$ over unselected rows (both kernels).
 2. MMD² (energy distance for `EnergyKernel`) between the selected set and the
-   data is non-increasing along the selection sequence beyond the first step.
+   data decreases along the sequence at T ∈ {n/4, n/2, n} and beats random.
 3. Optimality: herding splits beat random splits under both `mmd` and
    `energydistance` (both kernels).
 4. Determinism: same data and numeric kernel ⇒ identical indices regardless

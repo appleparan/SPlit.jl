@@ -75,6 +75,38 @@ end
   end
 end
 
+@testset "herd with kappa" begin
+  @testset "kappa data term beats random subsets (leave-self-out mean)" begin
+    data = randn(MersenneTwister(120), 600, 2)
+    sel =
+      SPlit.herd(GaussianKernel(1.0), data, 120; kappa = 250, rng = MersenneTwister(121))
+    q = energydistance(data[sel, :], data)
+    random = [
+      energydistance(data[randperm(MersenneTwister(200 + i), 600)[1:120], :], data) for
+      i = 1:20
+    ]
+    @test q < mean(random)
+  end
+
+  @testset "kappa selections are not concentrated in the sampled rows" begin
+    data = randn(MersenneTwister(120), 600, 2)
+    sel =
+      SPlit.herd(GaussianKernel(1.0), data, 120; kappa = 150, rng = MersenneTwister(121))
+    rows = SPlit._kappa_rows(MersenneTwister(121), 600, 150)
+    @test count(in(rows), sel) <= 60
+  end
+
+  @testset "duplicate rows: lowest-index tie rule" begin
+    Y = repeat(randn(MersenneTwister(122), 20, 2), 3)
+    sel = SPlit.herd(EnergyKernel(), Y, 5)
+    @test length(unique(sel)) == 5
+    for (idx, s) in enumerate(sel)
+      dups = findall(j -> Y[j, :] == Y[s, :], 1:60)
+      @test s == minimum(setdiff(dups, sel[1:idx-1]))
+    end
+  end
+end
+
 @testset "HerdingSplitter" begin
   @testset "construction and validation" begin
     s = HerdingSplitter()

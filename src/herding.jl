@@ -8,22 +8,47 @@ rows and the data (energy-distance minimization for `EnergyKernel`).
 using Random
 using StatsBase: sample
 
-# d_i = mean over `rows` of k(x_i, x_l), for every row i; chunked over threads.
+# d_i = mean over `rows` of k(x_i, x_l), for every row i; chunked over
+# threads. When `rows` is a strict subsample (kappa < N), the mean is
+# leave-self-out — skip l == i and divide by length(rows) − (i ∈ rows ? 1 :
+# 0) — so a row that was drawn into `rows` is not scored using its own
+# self-term k(x,x), which would otherwise bias the argmax toward sampled
+# rows. When `rows` spans every row (kappa = N or nothing), every row is "in
+# rows" identically, so there is no such asymmetry to correct and the mean
+# stays over all N rows including the self-term, matching Eq. (8) exactly.
 function _data_term(kernel::SplitKernel, X::Matrix{Float64}, rows, n_threads::Int)
   N = size(X, 1)
   d = Vector{Float64}(undef, N)
+  n_rows = length(rows)
+  full = n_rows == N
+  inrows = falses(N)
+  if !full
+    for l in rows
+      inrows[l] = true
+    end
+  end
   chunks = collect(Iterators.partition(1:N, cld(N, max(1, n_threads))))
   @sync for chunk in chunks
     Threads.@spawn for i in chunk
       s = 0.0
       @views for l in rows
+        (!full && l == i) && continue
         s += kernelvalue(kernel, X[i, :], X[l, :])
       end
-      d[i] = s / length(rows)
+      d[i] = full ? s / n_rows : s / (n_rows - (inrows[i] ? 1 : 0))
     end
   end
   return d
 end
+
+"""
+    _kappa_rows(rng, N, kappa) -> Vector{Int}
+
+Sorted `kappa`-row subsample of `1:N`, drawn with `rng`, used by [`herd`](@ref)
+to estimate the data term.
+"""
+_kappa_rows(rng::AbstractRNG, N::Int, kappa::Int) =
+  sort!(sample(rng, 1:N, kappa; replace = false))
 
 """
     herd(kernel, X, n; kappa = nothing, n_threads = Threads.nthreads(),
@@ -32,9 +57,12 @@ end
 Select `n` rows of `X` by kernel herding: the first row maximizes the mean
 kernel value to the data, and each later row maximizes
 `mean_l k(x, x_l) − (1/(T+1)) Σ_t k(x, s_t)` over rows not yet selected
-(Chen, Welling & Smola 2010, Eq. 8). With `kappa`, the data mean is estimated
-from `kappa` rows drawn with `rng`; otherwise the procedure is deterministic
-and `rng` is unused. Ties go to the lowest row index. Cost `O(N·|rows| + nN)`.
+(Chen, Welling & Smola 2010, Eq. 8). The mean is a leave-self-out mean over
+the other rows, so a row does not pick up its own `k(x,x)` self-term when it
+happens to be one of the rows averaged over. With `kappa`, this mean is
+estimated from `kappa` rows drawn with `rng`; otherwise the procedure is
+deterministic and `rng` is unused. Ties go to the lowest row index. Cost
+`O(N·|rows| + nN)`.
 """
 function herd(
   kernel::SplitKernel,
@@ -52,9 +80,7 @@ function herd(
     kappa > 0 ||
     throw(ArgumentError("kappa must be positive, got $kappa"))
 
-  rows =
-    (kappa === nothing || kappa >= N) ? (1:N) :
-    sort!(sample(rng, 1:N, kappa; replace = false))
+  rows = (kappa === nothing || kappa >= N) ? (1:N) : _kappa_rows(rng, N, kappa)
   d = _data_term(kernel, X, rows, n_threads)
   c = zeros(N)
   used = falses(N)
