@@ -95,6 +95,8 @@ See the [Reference](@ref reference) section for complete API documentation.
 4. Partitioning. The claimed rows form the smaller subset and the rest form
    the larger one; `ratio` decides which of the two is the test set.
 
+Planned work and its ordering are on the [Roadmap](@ref roadmap) page.
+
 ## References
 
 1. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502. [DOI](https://arxiv.org/abs/2012.10945)
