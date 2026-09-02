@@ -26,5 +26,8 @@ using SPlit
     @test all(SPlit._mean_one_weights(fill(0.3, 5)) .== 1.0)
     w = SPlit._mean_one_weights([1.0, 3.0])
     @test w == [0.5, 1.5]
+    @test SPlit._mean_one_weights(fill(0.37, 150)) == ones(150)
+    @test SPlit._mean_one_weights(SPlit._uniform_weights(7)) == ones(7)
+    @test SPlit._mean_one_weights(fill(1 / 9, 9)) == ones(9)
   end
 end

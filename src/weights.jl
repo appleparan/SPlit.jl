@@ -27,10 +27,14 @@ function _normalize_weights(weights::AbstractVector, N::Int)
   return w
 end
 
-# `ŵ`: weights scaled to mean one, as a fresh Float64 vector. For uniform
-# weights the scale factor is exactly 1.0, so the result is exactly ones.
+# `ŵ`: weights scaled to mean one, as a fresh Float64 vector. Any constant
+# (uniform) vector yields exactly ones, so uniform weights reproduce the
+# unweighted arithmetic bit for bit.
 function _mean_one_weights(weights::AbstractVector)
   w = Vector{Float64}(weights)
+  # A constant vector is exactly uniform: return exact ones rather than
+  # relying on length(w) / sum(w) rounding to 1.0.
+  all(==(w[1]), w) && return fill(1.0, length(w))
   w .*= length(w) / sum(w)
   return w
 end
