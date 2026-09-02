@@ -206,10 +206,14 @@ energydistance(X::AbstractVector, Y::AbstractVector; kwargs...) = energydistance
 )
 
 # Automatic fallback for splitquality's estimator = nothing above
-# exact_threshold, chosen by the selection experiment on the Benchmarks page
-# (Task 5 may update these after the experiment is recorded).
-const ENERGY_FALLBACK = Subsample(2_000, 8)
-const GAUSSIAN_FALLBACK = Subsample(2_000, 8)
+# exact_threshold, chosen by the selection experiment
+# (docs/src/assets/benchmarks/estimators.md, embedded on the Benchmarks
+# page): on the four Phase 2b datasets at N = 10,000, RandomSlices(64) and
+# RandomFeatures(512) each clear the decision rule (max error at most a
+# third of Subsample(2_000, 8)'s, at no more than its mean time) by two to
+# four orders of magnitude on error, at roughly a tenth of its time.
+const ENERGY_FALLBACK = RandomSlices(64)
+const GAUSSIAN_FALLBACK = RandomFeatures(512)
 
 _fallback_estimator(::EnergyKernel) = ENERGY_FALLBACK
 _fallback_estimator(::GaussianKernel) = GAUSSIAN_FALLBACK
@@ -227,7 +231,8 @@ preprocessing `datasplit` applied — the energy distance by default, or
 `estimator = nothing` (the default) computes exactly ([`Exact`](@ref)) when
 the total row count is at most `exact_threshold`, and otherwise falls back to
 a fixed [`DiscrepancyEstimator`](@ref) chosen by the selection experiment on
-the Benchmarks page (currently `Subsample(2_000, 8)` for both kernels — see
+the Benchmarks page (currently [`RandomSlices`](@ref)`(64)` for `EnergyKernel`
+and [`RandomFeatures`](@ref)`(512)` for `GaussianKernel` — see
 `_fallback_estimator`). Pass any `DiscrepancyEstimator` to override. The old
 `subsample = m, repeats = r` keywords are a compatibility path: when
 `subsample` is given explicitly, it always wins over `estimator` and maps to
