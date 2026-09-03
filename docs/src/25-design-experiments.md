@@ -100,3 +100,28 @@ Reproduce with:
 ```sh
 julia -t auto --project=benchmark benchmark/weighted_kappa.jl
 ```
+
+## [Nearest-neighbor structure for twinning](@id twinning-trees)
+
+`TwinningSplitter` answers two nearest-neighbor queries per group. A k-d
+tree is the paper's choice, but its pruning weakens as the dimension
+grows, so the rows can also be scanned by brute force. Measured on
+standard-normal data at N = 10,000 and `ratio = 0.2`, minimum of three
+runs, serial (Julia 1.10.12, AMD Ryzen 7 7800X3D):
+
+| p | k-d tree (s) | brute force (s) | brute / k-d |
+|---:|---:|---:|---:|
+| 2 | 0.0051 | 0.113 | 22.1 |
+| 10 | 0.122 | 0.172 | 1.41 |
+| 50 | 0.662 | 0.326 | 0.492 |
+| 200 | 1.5 | 1.16 | 0.776 |
+| 768 | 8.53 | 4.25 | 0.499 |
+
+Brute force first reaches the 1.5x-faster bar at p = 50 (2.03x faster; it
+stays faster at p = 200 and p = 768 too, at 1.29x and 2.00x), so
+`TWINNING_BRUTE_FORCE_DIMENSION = 50`. This settles the roadmap's open
+question on high-dimensional nearest neighbors for M3. Reproduce with:
+
+```sh
+julia --project=benchmark benchmark/twinning_trees.jl
+```

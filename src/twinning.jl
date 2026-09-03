@@ -10,9 +10,11 @@ using NearestNeighbors
 using Random
 
 # Dimension at or above which the twinning search structure is a BruteTree
-# instead of a KDTree. Set by `benchmark/twinning_trees.jl`; see the Design
-# experiments page. `typemax(Int)` means the k-d tree is always used.
-const TWINNING_BRUTE_FORCE_DIMENSION = typemax(Int)
+# instead of a KDTree. Set by `benchmark/twinning_trees.jl`: on
+# standard-normal data at N = 10,000, brute force is 2.03x faster at p = 50
+# (1.29x at p = 200, 2.00x at p = 768); see the Design experiments page.
+# `typemax(Int)` would mean the k-d tree is always used.
+const TWINNING_BRUTE_FORCE_DIMENSION = 50
 
 # Sizes of the n groups: r = N ÷ n rows each, with the N − r·n leftover rows
 # spread as groups of r + 1 evenly along the chain (spec, decision 1). All
