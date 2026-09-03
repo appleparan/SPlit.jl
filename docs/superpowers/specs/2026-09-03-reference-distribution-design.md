@@ -71,13 +71,18 @@ apply_preprocessor(prep, data) -> Matrix{Float64}
 ```
 
 - `fit_preprocessor(R; weights = v, extra = X)`: encoding is decided from
-  `R` (constant columns of `R` are dropped), except that categorical levels
-  are the canonical-order union of the levels present in `R` and in
-  `extra = X`, so rows of `X` with a level absent from `R` still encode.
-  `μ`, `σ` come from the encoded `R` (weighted as in M1 when `v` is given,
-  using the unbiased weighted variance). A column whose encoded values are
-  constant on `R` but not on `X` is dropped (it carries no information about
-  the target); this is documented.
+  `R` (columns constant on both `R` and `X` are dropped), except that
+  categorical levels are the canonical-order union of the levels present in
+  `R` and in `extra = X`, so rows of `X` with a level absent from `R` still
+  encode. `μ`, `σ` come from the encoded `R` (weighted as in M1 when `v` is
+  given, using the unbiased weighted variance) for columns not constant on
+  `R`. A column whose encoded values are constant on `R` but vary on `X` is
+  kept instead of dropped: `μ` is `R`'s constant value and `σ` is `X`'s own
+  (unweighted) spread, so it standardizes `R`'s rows to exactly 0 and
+  penalizes `X` rows away from that value. (The final whole-branch review
+  found the original rule — dropping any column constant on `R`, even one
+  varying on `X` — silently ignored a reference defined by a single
+  categorical level or a fixed numeric value; this replaces it.)
 - `apply_preprocessor(prep, Y)` encodes `Y` with the stored specs and
   standardizes with the stored `μ`, `σ`. A level of a categorical column in
   `Y` outside `prep`'s levels is an `ArgumentError`.

@@ -408,7 +408,7 @@ _fallback_estimator(::EnergyKernel) = ENERGY_FALLBACK
 _fallback_estimator(::GaussianKernel) = GAUSSIAN_FALLBACK
 
 # Row indices of the side scored against a reference: `result.selected`.
-_selected_indices(r::SplitResult) = r.selected === :test ? r.test_indices : r.train_indices
+_selected_indices(r::SplitResult) = _subset_indices(r, r.selected)
 
 """
     splitquality(data, result::SplitResult;

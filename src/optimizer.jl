@@ -220,7 +220,10 @@ the data term of the objective runs over the rows of `target`, weighted by
 vector is treated as `nothing`), while the initial points and the bounding
 box come from `data`, whose rows the points are later rounded to. In
 stochastic mode `kappa` subsamples the rows of `target`. `weights` is only
-for the case without a target; giving both is an `ArgumentError`.
+for the case without a target; giving both is an `ArgumentError`. A target
+with duplicate rows is jittered by 1e-3 of its column range like the data,
+so weighting a reference is equivalent to duplicating its rows only up to
+that jitter.
 """
 function support_points(
   ::EnergyKernel,
@@ -501,7 +504,10 @@ the data term of the objective runs over the rows of `target`, weighted by
 `target_weights` (sum-one normalized, `nothing` for uniform; a constant
 vector is treated as `nothing`), while the initial points and the bounding
 box come from `data`, whose rows the points are later rounded to. `weights`
-is only for the case without a target; giving both is an `ArgumentError`.
+is only for the case without a target; giving both is an `ArgumentError`. A
+target with duplicate rows is jittered by 1e-3 of its column range like the
+data, so weighting a reference is equivalent to duplicating its rows only
+up to that jitter.
 """
 function support_points(
   k::GaussianKernel,

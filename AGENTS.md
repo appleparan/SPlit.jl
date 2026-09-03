@@ -84,7 +84,10 @@ output-matching tests. The design record is
   `data`. Preprocessing is fit on the reference (`fit_preprocessor`) and
   applied to both; `weights` and `reference` are mutually exclusive;
   `reference = nothing` must stay bit-identical to the untargeted path.
-  `SplitResult.selected` names the side holding the chosen rows.
+  A column constant on the reference but varying on `data` is kept, not
+  dropped: it is centered at the reference's value and scaled by the
+  data's spread. `SplitResult.selected` names the side holding the chosen
+  rows.
 - The selection function is named `selectrows`, not `select`, because
   `DataFrames` exports `select`. Docstrings must sit directly above the
   function they document; two got detached onto helper functions during

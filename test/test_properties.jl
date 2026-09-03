@@ -109,4 +109,16 @@ using Statistics
       @test q < mean(random_qs)
     end
   end
+
+  @testset "a reference that is not a subset of the data still pulls the selection" begin
+    data = randn(MersenneTwister(630), 400, 2)
+    ref = randn(MersenneTwister(631), 150, 2) .+ [2.0 0.0]
+    for s in (
+      SupportPointSplitter(max_iterations = 150, rng = MersenneTwister(632)),
+      HerdingSplitter(kernel = GaussianKernel(1.0)),
+    )
+      idx = selectrows(deepcopy(s), data, 60; reference = ref)
+      @test mean(data[idx, 1]) > mean(data[:, 1]) + 0.5
+    end
+  end
 end

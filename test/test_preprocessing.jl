@@ -200,12 +200,31 @@ end
     @test SPlit.apply_preprocessor(prep, R) == SPlit.preprocess(R, w)
   end
 
-  @testset "columns constant on the fit set are dropped for both sets" begin
+  @testset "columns constant on the reference keep the data's scale" begin
     R = hcat(ones(20), randn(MersenneTwister(207), 20))
     X = randn(MersenneTwister(208), 15, 2)
     prep = SPlit.fit_preprocessor(R; extra = X)
-    @test size(SPlit.apply_preprocessor(prep, X), 2) == 1
-    @test_throws ArgumentError SPlit.fit_preprocessor(ones(20, 2); extra = X)
+    @test size(SPlit.apply_preprocessor(prep, X), 2) == 2
+    # (1 - 1) / σ == 0 exactly on the reference
+    @test SPlit.apply_preprocessor(prep, R)[:, 1] == zeros(20)
+    # column 1 of the applied data has the data's own scale
+    @test isapprox(
+      std(SPlit.apply_preprocessor(prep, X)[:, 1]) * std(X[:, 1]),
+      std(X[:, 1]);
+      atol = 1e-12,
+    )
+    @test isapprox(
+      SPlit.apply_preprocessor(prep, X)[:, 1],
+      (X[:, 1] .- 1.0) ./ std(X[:, 1]);
+      atol = 1e-12,
+    )
+    # a column constant on both sets is dropped
+    Rboth = hcat(ones(20), randn(MersenneTwister(209), 20))
+    Xboth = hcat(ones(15), randn(15))
+    prep_both = SPlit.fit_preprocessor(Rboth; extra = Xboth)
+    @test size(SPlit.apply_preprocessor(prep_both, Xboth), 2) == 1
+    # all constant on both sets errors
+    @test_throws ArgumentError SPlit.fit_preprocessor(ones(20, 2); extra = ones(15, 2))
   end
 
   @testset "categorical levels are the union, in canonical order" begin
@@ -217,9 +236,10 @@ end
     @test spec.levels == ["a", "b", "c"]
     XR = SPlit.apply_preprocessor(prep, R)
     XX = SPlit.apply_preprocessor(prep, X)
-    # the (a,b) vs c contrast is constant on R and is dropped: one Helmert column survives
-    @test size(XR, 2) == 2
-    @test size(XX, 2) == 2
+    # the (a,b) vs c contrast is constant on R but varies on X, so it is kept:
+    # both Helmert columns survive alongside the numeric column
+    @test size(XR, 2) == 3
+    @test size(XX, 2) == 3
     # level c is unknown when the preprocessor was fit without X
     prep_r = SPlit.fit_preprocessor(R)
     @test_throws ArgumentError SPlit.apply_preprocessor(prep_r, X)

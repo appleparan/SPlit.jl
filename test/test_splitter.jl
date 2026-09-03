@@ -344,3 +344,15 @@ end
     @test idx != sort(idx)
   end
 end
+
+@testset "a reference defined by a categorical level selects that level" begin
+  df = DataFrame(x = randn(MersenneTwister(520), 300), g = repeat(["a", "b", "c"], 100))
+  ref = DataFrame(x = randn(MersenneTwister(521), 80), g = fill("a", 80))
+  for s in (
+    SupportPointSplitter(max_iterations = 100, rng = MersenneTwister(2)),
+    HerdingSplitter(kernel = GaussianKernel(1.0)),
+  )
+    idx = selectrows(deepcopy(s), df, 60; reference = ref)
+    @test count(i -> df.g[i] == "a", idx) >= 55
+  end
+end

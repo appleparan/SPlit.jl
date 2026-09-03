@@ -715,6 +715,28 @@ end
     end
   end
 
+  @testset "target with duplicate rows runs (jitter branch)" begin
+    Rdup = repeat(randn(MersenneTwister(306), 10, 2), 3, 1)   # 30 rows, each 3 times
+    pts, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      10;
+      max_iterations = 20,
+      rng = MersenneTwister(1),
+      target = Rdup,
+    )
+    @test size(pts) == (10, 2)
+    pts_g, _, _ = SPlit.support_points(
+      GaussianKernel(1.0),
+      data,
+      10;
+      max_iterations = 20,
+      rng = MersenneTwister(1),
+      target = Rdup,
+    )
+    @test size(pts_g) == (10, 2)
+  end
+
   @testset "validation" begin
     @test_throws ArgumentError SPlit.support_points(
       EnergyKernel(),

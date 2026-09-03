@@ -370,13 +370,12 @@ reference instead, while the candidates stay the rows of `data`. Only two
 steps of the procedure change:
 
 - **Step 1: Preprocess.** The transform is fit on the reference and applied
-  to both sets: categorical levels are the union of both sets' levels,
-  columns that are constant on the reference are dropped, and the
-  reference's mean and scale (weighted forms with `reference_weights`)
-  standardize every row. A categorical level present only in `data` loses
-  its own Helmert contrast, because that contrast is constant on the
-  reference and constant columns are dropped; rows with that level still
-  encode, sitting at 0 on the surviving contrasts.
+  to both sets: categorical levels are the union of both sets' levels, and
+  the reference's mean and scale (weighted forms with `reference_weights`)
+  standardize every row. Columns that are constant on the reference but
+  vary in the data are kept, not dropped: they are centered at the
+  reference's value and scaled by the data's spread, so candidates away
+  from that value are penalized. Columns constant on both sets are dropped.
 - **Step 3: Resolve the kernel.** A `:median` bandwidth is resolved on the
   encoded reference.
 

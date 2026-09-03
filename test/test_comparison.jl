@@ -145,6 +145,11 @@ end
   @test length(c.qualities) == 2
   @test all(isfinite, c.qualities)
   @test isapprox(
+    c.qualities[1],
+    splitquality(data, c.results[1]; reference = R);
+    atol = 1e-12,
+  )
+  @test isapprox(
     c.qualities[2],
     splitquality(data, c.results[2]; reference = R);
     atol = 1e-12,

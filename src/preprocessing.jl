@@ -49,9 +49,10 @@ end
     Preprocessor
 
 Fitted preprocessing: per-column encoding rules, which encoded columns are
-kept (those not constant on the fit set), and the mean and scale of every
-kept column. Built by [`fit_preprocessor`](@ref), applied by
-[`apply_preprocessor`](@ref). Internal.
+kept (those not constant on both the fit set and, when given, the extra
+set), and the mean and scale of every kept column. Built by
+[`fit_preprocessor`](@ref), applied by [`apply_preprocessor`](@ref).
+Internal.
 """
 struct Preprocessor
   names::Union{Nothing,Vector{String}}
@@ -190,18 +191,33 @@ _as_matrix(x) = x
 
 Learn the preprocessing on `data`: categorical columns are Helmert-encoded
 over the canonical-order union of their levels in `data` and in `extra`
-(the set the preprocessor will also be applied to), encoded columns that
-are constant on `data` are dropped, and every kept column gets the mean and
-scale of `data` (weighted forms when `weights` is given, as in
-[`preprocess`](@ref)). Internal.
+(the set the preprocessor will also be applied to). An encoded column
+constant on both `data` and `extra` (or constant on `data` when `extra` is
+not given) carries no information and is dropped. A column constant on
+`data` but varying on `extra` is kept instead of dropped: it is centered at
+`data`'s constant value and scaled by `extra`'s own (unweighted) spread, so
+it standardizes `data`'s rows to exactly 0 and penalizes `extra` rows away
+from that value. Every other kept column gets the mean and scale of `data`
+(weighted forms when `weights` is given, as in [`preprocess`](@ref));
+`weights` never applies to `extra`. With `extra === nothing`, this is
+exactly the previous behavior and `preprocess` stays bit-identical.
+Internal.
 """
 function fit_preprocessor(data; weights = nothing, extra = nothing)
   data = _as_matrix(data)
   extra = _as_matrix(extra)
   names_, specs = _column_specs(data, extra)
   M = _encode(names_, specs, data)
-  keep = [!_is_constant(view(M, :, j)) for j in axes(M, 2)]
+  keep_fit = [!_is_constant(view(M, :, j)) for j in axes(M, 2)]
+  E = extra === nothing ? nothing : _encode(names_, specs, extra)
+  keep = if E === nothing
+    keep_fit
+  else
+    keep_extra = [!_is_constant(view(E, :, j)) for j in axes(E, 2)]
+    keep_fit .| keep_extra
+  end
   any(keep) || throw(ArgumentError("All columns are constant."))
+  kept_cols = findall(keep)
   K = M[:, keep]
   N = size(K, 1)
   weights === nothing || _check_weights(weights, N)
@@ -209,23 +225,33 @@ function fit_preprocessor(data; weights = nothing, extra = nothing)
   μ = Vector{Float64}(undef, size(K, 2))
   σ = Vector{Float64}(undef, size(K, 2))
   if w === nothing
-    for j in axes(K, 2)
-      μ[j] = mean(view(K, :, j))
-      σ[j] = std(view(K, :, j))
+    for (k, j) in enumerate(kept_cols)
+      if keep_fit[j]
+        μ[k] = mean(view(K, :, k))
+        σ[k] = std(view(K, :, k))
+      else
+        μ[k] = M[1, j]
+        σ[k] = std(view(E, :, j))
+      end
     end
   else
     wn = _normalize_weights(w, N)
     correction = 1 - sum(abs2, wn)
     correction > 0 || throw(ArgumentError("weights must be positive on at least two rows"))
-    for j in axes(K, 2)
-      col = view(K, :, j)
-      μ[j] = sum(wn .* col)
-      σ[j] = sqrt(sum(wn .* (col .- μ[j]) .^ 2) / correction)
-      σ[j] > 0 || throw(
-        ArgumentError(
-          "column $j is constant on the rows with positive weight; drop it or give those rows weight",
-        ),
-      )
+    for (k, j) in enumerate(kept_cols)
+      if keep_fit[j]
+        col = view(K, :, k)
+        μ[k] = sum(wn .* col)
+        σ[k] = sqrt(sum(wn .* (col .- μ[k]) .^ 2) / correction)
+        σ[k] > 0 || throw(
+          ArgumentError(
+            "column $j is constant on the rows with positive weight; drop it or give those rows weight",
+          ),
+        )
+      else
+        μ[k] = M[1, j]
+        σ[k] = std(view(E, :, j))
+      end
     end
   end
   return Preprocessor(names_, specs, keep, μ, σ)
