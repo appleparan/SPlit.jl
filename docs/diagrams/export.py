@@ -1,7 +1,7 @@
 """Rasterize the intuition diagrams in this directory to docs/src/assets/intuition.
 
 The `.html` files here are the editable sources of the figures on the
-"How SPlit works" and Methods pages; the docs embed only the exported PNGs. Re-run this
+"How SPlit works" and Methods pages; the docs embed only the exported PNG files. Re-run this
 after editing a source:
 
     uv run --with playwright python docs/diagrams/export.py [chromium-binary]
