@@ -24,8 +24,9 @@ sorted index vectors with sizes differing by at most one; `2 ≤ k ≤ N`.
 
 - `:sequential` (the paper's S1, default): select `⌊N/k⌋` rows with the
   splitter, then `⌊N'/(k−1)⌋` of the remaining `N'` rows, and so on; the last
-  fold is what remains. Each run preprocesses the remaining rows afresh.
-  The splitter's own `ratio` is ignored. Any splitter.
+  fold is what remains. Each run preprocesses the remaining rows afresh (or,
+  with `reference`, fits the preprocessing on the reference as `selectrows`
+  does). The splitter's own `ratio` is ignored. Any splitter.
 - `:halving` (S2): split every part into its selected half (`⌊N_part/2⌋`
   rows) and the complement, level by level, until `k` parts exist; `k`
   must be a power of two. Any splitter.
@@ -36,7 +37,10 @@ sorted index vectors with sizes differing by at most one; `2 ≤ k ≤ N`.
   paper measures it slightly behind S1 and S2.
 
 `weights`, `reference`, and `reference_weights` are forwarded to
-[`selectrows`](@ref) (a `TwinningSplitter` rejects them).
+[`selectrows`](@ref) (a `TwinningSplitter` rejects them). An integer `start`
+on a `TwinningSplitter` is interpreted within each run's remaining rows for
+`:sequential` and `:halving` (and must be a valid position there), so
+prefer `:farthest` or `:random` with those strategies.
 
 # Examples
 

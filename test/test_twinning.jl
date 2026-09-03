@@ -75,6 +75,16 @@ end
     end
   end
 
+  @testset "the default search structure follows TWINNING_BRUTE_FORCE_DIMENSION" begin
+    p = SPlit.TWINNING_BRUTE_FORCE_DIMENSION
+    X = SPlit.preprocess(randn(MersenneTwister(8), 120, p))
+    @test SPlit._twin_groups(X, 24, 1, MersenneTwister(0)) ==
+          SPlit._twin_groups(X, 24, 1, MersenneTwister(0); brute_force = true)
+    Xlow = SPlit.preprocess(randn(MersenneTwister(9), 120, p - 1))
+    @test SPlit._twin_groups(Xlow, 24, 1, MersenneTwister(0)) ==
+          SPlit._twin_groups(Xlow, 24, 1, MersenneTwister(0); brute_force = false)
+  end
+
   @testset "each group is u followed by its neighbors in increasing distance" begin
     X = SPlit.preprocess(randn(MersenneTwister(6), 80, 2))
     for g in SPlit._twin_groups(X, 16, :farthest, MersenneTwister(0))

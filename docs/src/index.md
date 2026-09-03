@@ -76,7 +76,7 @@ result = datasplit(TwinningSplitter(), data)          # deterministic, energy di
 folds = multiplet(TwinningSplitter(), data, 5)        # 5 folds, sizes within one row
 ```
 
-See [Benchmarks](@ref benchmarks) for how the two splitters compare across
+See [Benchmarks](@ref benchmarks) for how the three splitters compare across
 kernels and dataset sizes.
 
 ## Quality diagnostics

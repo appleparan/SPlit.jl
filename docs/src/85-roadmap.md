@@ -44,7 +44,7 @@ State of the exported API at v0.5.2.
 | `selectrows` (selection without a partition) | done | Returns the chosen row indices; `datasplit` builds on it. |
 | `TwinningSplitter` | done | Sequential nearest-neighbor twinning (Vakayil & Joseph, 2022); energy distance objective, no kernel or optimizer options; deterministic with `start = :farthest`. |
 | k-fold splitting (`multiplet`) | done | Strategies S1/S2/S3 of the twinning paper; S1/S2 work with every splitter. |
-| High-dimensional data (p in the hundreds) | untested | Twinning measured at p = 768 (N = 10⁴) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. |
+| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10⁴) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. |
 
 ## Design principles
 
@@ -119,7 +119,7 @@ needs.
 
 ### M3: twinning and k-fold multiplets
 
-Done (2026-09-03). Add
+Done (2026-09-03): added
 `TwinningSplitter <: AbstractSplitter` implementing the sequential
 kd-tree assignment of Vakayil & Joseph (2022), and a `multiplet` function
 returning k distribution-balanced folds.

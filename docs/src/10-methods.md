@@ -430,12 +430,13 @@ the splitter minimized.
 
 ## [Twinning and multiplets](@id twinning)
 
-`TwinningSplitter` (Vakayil & Joseph, 2022) replaces steps 3–5 of the
+`TwinningSplitter` (Vakayil & Joseph, 2022) replaces steps 3 and 4 of the
 procedure: no kernel to resolve, no optimizer, and no separate
 nearest-neighbor assignment. It works directly on the standardized rows,
-and its objective is still the energy distance: Proposition 1 of the paper
-shows that the energy distance between the two twins is ``(1 - \gamma)^2``
-times the energy distance between the smaller twin and the whole data,
+and its objective is still the energy distance: by Proposition 1 of the
+paper, the energy distance between the smaller twin and the whole data,
+the SPlit objective, is ``(1 - \gamma)^2`` times the energy distance
+between the two twins, so minimizing the gap between the twins minimizes
 the SPlit objective.
 
 Given ``n`` rows to select, twinning covers the data with ``n`` disjoint

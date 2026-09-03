@@ -1,4 +1,4 @@
-"""Train/test splitting via support points or kernel herding."""
+"""Train/test splitting via support points, kernel herding, or twinning."""
 
 from __future__ import annotations
 
@@ -448,13 +448,16 @@ def _to_julia_start(jl: JuliaValue, start: StartRule) -> JuliaValue:
         ``:farthest``/``:random`` or ``start + 1``.
 
     Raises:
-        ValueError: If `start` is a negative int or an unknown string.
+        ValueError: If `start` is a negative int, not an integer, or an unknown string.
     """
     if isinstance(start, str):
         if start not in ('farthest', 'random'):
             msg = f"start must be 'farthest', 'random', or a row index, got {start!r}"
             raise ValueError(msg)
         return jl.Symbol(start)
+    if not isinstance(start, (int, np.integer)) or isinstance(start, bool):
+        msg = f"start must be 'farthest', 'random', or an integer row index, got {start!r}"
+        raise ValueError(msg)
     if int(start) < 0:
         msg = f'start must be a non-negative row index, got {start}'
         raise ValueError(msg)

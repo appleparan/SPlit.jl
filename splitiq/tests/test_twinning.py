@@ -87,6 +87,10 @@ def test_twinning_option_errors() -> None:
         datasplit(data, method='herding', start='random')
     with pytest.raises(ValueError, match='start'):
         select_rows(data, 20, method='twinning', start=-1)
+    with pytest.raises(ValueError, match='start'):
+        select_rows(data, 20, method='twinning', start=True)
+    with pytest.raises(ValueError, match='start'):
+        select_rows(data, 20, method='twinning', start=2.5)  # ty: ignore[invalid-argument-type]
     with pytest.raises(ValueError, match='weighted'):
         datasplit(data, method='twinning', weights=np.ones(300))
     with pytest.raises(ValueError, match='single'):
