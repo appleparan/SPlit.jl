@@ -90,7 +90,7 @@ def to_weights(weights: DataLike | None) -> np.ndarray | None:
     """
     if weights is None:
         return None
-    array = np.ascontiguousarray(np.asarray(weights, dtype=np.float64))
+    array = np.ascontiguousarray(weights, dtype=np.float64)
     if array.ndim != 1:
         msg = f'weights must be 1-D, got {array.ndim}-D'
         raise ValueError(msg)
