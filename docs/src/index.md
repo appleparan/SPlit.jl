@@ -37,6 +37,10 @@ train = data[result, :train]
 test = data[result, :test]
 splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
+
+target_sample = randn(MersenneTwister(4), 50, 3)
+# rows of data that match target_sample's distribution instead of data's own
+idx = selectrows(SupportPointSplitter(), data, 100; reference = target_sample)
 ```
 
 ## Kernels and splitters

@@ -122,6 +122,36 @@ function _mm_sweep!(
   return nothing
 end
 
+# Validate the (weights | target, target_weights) combination and return the
+# target matrix plus its mean-one and sum-one weight vectors. `weights`
+# belongs to the data-as-target case only. On the no-target path, `R` is
+# `data` itself (not a copy) — callers must not mutate it.
+function _resolve_target(data::Matrix{Float64}, weights, target, target_weights)
+  N = size(data, 1)
+  if target === nothing
+    target_weights === nothing || throw(ArgumentError("target_weights needs a target"))
+    weights === nothing || _check_weights(weights, N)
+    weights = _uniform_as_nothing(weights)
+    w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
+    w_bar = weights === nothing ? nothing : _normalize_weights(weights, N)
+    return data, w_hat, w_bar
+  end
+  weights === nothing ||
+    throw(ArgumentError("with a target, weight the target (target_weights), not the data"))
+  target isa AbstractMatrix ||
+    throw(ArgumentError("target must be a matrix with the same number of columns as data"))
+  size(target, 2) == size(data, 2) ||
+    throw(ArgumentError("target must have the same number of columns as data"))
+  R = Matrix{Float64}(target)
+  M = size(R, 1)
+  M >= 1 || throw(ArgumentError("target must have at least one row"))
+  target_weights === nothing || _check_weights(target_weights, M)
+  tw = _uniform_as_nothing(target_weights)
+  w_hat = tw === nothing ? ones(M) : _mean_one_weights(tw)
+  w_bar = tw === nothing ? nothing : _normalize_weights(tw, M)
+  return R, w_hat, w_bar
+end
+
 # Stochastic-mode subsample: row indices and their ŵ (mean one within the
 # subsample). `:uniform` draws rows uniformly and rescales their weights;
 # `:proportional` draws rows with probability ∝ w and treats them as uniform.
@@ -182,6 +212,18 @@ uniform (this needs at least `kappa` rows with positive weight). The
 default was chosen by the weighted-`kappa` experiment on the Design
 experiments page. A constant weight vector is treated as `nothing`, so
 uniform weights take the unweighted path and reproduce it exactly.
+
+`target` (a matrix with the same columns as `data`) makes the points
+approximate the empirical distribution of `target` instead of `data`:
+the data term of the objective runs over the rows of `target`, weighted by
+`target_weights` (sum-one normalized, `nothing` for uniform; a constant
+vector is treated as `nothing`), while the initial points and the bounding
+box come from `data`, whose rows the points are later rounded to. In
+stochastic mode `kappa` subsamples the rows of `target`. `weights` is only
+for the case without a target; giving both is an `ArgumentError`. A target
+with duplicate rows is jittered by 1e-3 of its column range like the data,
+so weighting a reference is equivalent to duplicating its rows only up to
+that jitter.
 """
 function support_points(
   ::EnergyKernel,
@@ -194,6 +236,8 @@ function support_points(
   rng::AbstractRNG = Random.default_rng(),
   verbose::Bool = false,
   weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
   _n0_factor::Float64 = 0.2,
   _subsampling::Symbol = :uniform,
 )
@@ -207,21 +251,24 @@ function support_points(
   _subsampling in (:uniform, :proportional) || throw(
     ArgumentError("_subsampling must be :uniform or :proportional, got :$_subsampling"),
   )
-  weights === nothing || _check_weights(weights, N)
-  weights = _uniform_as_nothing(weights)
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
+  R, w_hat, _ = _resolve_target(data, weights, target, target_weights)
+  M = size(R, 1)
 
   bounds = _data_bounds(data)
-  working = copy(data)
-  if length(unique(eachrow(working))) < N
-    _jitter!(rng, working, bounds)
+  working = copy(R)
+  if length(unique(eachrow(working))) < M
+    _jitter!(rng, working, target === nothing ? bounds : _data_bounds(R))
+  end
+  candidates = target === nothing ? working : copy(data)
+  if target !== nothing && length(unique(eachrow(candidates))) < N
+    _jitter!(rng, candidates, bounds)
   end
 
-  points = _initial_points(rng, working, n, bounds)
+  points = _initial_points(rng, candidates, n, bounds)
   new_points = similar(points)
   running_const = zeros(n)
   current_const = zeros(n)
-  stochastic = kappa !== nothing && kappa < N
+  stochastic = kappa !== nothing && kappa < M
   rule = Val(_subsampling)
   # Implementation constant (not from the papers): running-average weight
   # n0 = 0.2n, chosen by a small convergence experiment; see docstring.
@@ -234,7 +281,7 @@ function support_points(
     verbose && print("\rIteration $iteration/$max_iterations")
 
     if stochastic
-      idx, sub_w = _draw_subsample(rng, N, kappa, w_hat, rule)
+      idx, sub_w = _draw_subsample(rng, M, kappa, w_hat, rule)
       sub = working[idx, :]
     else
       sub, sub_w = working, w_hat
@@ -276,17 +323,15 @@ function _objective_trajectory(
   max_iterations::Int,
   rng::AbstractRNG,
   weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
 )
-  N = size(data, 1)
-  weights === nothing || _check_weights(weights, N)
-  weights = _uniform_as_nothing(weights)
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
-  score = if weights === nothing
-    points -> _exact_energydistance(points, data)
+  R, w_hat, w_bar = _resolve_target(data, weights, target, target_weights)
+  score = if w_bar === nothing
+    points -> _exact_energydistance(points, R)
   else
     u = _uniform_weights(n)
-    w_bar = _normalize_weights(weights, N)
-    points -> _exact_energydistance(points, data, u, w_bar)
+    points -> _exact_energydistance(points, R, u, w_bar)
   end
   bounds = _data_bounds(data)
   points = _initial_points(rng, copy(data), n, bounds)
@@ -295,17 +340,7 @@ function _objective_trajectory(
   current_const = zeros(n)
   traj = Float64[score(points)]
   for _ = 1:max_iterations
-    _mm_sweep!(
-      new_points,
-      current_const,
-      points,
-      data,
-      w_hat,
-      running_const,
-      1.0,
-      bounds,
-      1,
-    )
+    _mm_sweep!(new_points, current_const, points, R, w_hat, running_const, 1.0, bounds, 1)
     points, new_points = new_points, points
     push!(traj, score(points))
   end
@@ -462,6 +497,17 @@ points minimize the MMD² to the weighted empirical distribution
 `Σ w̄ᵢ δ(xᵢ)`: the data term of the objective and of the gradient carries
 `w̄`, with `ŵ = N w̄` (exactly `1.0` for uniform weights) inside the
 gradient loop, so unweighted results are unchanged.
+
+`target` (a matrix with the same columns as `data`) makes the points
+approximate the empirical distribution of `target` instead of `data`:
+the data term of the objective runs over the rows of `target`, weighted by
+`target_weights` (sum-one normalized, `nothing` for uniform; a constant
+vector is treated as `nothing`), while the initial points and the bounding
+box come from `data`, whose rows the points are later rounded to. `weights`
+is only for the case without a target; giving both is an `ArgumentError`. A
+target with duplicate rows is jittered by 1e-3 of its column range like the
+data, so weighting a reference is equivalent to duplicating its rows only
+up to that jitter.
 """
 function support_points(
   k::GaussianKernel,
@@ -475,6 +521,8 @@ function support_points(
   rng::AbstractRNG = Random.default_rng(),
   verbose::Bool = false,
   weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
 )
   isresolved(k) ||
     throw(ArgumentError("GaussianKernel bandwidth must be resolved; call resolve first"))
@@ -485,17 +533,19 @@ function support_points(
   max_iterations > 0 ||
     throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
   rtol > 0 || throw(ArgumentError("rtol must be positive, got $rtol"))
-  weights === nothing || _check_weights(weights, N)
-  weights = _uniform_as_nothing(weights)
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
-  w_bar = weights === nothing ? nothing : _normalize_weights(weights, N)
+  R, w_hat, w_bar = _resolve_target(data, weights, target, target_weights)
+  M = size(R, 1)
 
   bounds = _data_bounds(data)
-  working = copy(data)
-  if length(unique(eachrow(working))) < N
-    _jitter!(rng, working, bounds)
+  working = copy(R)
+  if length(unique(eachrow(working))) < M
+    _jitter!(rng, working, target === nothing ? bounds : _data_bounds(R))
   end
-  points = _initial_points(rng, working, n, bounds)
+  candidates = target === nothing ? working : copy(data)
+  if target !== nothing && length(unique(eachrow(candidates))) < N
+    _jitter!(rng, candidates, bounds)
+  end
+  points = _initial_points(rng, candidates, n, bounds)
   new_points = similar(points)
   G = similar(points)
   f = _mmd_objective(k, points, working, w_bar)
@@ -533,23 +583,21 @@ function _mmd_trajectory(
   max_iterations::Int,
   rng::AbstractRNG,
   weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
 )
-  N = size(data, 1)
-  weights === nothing || _check_weights(weights, N)
-  weights = _uniform_as_nothing(weights)
-  w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
-  w_bar = weights === nothing ? nothing : _normalize_weights(weights, N)
+  R, w_hat, w_bar = _resolve_target(data, weights, target, target_weights)
   bounds = _data_bounds(data)
   points = _initial_points(rng, copy(data), n, bounds)
   new_points = similar(points)
   G = similar(points)
-  f = _mmd_objective(k, points, data, w_bar)
+  f = _mmd_objective(k, points, R, w_bar)
   traj = Float64[f]
   t = 1.0
   for iteration = 1:max_iterations
-    _mmd_gradient!(G, k, points, data, w_hat, 1)
+    _mmd_gradient!(G, k, points, R, w_hat, 1)
     t0 = iteration == 1 ? _first_step(G, bounds) : 2t
-    t, f = _armijo_step!(new_points, points, G, f, t0, k, data, bounds, w_bar)
+    t, f = _armijo_step!(new_points, points, G, f, t0, k, R, bounds, w_bar)
     t == 0.0 && break
     points, new_points = new_points, points
     push!(traj, f)

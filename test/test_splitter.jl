@@ -240,3 +240,120 @@ end
   @test isapprox(q, expected; atol = 1e-12)
   @test_throws ArgumentError splitquality(data, r; weights = ones(10))
 end
+
+@testset "select and datasplit with a reference" begin
+  data = randn(MersenneTwister(500), 300, 2)
+  R = data[data[:, 1].>0, :]
+
+  @testset "SplitResult.selected and the compatibility constructor" begin
+    s = SupportPointSplitter(max_iterations = 20, rng = MersenneTwister(1))
+    r = datasplit(s, data)
+    @test r.selected === :test
+    s8 = SupportPointSplitter(ratio = 0.8, max_iterations = 20, rng = MersenneTwister(1))
+    @test datasplit(s8, data).selected === :train
+    legacy = SPlit.SplitResult(collect(61:300), collect(1:60), true, 0, s)
+    @test legacy.selected === :test
+    @test occursin("selected=test", sprint(show, r))
+  end
+
+  @testset "select returns the selected side of datasplit" begin
+    for s in (
+      SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(2)),
+      SupportPointSplitter(
+        kernel = GaussianKernel(1.0),
+        max_iterations = 40,
+        rng = MersenneTwister(2),
+      ),
+      HerdingSplitter(kernel = GaussianKernel(1.0)),
+    )
+      s2 = deepcopy(s)          # copy the rng state before datasplit consumes it
+      r = datasplit(s, data)
+      idx = selectrows(s2, data, 60)
+      @test length(idx) == 60
+      @test allunique(idx)
+      @test all(1 .<= idx .<= 300)
+      @test sort(idx) == sort(r.test_indices)
+    end
+  end
+
+  @testset "reference = data reproduces the plain split exactly" begin
+    for s in (
+      SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(3)),
+      HerdingSplitter(kernel = EnergyKernel()),
+    )
+      a = datasplit(deepcopy(s), data)
+      b = datasplit(deepcopy(s), data; reference = data)
+      @test a.test_indices == b.test_indices
+    end
+  end
+
+  @testset "a sub-population reference concentrates the selection" begin
+    for s in (
+      SupportPointSplitter(max_iterations = 100, rng = MersenneTwister(4)),
+      SupportPointSplitter(
+        kernel = GaussianKernel(1.0),
+        max_iterations = 100,
+        rng = MersenneTwister(4),
+      ),
+      HerdingSplitter(kernel = GaussianKernel(1.0)),
+    )
+      plain = selectrows(deepcopy(s), data, 60)
+      targeted = selectrows(deepcopy(s), data, 60; reference = R)
+      @test count(i -> data[i, 1] > 0, targeted) > count(i -> data[i, 1] > 0, plain)
+      @test count(i -> data[i, 1] > 0, targeted) >= 50
+    end
+  end
+
+  @testset "reference_weights and DataFrame references" begin
+    df = DataFrame(x = data[:, 1], y = data[:, 2], g = repeat(["a", "b", "c"], 100))
+    ref = df[df.x.>0, :]
+    s = SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(5))
+    idx = selectrows(
+      s,
+      df,
+      60;
+      reference = ref,
+      reference_weights = rand(MersenneTwister(6), nrow(ref)),
+    )
+    @test length(idx) == 60
+    r = datasplit(
+      SupportPointSplitter(max_iterations = 40, rng = MersenneTwister(7)),
+      df;
+      reference = ref,
+    )
+    @test length(r.test_indices) == 60
+    @test r.selected === :test
+  end
+
+  @testset "validation" begin
+    s = SupportPointSplitter(max_iterations = 5)
+    @test_throws ArgumentError selectrows(s, data, 0)
+    @test_throws ArgumentError selectrows(s, data, 301)
+    @test_throws ArgumentError selectrows(s, data, 10; reference = R, weights = ones(300))
+    @test_throws ArgumentError selectrows(s, data, 10; reference_weights = ones(300))
+    @test_throws ArgumentError selectrows(s, data, 10; reference = randn(20, 3))
+    @test_throws ArgumentError datasplit(s, data; reference = R, weights = ones(300))
+    @test_throws ArgumentError selectrows(s, data, 10; reference = zeros(0, 2))
+  end
+
+  @testset "selectrows preserves the splitter's own selection order" begin
+    data2 = randn(MersenneTwister(510), 120, 2)
+    s = HerdingSplitter(kernel = GaussianKernel(1.0))
+    idx = selectrows(s, data2, 20)
+    @test idx == SPlit.herd(GaussianKernel(1.0), SPlit.preprocess(data2), 20)
+    # guard against an accidentally sorted result; true for this seed
+    @test idx != sort(idx)
+  end
+end
+
+@testset "a reference defined by a categorical level selects that level" begin
+  df = DataFrame(x = randn(MersenneTwister(520), 300), g = repeat(["a", "b", "c"], 100))
+  ref = DataFrame(x = randn(MersenneTwister(521), 80), g = fill("a", 80))
+  for s in (
+    SupportPointSplitter(max_iterations = 100, rng = MersenneTwister(2)),
+    HerdingSplitter(kernel = GaussianKernel(1.0)),
+  )
+    idx = selectrows(deepcopy(s), df, 60; reference = ref)
+    @test count(i -> df.g[i] == "a", idx) >= 55
+  end
+end

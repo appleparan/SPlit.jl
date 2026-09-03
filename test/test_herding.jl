@@ -160,3 +160,54 @@ end
     @test_throws ArgumentError datasplit(s, data; weights = ones(99))
   end
 end
+
+@testset "herding toward a target" begin
+  k = GaussianKernel(1.0)
+  data = randn(MersenneTwister(400), 200, 2)
+  R = data[data[:, 1].>0, :]
+
+  @testset "target = data reproduces the untargeted selection exactly" begin
+    @test SPlit.herd(k, data, 25; target = data) == SPlit.herd(k, data, 25)
+    @test SPlit.herd(EnergyKernel(), data, 25; target = data) ==
+          SPlit.herd(EnergyKernel(), data, 25)
+  end
+
+  @testset "cross data term equals the self data term on the same matrix, and the weighted form" begin
+    d_self = SPlit._data_term(k, data, 1)
+    d_cross = SPlit._data_term(k, data, data, 1)
+    @test isapprox(d_self, d_cross; atol = 1e-12)
+    Rsmall = R[1:20, :]
+    v = rand(MersenneTwister(401), 20)
+    d_w = SPlit._data_term(k, data, Rsmall, v ./ sum(v), 1)
+    brute = [
+      sum(v[l] / sum(v) * SPlit.kernelvalue(k, data[i, :], Rsmall[l, :]) for l = 1:20) for
+      i = 1:200
+    ]
+    @test isapprox(d_w, brute; atol = 1e-12)
+  end
+
+  @testset "selections concentrate in the target sub-population" begin
+    for kernel in (k, EnergyKernel())
+      plain = SPlit.herd(kernel, data, 30)
+      targeted = SPlit.herd(kernel, data, 30; target = R)
+      @test count(i -> data[i, 1] > 0, targeted) > count(i -> data[i, 1] > 0, plain)
+      @test count(i -> data[i, 1] > 0, targeted) >= 27
+    end
+  end
+
+  @testset "validation" begin
+    @test_throws ArgumentError SPlit.herd(k, data, 5; target = R, weights = ones(200))
+    @test_throws ArgumentError SPlit.herd(k, data, 5; target_weights = ones(200))
+    @test_throws ArgumentError SPlit.herd(k, data, 5; target = randn(10, 3))
+  end
+end
+
+@testset "herding datasplit through the generic method" begin
+  data = randn(MersenneTwister(410), 120, 2)
+  s = HerdingSplitter(kernel = GaussianKernel(1.0))
+  r = datasplit(s, data)
+  @test r.iterations == 24
+  @test r.converged
+  @test r.selected === :test
+  @test sort(r.test_indices) == sort(selectrows(s, data, 24))
+end

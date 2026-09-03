@@ -109,6 +109,35 @@ def _weights_kwarg(weights: np.ndarray | None) -> dict[str, np.ndarray]:
     return {} if weights is None else {'weights': weights}
 
 
+def _reference_kwargs(
+    reference: JuliaValue | None, reference_weights: np.ndarray | None
+) -> dict[str, JuliaValue]:
+    """Keyword arguments carrying `reference`/`reference_weights`, empty when unset.
+
+    `reference_weights` is passed through even when `reference` is
+    ``None``, so that Julia's own ``reference_weights needs a reference``
+    check fires (surfaced as ``ValueError``) rather than the keyword being
+    silently dropped.
+
+    Args:
+        reference: A converted reference dataset (see `to_julia_data`), or
+            ``None`` to omit that keyword.
+        reference_weights: A converted reference-weights vector, or
+            ``None`` to omit that keyword.
+
+    Returns:
+        A dict with a ``'reference'`` entry when `reference` is not
+        ``None``, and a ``'reference_weights'`` entry when
+        `reference_weights` is not ``None``.
+    """
+    kwargs: dict[str, JuliaValue] = {}
+    if reference is not None:
+        kwargs['reference'] = reference
+    if reference_weights is not None:
+        kwargs['reference_weights'] = reference_weights
+    return kwargs
+
+
 def _dataframe_to_julia(df: DataLike) -> JuliaValue:
     """Build a Julia ``DataFrame`` from a pandas DataFrame, column by column.
 

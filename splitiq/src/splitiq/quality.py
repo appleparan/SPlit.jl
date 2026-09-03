@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from splitiq._convert import (
     DataLike,
+    _reference_kwargs,
     _weights_kwarg,
     build_kernel,
     build_rng,
@@ -154,6 +155,8 @@ def splitquality(
     seed: int | None = None,
     n_threads: int | None = None,
     weights: DataLike | None = None,
+    reference: DataLike | None = None,
+    reference_weights: DataLike | None = None,
 ) -> float:
     """Discrepancy between the train and test rows of `data`. Smaller is better.
 
@@ -173,19 +176,31 @@ def splitquality(
         n_threads: Number of threads; ``None`` uses Julia's own default.
         weights: One non-negative entry per row of `data`, or ``None``;
             compares the weighted train rows with the weighted test rows.
+            Cannot be combined with `reference`.
+        reference: A dataset of the same kind and columns as `data`, or
+            ``None``. Compares `result`'s selected rows of `data` against
+            `reference` instead of against the other side of the split.
+        reference_weights: One non-negative entry per row of `reference`,
+            or ``None`` for uniform reference weights. Requires `reference`.
 
     Returns:
-        The discrepancy between the train and test rows of `data`.
+        The discrepancy between the train and test rows of `data`, or,
+        when `reference` is given, between `result`'s selected rows and
+        `reference`.
 
     Raises:
         ValueError: If `kernel` is unrecognized or Julia rejects the
-            arguments.
+            arguments (e.g. `reference` with a different number of columns
+            than `data`, `weights` combined with `reference`, or
+            `reference_weights` without `reference`).
     """
     jl = julia()
     julia_data = to_julia_data(data)
     kernel_obj = build_kernel(jl, kernel, bandwidth)
     kwargs = _estimator_kwargs(jl, estimator, seed, n_threads)
     kwargs['exact_threshold'] = exact_threshold
+    julia_reference = to_julia_data(reference) if reference is not None else None
+    julia_reference_weights = to_weights(reference_weights)
     with _translate_error():
         return float(
             jl.splitquality(
@@ -194,5 +209,6 @@ def splitquality(
                 kernel=kernel_obj,
                 **kwargs,
                 **_weights_kwarg(to_weights(weights)),
+                **_reference_kwargs(julia_reference, julia_reference_weights),
             )
         )

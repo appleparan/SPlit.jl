@@ -29,7 +29,9 @@ points and mapped to data rows by sequential nearest-neighbor selection.
   kernel is stored in `result.method`.
 - `ratio`: fraction of rows assigned to the test set, in (0, 1).
 - `kappa`: absolute per-iteration subsample size for stochastic optimization;
-  `nothing` uses all rows every iteration.
+  `nothing` uses all rows every iteration. Stochastic mode runs only when
+  `kappa` is below the number of rows of the target (the data, or the
+  reference when one is given).
 - `tolerance`: convergence when the largest squared displacement of any
   support point in one iteration is below this value. In stochastic mode
   the running-average weight decays with the iteration count, so
@@ -95,7 +97,8 @@ end
     SplitResult
 
 Outcome of [`datasplit`](@ref): index partition plus an honest report of the
-optimizer's convergence.
+optimizer's convergence. `selected` is the side (`:test` or `:train`) that
+holds the rows the splitter chose; the other side is the complement.
 """
 struct SplitResult{M<:AbstractSplitter}
   train_indices::Vector{Int}
@@ -103,7 +106,17 @@ struct SplitResult{M<:AbstractSplitter}
   converged::Bool
   iterations::Int
   method::M
+  selected::Symbol
 end
+
+SplitResult(train, test, converged, iterations, method) = SplitResult(
+  train,
+  test,
+  converged,
+  iterations,
+  method,
+  length(test) <= length(train) ? :test : :train,
+)
 
 """
     train_indices(result::SplitResult) -> Vector{Int}
@@ -114,6 +127,110 @@ train_indices(r::SplitResult) = r.train_indices
     test_indices(result::SplitResult) -> Vector{Int}
 """
 test_indices(r::SplitResult) = r.test_indices
+
+_with_kernel(s::SupportPointSplitter, kernel) = SupportPointSplitter(
+  kernel,
+  s.ratio,
+  s.kappa,
+  s.max_iterations,
+  s.tolerance,
+  s.n_threads,
+  s.rng,
+  s.verbose,
+)
+
+# Preprocess and resolve the kernel for the data-as-target case (weights)
+# or the reference case. Returns the encoded data, the resolved kernel, the
+# encoded target (or nothing), and the target weights.
+function _prepare(s::AbstractSplitter, data, weights, reference, reference_weights)
+  if reference === nothing
+    reference_weights === nothing ||
+      throw(ArgumentError("reference_weights needs a reference"))
+    X = preprocess(data, weights)
+    return X, resolve(s.kernel, X, s.rng, weights), nothing, nothing
+  end
+  weights === nothing || throw(
+    ArgumentError(
+      "with a reference, weight the reference (reference_weights), not the data",
+    ),
+  )
+  _nrows(reference) >= 1 || throw(ArgumentError("reference must have at least one row"))
+  prep = fit_preprocessor(reference; weights = reference_weights, extra = data)
+  R = apply_preprocessor(prep, reference)
+  X = apply_preprocessor(prep, data)
+  return X, resolve(s.kernel, R, s.rng, reference_weights), R, reference_weights
+end
+
+function _select_rows(
+  s::SupportPointSplitter,
+  kernel,
+  X,
+  n;
+  weights,
+  target,
+  target_weights,
+)
+  points, converged, iterations = support_points(
+    kernel,
+    X,
+    n;
+    kappa = s.kappa,
+    max_iterations = s.max_iterations,
+    tolerance = s.tolerance,
+    n_threads = s.n_threads,
+    rng = s.rng,
+    verbose = s.verbose,
+    weights,
+    target,
+    target_weights,
+  )
+  return select_nearest(X, points), converged, iterations
+end
+
+function _select(
+  s::AbstractSplitter,
+  data,
+  n::Integer;
+  weights = nothing,
+  reference = nothing,
+  reference_weights = nothing,
+)
+  X, kernel, target, target_weights =
+    _prepare(s, data, weights, reference, reference_weights)
+  N = size(X, 1)
+  0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
+  indices, converged, iterations =
+    _select_rows(s, kernel, X, Int(n); weights, target, target_weights)
+  return indices, converged, iterations, _with_kernel(s, kernel)
+end
+
+"""
+    selectrows(splitter::AbstractSplitter, data, n; weights = nothing,
+           reference = nothing, reference_weights = nothing) -> Vector{Int}
+
+Indices of the `n` rows of `data` the splitter chooses, in selection order
+(support-point order for `SupportPointSplitter`, greedy order for
+`HerdingSplitter`), without building a train/test partition. The chosen
+rows approximate the data's own distribution (weighted by `weights`) or,
+when `reference` is given, the distribution of `reference` (weighted by
+`reference_weights`): preprocessing is then fit on `reference` and applied
+to both, candidates stay the rows of `data`, and `weights` may not be
+given. Convergence diagnostics are reported by [`datasplit`](@ref).
+"""
+function selectrows(
+  s::AbstractSplitter,
+  data,
+  n::Integer;
+  weights::Union{Nothing,AbstractVector} = nothing,
+  reference = nothing,
+  reference_weights::Union{Nothing,AbstractVector} = nothing,
+)
+  return _select(s, data, n; weights, reference, reference_weights)[1]
+end
+
+_nrows(data::AbstractMatrix) = size(data, 1)
+_nrows(data::AbstractVector) = length(data)
+_nrows(data::DataFrame) = nrow(data)
 
 """
     datasplit(splitter::AbstractSplitter, data) -> SplitResult
@@ -134,47 +251,33 @@ unchanged. Weights proportional to duplication counts are equivalent to
 duplicating rows, up to the common column rescaling of the weighted
 standardization, which changes nothing under `EnergyKernel` or a `:median`
 bandwidth but does matter for a fixed numeric Gaussian bandwidth.
+
+`reference` (same kind and columns as `data`; optionally weighted by
+`reference_weights`) makes the chosen side approximate the distribution of
+`reference` instead of the data: preprocessing is fit on `reference` and
+applied to both sets, a `:median` bandwidth is resolved on the encoded
+reference, and candidates remain the rows of `data`. `weights` cannot be
+combined with `reference`. The train/test labeling rule is unchanged;
+`result.selected` names the side that holds the chosen rows. See
+[`selectrows`](@ref) for the indices alone.
 """
 function datasplit(
-  s::SupportPointSplitter,
+  s::AbstractSplitter,
   data;
   weights::Union{Nothing,AbstractVector} = nothing,
+  reference = nothing,
+  reference_weights::Union{Nothing,AbstractVector} = nothing,
 )
-  X = preprocess(data, weights)
-  n_total = size(X, 1)
+  n_total = _nrows(data)
   n_small = round(Int, min(s.ratio, 1 - s.ratio) * n_total)
   0 < n_small < n_total ||
     throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
-
-  kernel = resolve(s.kernel, X, s.rng, weights)
-  fitted = SupportPointSplitter(
-    kernel,
-    s.ratio,
-    s.kappa,
-    s.max_iterations,
-    s.tolerance,
-    s.n_threads,
-    s.rng,
-    s.verbose,
-  )
-
-  points, converged, iterations = support_points(
-    kernel,
-    X,
-    n_small;
-    kappa = s.kappa,
-    max_iterations = s.max_iterations,
-    tolerance = s.tolerance,
-    n_threads = s.n_threads,
-    rng = s.rng,
-    verbose = s.verbose,
-    weights,
-  )
-  small = select_nearest(X, points)
+  small, converged, iterations, fitted =
+    _select(s, data, n_small; weights, reference, reference_weights)
   rest = setdiff(1:n_total, small)
-
   test, train = s.ratio <= 0.5 ? (small, rest) : (rest, small)
-  return SplitResult(collect(train), collect(test), converged, iterations, fitted)
+  selected = s.ratio <= 0.5 ? :test : :train
+  return SplitResult(collect(train), collect(test), converged, iterations, fitted, selected)
 end
 
 # `train, test = result`
@@ -204,6 +307,6 @@ function Base.show(io::IO, r::SplitResult)
   print(
     io,
     "SplitResult(train=$(length(r.train_indices)), test=$(length(r.test_indices)), ",
-    "converged=$(r.converged), iterations=$(r.iterations))",
+    "converged=$(r.converged), iterations=$(r.iterations), selected=$(r.selected))",
   )
 end

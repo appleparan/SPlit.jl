@@ -361,3 +361,36 @@ end
     atol = 1e-12,
   )
 end
+
+@testset "splitquality against a reference" begin
+  data = randn(MersenneTwister(600), 300, 2)
+  R = data[data[:, 1].>0, :]
+  s = SupportPointSplitter(max_iterations = 60, rng = MersenneTwister(1))
+  r = datasplit(s, data; reference = R)
+  q = splitquality(data, r; reference = R)
+  @test q isa Float64
+  @test q >= -1e-12
+  # equals the discrepancy between the selected rows and the reference under the reference-fit preprocessing
+  prep = SPlit.fit_preprocessor(R; extra = data)
+  Xs = SPlit.apply_preprocessor(prep, data)[r.test_indices, :]
+  Rp = SPlit.apply_preprocessor(prep, R)
+  @test isapprox(q, energydistance(Xs, Rp); atol = 1e-12)
+  v = rand(MersenneTwister(2), size(R, 1))
+  qw = splitquality(data, r; reference = R, reference_weights = v)
+  @test isapprox(
+    qw,
+    energydistance(
+      SPlit.apply_preprocessor(SPlit.fit_preprocessor(R; weights = v, extra = data), data)[
+        r.test_indices,
+        :,
+      ],
+      SPlit.apply_preprocessor(SPlit.fit_preprocessor(R; weights = v, extra = data), R);
+      weights_y = v,
+    );
+    atol = 1e-12,
+  )
+  # Gaussian kernel scoring resolves :median on the reference and runs
+  @test splitquality(data, r; reference = R, kernel = GaussianKernel()) >= -1e-12
+  @test_throws ArgumentError splitquality(data, r; reference = R, weights = ones(300))
+  @test_throws ArgumentError splitquality(data, r; reference_weights = ones(10))
+end

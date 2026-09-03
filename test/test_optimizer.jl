@@ -514,3 +514,309 @@ end
     @test G1 == G4
   end
 end
+
+@testset "support points toward a target measure" begin
+  rng = MersenneTwister(300)
+  data = randn(rng, 200, 2)
+  R = data[data[:, 1].>0, :]          # a sub-population as the target
+
+  @testset "target = data reproduces the untargeted run exactly" begin
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      a, ca, ia = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 40,
+        rng = MersenneTwister(1),
+      )
+      b, cb, ib = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 40,
+        rng = MersenneTwister(1),
+        target = data,
+      )
+      @test a == b
+      @test (ca, ia) == (cb, ib)
+    end
+  end
+
+  @testset "points move toward the target for both kernels" begin
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      plain, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        30;
+        max_iterations = 100,
+        rng = MersenneTwister(2),
+      )
+      targeted, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        30;
+        max_iterations = 100,
+        rng = MersenneTwister(2),
+        target = R,
+      )
+      @test count(>(0.0), targeted[:, 1]) > count(>(0.0), plain[:, 1])
+      @test count(>(0.0), targeted[:, 1]) >= 24
+      # points stay inside the candidates' bounding box
+      for j = 1:2
+        lo, hi = extrema(view(data, :, j))
+        @test all(lo .<= targeted[:, j] .<= hi)
+      end
+    end
+  end
+
+  @testset "target weights as duplication counts: one MM sweep on duplicated target rows" begin
+    Rsmall = R[1:30, :]
+    counts = rand(MersenneTwister(301), 1:3, 30)
+    Rdup = vcat([Rsmall[i:i, :] for i = 1:30 for _ = 1:counts[i]]...)
+    n = 5
+    points = data[1:n, :] .+ 0.05
+    bounds = SPlit._data_bounds(data)
+    new_w = similar(points)
+    new_d = similar(points)
+    SPlit._mm_sweep!(
+      new_w,
+      zeros(n),
+      copy(points),
+      Rsmall,
+      SPlit._mean_one_weights(Float64.(counts)),
+      zeros(n),
+      1.0,
+      bounds,
+      1,
+    )
+    SPlit._mm_sweep!(
+      new_d,
+      zeros(n),
+      copy(points),
+      Rdup,
+      ones(size(Rdup, 1)),
+      zeros(n),
+      1.0,
+      bounds,
+      1,
+    )
+    @test isapprox(new_w, new_d; atol = 1e-10)
+  end
+
+  @testset "monotone descent toward the target (energy) and non-increase (Gaussian)" begin
+    traj = SPlit._objective_trajectory(
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(3),
+      target = R,
+    )
+    for t = 2:length(traj)
+      @test traj[t] <= traj[t-1] + 1e-8
+    end
+    v = rand(MersenneTwister(302), size(R, 1))
+    trajw = SPlit._objective_trajectory(
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(3),
+      target = R,
+      target_weights = v,
+    )
+    for t = 2:length(trajw)
+      @test trajw[t] <= trajw[t-1] + 1e-8
+    end
+    trajg = SPlit._mmd_trajectory(
+      GaussianKernel(1.0),
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(4),
+      target = R,
+      target_weights = v,
+    )
+    for t = 2:length(trajg)
+      @test trajg[t] <= trajg[t-1] + 1e-12
+    end
+  end
+
+  @testset "stochastic mode subsamples the target" begin
+    big = randn(MersenneTwister(303), 600, 2)
+    Rbig = big[big[:, 1].>0, :]
+    pts, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      big,
+      40;
+      kappa = 100,
+      max_iterations = 60,
+      rng = MersenneTwister(5),
+      target = Rbig,
+    )
+    @test count(>(0.0), pts[:, 1]) >= 30
+  end
+
+  @testset "kappa at or above the target size runs in full-target mode" begin
+    big = randn(MersenneTwister(304), 600, 2)
+    Rbig = big[big[:, 1].>0, :]
+    M = size(Rbig, 1)
+    full, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      big,
+      20;
+      kappa = M + 10,
+      max_iterations = 5,
+      rng = MersenneTwister(1),
+      target = Rbig,
+    )
+    @test size(full) == (20, 2)
+    plain, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      big,
+      20;
+      max_iterations = 5,
+      rng = MersenneTwister(1),
+      target = Rbig,
+    )
+    @test full == plain
+  end
+
+  @testset "target_weights through support_points" begin
+    v = rand(MersenneTwister(305), size(R, 1))
+    weighted, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      20;
+      max_iterations = 30,
+      rng = MersenneTwister(2),
+      target = R,
+      target_weights = v,
+    )
+    @test size(weighted) == (20, 2)
+
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      constant, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 30,
+        rng = MersenneTwister(2),
+        target = R,
+        target_weights = fill(0.3, size(R, 1)),
+      )
+      uniform, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 30,
+        rng = MersenneTwister(2),
+        target = R,
+      )
+      @test constant == uniform
+    end
+  end
+
+  @testset "target with duplicate rows runs (jitter branch)" begin
+    Rsmall = randn(MersenneTwister(306), 10, 2)
+    Rdup = repeat(Rsmall, 3, 1)   # 30 rows, each 3 times
+    pts, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      10;
+      max_iterations = 20,
+      rng = MersenneTwister(1),
+      target = Rdup,
+    )
+    @test size(pts) == (10, 2)
+    @test all(isfinite, pts)
+    pts_g, _, _ = SPlit.support_points(
+      GaussianKernel(1.0),
+      data,
+      10;
+      max_iterations = 20,
+      rng = MersenneTwister(1),
+      target = Rdup,
+    )
+    @test size(pts_g) == (10, 2)
+    @test all(isfinite, pts_g)
+
+    # Duplicating the target 3x is the same measure as weighting it 3x. Two
+    # full optimizer runs are not comparable: the duplicated target consumes
+    # an extra rng draw for its jitter, so the initial points differ and the
+    # runs land in different local configurations (observed energy-distance
+    # gaps of 0.03 after 20 iterations on Julia 1.12). The equivalence holds
+    # exactly at the level of one MM sweep from the same starting points,
+    # up to the jitter (1e-3 of the column range), so test it there.
+    jittered = copy(Rdup)
+    SPlit._jitter!(MersenneTwister(2), jittered, SPlit._data_bounds(Rdup))
+    points = data[1:10, :] .+ 0.05
+    bounds = SPlit._data_bounds(data)
+    new_j = similar(points)
+    new_w = similar(points)
+    SPlit._mm_sweep!(
+      new_j,
+      zeros(10),
+      copy(points),
+      jittered,
+      ones(30),
+      zeros(10),
+      1.0,
+      bounds,
+      1,
+    )
+    SPlit._mm_sweep!(
+      new_w,
+      zeros(10),
+      copy(points),
+      Rsmall,
+      SPlit._mean_one_weights(fill(3.0, 10)),
+      zeros(10),
+      1.0,
+      bounds,
+      1,
+    )
+    @test isapprox(new_j, new_w; atol = 1e-2)
+    @test !isapprox(new_j, new_w; atol = 0.0)   # the jitter does move the target
+  end
+
+  @testset "validation" begin
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = zeros(0, 2),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = R,
+      weights = ones(200),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target_weights = ones(200),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = R,
+      target_weights = ones(3),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = randn(10, 3),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      GaussianKernel(1.0),
+      data,
+      5;
+      target = R,
+      weights = ones(200),
+    )
+  end
+end

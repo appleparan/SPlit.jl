@@ -360,3 +360,38 @@ numeric Gaussian bandwidth, which is what the tests check. How stochastic
 `kappa` subsampling combines with weights was decided by the experiment on
 the
 [Design experiments](@ref weighted-kappa) page.
+
+## [Reference distribution and `selectrows`](@id reference-distribution)
+
+By default the chosen rows approximate the distribution of the data they
+are drawn from. Passing `reference` (a second sample with the same columns,
+optionally weighted by `reference_weights`) makes them approximate the
+reference instead, while the candidates stay the rows of `data`. Only two
+steps of the procedure change:
+
+- **Step 1: Preprocess.** The transform is fit on the reference and applied
+  to both sets: categorical levels are the union of both sets' levels, and
+  the reference's mean and scale (weighted forms with `reference_weights`)
+  standardize every row. Columns that are constant on the reference but
+  vary in the data are kept, not dropped: they are centered at the
+  reference's value and scaled by the data's spread, so candidates away
+  from that value are penalized. Columns constant on both sets are dropped.
+- **Step 3: Resolve the kernel.** A `:median` bandwidth is resolved on the
+  encoded reference.
+
+Step 4 keeps its rules with the reference as the target measure: the data
+term of the energy distance or MMD² runs over the reference rows
+``r_1, \dots, r_M`` with weights ``\bar v_l``, the support points start at
+rows of `data` and are rounded to rows of `data`, and kernel herding's data
+term becomes ``\sum_l \bar v_l\, k(x, r_l)`` for every candidate ``x``.
+`weights` for the data cannot be combined with `reference`. Support points
+are clamped to the bounding box of `data`, so a reference lying outside
+that box cannot be matched beyond the box, and monotone descent is
+guaranteed only while the box does not bind.
+
+`selectrows(splitter, data, n; ...)` runs the same steps and returns the `n`
+chosen row indices without forming a partition; `datasplit` is `selectrows`
+with `n` set by `ratio` plus the complement, and `result.selected` names the
+side that holds the chosen rows. `splitquality(data, result; reference)`
+then measures the chosen rows against the reference, which is the quantity
+the splitter minimized.

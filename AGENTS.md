@@ -25,8 +25,9 @@ output-matching tests. The design record is
 ## Gotchas
 
 - `kappa` is an absolute row count; stochastic mode runs only when it is
-  below the number of data rows. Full-data mode is the pure MM step and must
-  stay monotone; the descent test enforces it.
+  below the number of rows of the target (the data, or the reference when
+  one is given). Full-data mode is the pure MM step and must stay monotone;
+  the descent test enforces it.
 - `tolerance` compares the largest *squared* per-point displacement.
 - The MM sweep in `optimizer.jl` is the hot loop and is written as explicit
   coordinate loops on purpose: keep it allocation-free. `n0 = 0.2n` there is
@@ -79,6 +80,18 @@ output-matching tests. The design record is
   unweighted path; inside the optimizers the mean-one factor `ŵ` is
   exactly `1.0` for uniform weights. Tests use "weights as duplication
   counts equals duplicated rows".
+- `reference`/`reference_weights` (on `selectrows`, `datasplit`, `splitquality`,
+  `compare`) define the target measure; candidates are always rows of
+  `data`. Preprocessing is fit on the reference (`fit_preprocessor`) and
+  applied to both; `weights` and `reference` are mutually exclusive;
+  `reference = nothing` must stay bit-identical to the untargeted path.
+  A column constant on the reference but varying on `data` is kept, not
+  dropped: it is centered at the reference's value and scaled by the
+  data's spread. `SplitResult.selected` names the side holding the chosen
+  rows.
+- The selection function is named `selectrows`, not `select`, because
+  `DataFrames` exports `select`. Docstrings must sit directly above the
+  function they document.
 
 ## Workflow
 

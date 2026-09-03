@@ -40,7 +40,8 @@ State of the exported API at v0.5.2.
 | `compare` / `best` | done | Splitter comparison on one dataset. |
 | Python package `splitiq` | done | Wraps the Julia package through juliacall; every computation still runs in Julia. See [Python](30-python.md). |
 | Weighted samples | done | `weights` on `datasplit`, `splitquality`, `compare`; `weights_x`/`weights_y` on `energydistance` and `mmd`; see [Methods](@ref weighted-samples). |
-| Reference (target) distribution | not supported | The reference is always the data itself. |
+| Reference (target) distribution | done | `reference`/`reference_weights` on `selectrows`, `datasplit`, `splitquality`, `compare`; see [Methods](@ref reference-distribution). |
+| `selectrows` (selection without a partition) | done | Returns the chosen row indices; `datasplit` builds on it. |
 | k-fold splitting | not supported | Two-way splits only. |
 | High-dimensional data (p in the hundreds) | untested | [Benchmarks](@ref benchmarks) covers p up to 10 (`normal-10d`). `select_nearest` uses a k-d tree, which degrades in high dimension. |
 
@@ -53,8 +54,9 @@ State of the exported API at v0.5.2.
 - One interface, many algorithms. Every selection method is an
   `AbstractSplitter` with a `datasplit` method: input data (matrix,
   `DataFrame`, or vector, observations in rows), output a `SplitResult`.
-  A new method is a new `AbstractSplitter` subtype and a new `datasplit`
-  method, not a change to the existing ones.
+  A new method is a new `AbstractSplitter` subtype with `_select_rows` and
+  `_with_kernel` methods; `datasplit` and `selectrows` are generic over
+  `AbstractSplitter`, not changed for each new one.
 - Faithful to the source. Each algorithm follows its original paper.
   Deviations are documented in the docstring under a "Differences from the
   paper" heading.
@@ -98,7 +100,7 @@ distribution matching with quality scores.
 
 ### M2: reference (target) distribution
 
-Planned, depends on M1. Add a `reference::AbstractMatrix` keyword.
+Done (2026-09-03). Add a `reference::AbstractMatrix` keyword.
 Distances are computed against `reference` instead of the data; selection
 still happens among the data's own rows.
 
@@ -109,6 +111,10 @@ still happens among the data's own rows.
 
 Why: turns SPlit into a target-matching selector with a distance-based
 rather than density-ratio-based criterion.
+
+`selectrows(splitter, data, n; reference, reference_weights)` ships
+alongside, as the selection-only entry point the embedding workflow (M5)
+needs.
 
 ### M3: twinning and k-fold multiplets
 
@@ -212,3 +218,4 @@ a baseline.
 
 - 2026-09-03: initial roadmap.
 - 2026-09-03: M1 (weighted samples) done; kappa question resolved.
+- 2026-09-03: M2 (reference distribution) and `selectrows` done.

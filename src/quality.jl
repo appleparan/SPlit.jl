@@ -407,6 +407,9 @@ const GAUSSIAN_FALLBACK = RandomFeatures(512)
 _fallback_estimator(::EnergyKernel) = ENERGY_FALLBACK
 _fallback_estimator(::GaussianKernel) = GAUSSIAN_FALLBACK
 
+# Row indices of the side scored against a reference: `result.selected`.
+_selected_indices(r::SplitResult) = _subset_indices(r, r.selected)
+
 """
     splitquality(data, result::SplitResult;
                  kernel = EnergyKernel(), estimator = nothing,
@@ -430,6 +433,12 @@ the Design experiments page (currently [`RandomSlices`](@ref)`(64)` for
 `weights` (one non-negative entry per row of `data`) applies the weighted
 preprocessing `datasplit` used and compares the weighted train rows with
 the weighted test rows, each side's weights rescaled to sum one.
+
+`reference` (with optional `reference_weights`) scores the rows on the
+`result.selected` side against `reference` instead of comparing train with
+test: preprocessing is fit on `reference` and applied to both, and the
+discrepancy is between the selected rows (uniform) and the reference
+(weighted). `weights` cannot be combined with `reference`.
 """
 function splitquality(
   data,
@@ -442,7 +451,33 @@ function splitquality(
   rng::AbstractRNG = Random.default_rng(),
   n_threads::Int = Threads.nthreads(),
   weights::Union{Nothing,AbstractVector} = nothing,
+  reference = nothing,
+  reference_weights::Union{Nothing,AbstractVector} = nothing,
 )
+  if reference !== nothing
+    weights === nothing || throw(
+      ArgumentError(
+        "with a reference, weight the reference (reference_weights), not the data",
+      ),
+    )
+    _nrows(reference) >= 1 || throw(ArgumentError("reference must have at least one row"))
+    prep = fit_preprocessor(reference; weights = reference_weights, extra = data)
+    R = apply_preprocessor(prep, reference)
+    Xs = apply_preprocessor(prep, data)[_selected_indices(result), :]
+    k = isresolved(kernel) ? kernel : resolve(kernel, R, rng, reference_weights)
+    chosen = if subsample !== nothing
+      Subsample(subsample, repeats)
+    elseif estimator !== nothing
+      estimator
+    elseif size(Xs, 1) + size(R, 1) <= exact_threshold
+      Exact()
+    else
+      _fallback_estimator(k)
+    end
+    return mmd(Xs, R, k; estimator = chosen, rng, n_threads, weights_y = reference_weights)
+  end
+  reference_weights === nothing ||
+    throw(ArgumentError("reference_weights needs a reference"))
   X = preprocess(data, weights)
   train = X[result.train_indices, :]
   test = X[result.test_indices, :]
