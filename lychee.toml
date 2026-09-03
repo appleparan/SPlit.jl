@@ -2,9 +2,7 @@ exclude = [
   "@ref",
   # Medium-backed blog rejects requests from GitHub-hosted runners (connection reset)
   "^https://blog.esciencecenter.nl/",
-  "^https://github.com/.*/releases/tag/v.*$",
-  # `stable` exists only after the first tagged release; `dev` is live
-  "^https://liam.kim/SPlit.jl/stable$"
+  "^https://github.com/.*/releases/tag/v.*$"
 ]
 
 exclude_path = [
