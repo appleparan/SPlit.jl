@@ -113,5 +113,6 @@ for (m, col) in zip(order, colors)
   scatterlines!(ax2, sub.N, rel; color = col, label = m)
 end
 axislegend(ax1; position = :lt)
+axislegend(ax2; position = :rt)
 save(joinpath(OUT, "twinning.png"), fig; px_per_unit = 2)
 println("wrote figures to $OUT")
