@@ -514,3 +514,180 @@ end
     @test G1 == G4
   end
 end
+
+@testset "support points toward a target measure" begin
+  rng = MersenneTwister(300)
+  data = randn(rng, 200, 2)
+  R = data[data[:, 1].>0, :]          # a sub-population as the target
+
+  @testset "target = data reproduces the untargeted run exactly" begin
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      a, ca, ia = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 40,
+        rng = MersenneTwister(1),
+      )
+      b, cb, ib = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 40,
+        rng = MersenneTwister(1),
+        target = data,
+      )
+      @test a == b
+      @test (ca, ia) == (cb, ib)
+    end
+  end
+
+  @testset "points move toward the target for both kernels" begin
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      plain, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        30;
+        max_iterations = 100,
+        rng = MersenneTwister(2),
+      )
+      targeted, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        30;
+        max_iterations = 100,
+        rng = MersenneTwister(2),
+        target = R,
+      )
+      @test count(>(0.0), targeted[:, 1]) > count(>(0.0), plain[:, 1])
+      @test count(>(0.0), targeted[:, 1]) >= 24
+      # points stay inside the candidates' bounding box
+      for j = 1:2
+        lo, hi = extrema(view(data, :, j))
+        @test all(lo .<= targeted[:, j] .<= hi)
+      end
+    end
+  end
+
+  @testset "target weights as duplication counts: one MM sweep on duplicated target rows" begin
+    Rsmall = R[1:30, :]
+    counts = rand(MersenneTwister(301), 1:3, 30)
+    Rdup = vcat([Rsmall[i:i, :] for i = 1:30 for _ = 1:counts[i]]...)
+    n = 5
+    points = data[1:n, :] .+ 0.05
+    bounds = SPlit._data_bounds(data)
+    new_w = similar(points)
+    new_d = similar(points)
+    SPlit._mm_sweep!(
+      new_w,
+      zeros(n),
+      copy(points),
+      Rsmall,
+      SPlit._mean_one_weights(Float64.(counts)),
+      zeros(n),
+      1.0,
+      bounds,
+      1,
+    )
+    SPlit._mm_sweep!(
+      new_d,
+      zeros(n),
+      copy(points),
+      Rdup,
+      ones(size(Rdup, 1)),
+      zeros(n),
+      1.0,
+      bounds,
+      1,
+    )
+    @test isapprox(new_w, new_d; atol = 1e-10)
+  end
+
+  @testset "monotone descent toward the target (energy) and non-increase (Gaussian)" begin
+    traj = SPlit._objective_trajectory(
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(3),
+      target = R,
+    )
+    for t = 2:length(traj)
+      @test traj[t] <= traj[t-1] + 1e-8
+    end
+    v = rand(MersenneTwister(302), size(R, 1))
+    trajw = SPlit._objective_trajectory(
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(3),
+      target = R,
+      target_weights = v,
+    )
+    for t = 2:length(trajw)
+      @test trajw[t] <= trajw[t-1] + 1e-8
+    end
+    trajg = SPlit._mmd_trajectory(
+      GaussianKernel(1.0),
+      data,
+      15;
+      max_iterations = 40,
+      rng = MersenneTwister(4),
+      target = R,
+      target_weights = v,
+    )
+    for t = 2:length(trajg)
+      @test trajg[t] <= trajg[t-1] + 1e-12
+    end
+  end
+
+  @testset "stochastic mode subsamples the target" begin
+    big = randn(MersenneTwister(303), 600, 2)
+    Rbig = big[big[:, 1].>0, :]
+    pts, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      big,
+      40;
+      kappa = 100,
+      max_iterations = 60,
+      rng = MersenneTwister(5),
+      target = Rbig,
+    )
+    @test count(>(0.0), pts[:, 1]) >= 30
+  end
+
+  @testset "validation" begin
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = R,
+      weights = ones(200),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target_weights = ones(200),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = R,
+      target_weights = ones(3),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = randn(10, 3),
+    )
+    @test_throws ArgumentError SPlit.support_points(
+      GaussianKernel(1.0),
+      data,
+      5;
+      target = R,
+      weights = ones(200),
+    )
+  end
+end
