@@ -7,7 +7,7 @@ from splitiq._version import __version__
 from splitiq.estimators import Exact, RandomFeatures, RandomSlices, Subsample
 from splitiq.quality import energydistance, mmd, splitquality
 from splitiq.ratio import optimal_split_ratio
-from splitiq.split import SplitResult, datasplit
+from splitiq.split import SplitResult, datasplit, select_rows
 
 __author__ = """Jongsu Liam Kim"""
 __email__ = 'jongsukim8@gmail.com'
@@ -23,5 +23,6 @@ __all__ = [
     'energydistance',
     'mmd',
     'optimal_split_ratio',
+    'select_rows',
     'splitquality',
 ]

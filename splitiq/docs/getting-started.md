@@ -161,3 +161,24 @@ print(splitquality(data, result, weights=weights))
 `energydistance` and `mmd` take `weights_x` and `weights_y` for their two
 samples. Weights proportional to duplication counts are equivalent to
 duplicating rows.
+
+## Selecting rows toward a reference
+
+`select_rows` returns the indices of `n` rows without forming a partition, and
+`reference` makes the chosen rows follow a target sample instead of the
+data itself:
+
+```python
+import numpy as np
+from splitiq import select_rows, splitquality, datasplit
+
+data = np.random.default_rng(0).standard_normal((5000, 16))
+target = np.random.default_rng(1).standard_normal((800, 16)) + 0.5
+
+idx = select_rows(data, 500, seed=42, reference=target)          # 0-based row indices
+result = datasplit(data, ratio=0.1, seed=42, reference=target)
+print(result.selected, splitquality(data, result, reference=target))
+```
+
+`reference_weights` weights the reference rows; `weights` cannot be
+combined with `reference`.
