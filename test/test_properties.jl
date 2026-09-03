@@ -140,4 +140,18 @@ using Statistics
       @test q < mean(random_qs)
     end
   end
+
+  @testset "twinning multiplets beat random folds on the worst fold's energy distance" begin
+    data = randn(MersenneTwister(310), 400, 3)
+    X = SPlit.preprocess(data)
+    worst(folds) = maximum(energydistance(X[f, :], X) for f in folds)
+    random_worst = map(1:20) do i
+      perm = randperm(MersenneTwister(3_000 + i), 400)
+      worst([perm[(100*(j-1)+1):(100*j)] for j = 1:4])
+    end
+    for strategy in (:sequential, :halving, :single)
+      folds = multiplet(TwinningSplitter(), data, 4; strategy)
+      @test worst(folds) < mean(random_worst)
+    end
+  end
 end
