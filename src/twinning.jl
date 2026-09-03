@@ -103,3 +103,89 @@ function _twin_groups(
   end
   return groups
 end
+
+"""
+    TwinningSplitter(; ratio = 0.2, start = :farthest, rng = Random.default_rng())
+
+Split by twinning (Vakayil & Joseph 2022): the standardized rows are
+covered by `n` disjoint groups, each a row `u_i` and its nearest ungrouped
+neighbors, formed as a chain where `u_{i+1}` is the ungrouped row nearest
+to the farthest member of group `i`; the smaller side is `{u_1, …, u_n}`.
+The objective is the energy distance (the paper's Proposition 1 ties it to
+the SPlit objective), so `kernel` is a fixed `EnergyKernel()`. No optimizer,
+no `kappa`, serial; average cost `O(pN log N)`.
+
+- `ratio`: fraction of rows assigned to the test set, in (0, 1).
+- `start`: the starting row `u_1`: `:farthest` (default) is the row farthest
+  from the centroid of the standardized data and consumes no randomness,
+  `:random` draws it with `rng`, an integer names the row.
+- `rng`: used only by `start = :random`.
+
+`SplitResult.converged` is always `true` and `iterations` is the number of
+groups formed. `weights` and `reference` are not defined for twinning and
+raise an `ArgumentError`.
+
+# Differences from the paper
+
+The paper assumes `1/ratio = r` is an integer and takes `n = ⌈N/r⌉`, with
+the last group absorbing the remainder. Here `n` follows the generic rule
+of [`datasplit`](@ref) (or the caller's `n` in [`selectrows`](@ref)) and
+`r = ⌊N/n⌋`, the `N − rn` leftover rows forming groups of `r + 1` spread
+evenly along the chain; when `N = rn` the two agree exactly. Grouped rows
+are masked in a k-d tree that is rebuilt on the remaining rows once more
+than half of its rows are masked (the paper masks without rebuilding).
+
+# Examples
+
+```julia
+data = randn(MersenneTwister(1), 1_000, 5)
+result = datasplit(TwinningSplitter(), data)          # deterministic
+folds = multiplet(TwinningSplitter(), data, 5)        # 5 distribution-balanced folds
+```
+
+"""
+struct TwinningSplitter{R<:AbstractRNG} <: AbstractSplitter
+  kernel::EnergyKernel
+  ratio::Float64
+  start::Union{Symbol,Int}
+  rng::R
+end
+
+function TwinningSplitter(;
+  ratio::Real = 0.2,
+  start::Union{Symbol,Integer} = :farthest,
+  rng::AbstractRNG = Random.default_rng(),
+)
+  ratio = Float64(ratio)
+  0 < ratio < 1 || throw(ArgumentError("ratio must be in (0, 1), got $ratio"))
+  if start isa Symbol
+    start in (:farthest, :random) ||
+      throw(ArgumentError("start must be :farthest, :random, or a row index, got :$start"))
+  else
+    start >= 1 || throw(ArgumentError("start must be a positive row index, got $start"))
+    start = Int(start)
+  end
+  return TwinningSplitter(EnergyKernel(), ratio, start, rng)
+end
+
+_with_kernel(s::TwinningSplitter, kernel) = s
+
+function _check_twinning_plain(weights, target)
+  (weights === nothing && target === nothing) || throw(
+    ArgumentError(
+      "TwinningSplitter has no weighted or reference form; the paper defines it on the data alone",
+    ),
+  )
+  return nothing
+end
+
+function _select_rows(s::TwinningSplitter, kernel, X, n; weights, target, target_weights)
+  _check_twinning_plain(weights, target)
+  groups = _twin_groups(X, n, s.start, s.rng)
+  return first.(groups), true, n
+end
+
+function Base.show(io::IO, s::TwinningSplitter)
+  start = s.start isa Symbol ? ":$(s.start)" : string(s.start)
+  print(io, "TwinningSplitter(ratio=$(s.ratio), start=$start)")
+end

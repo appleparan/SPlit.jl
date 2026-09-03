@@ -121,4 +121,23 @@ using Statistics
       @test mean(data[idx, 1]) > mean(data[:, 1]) + 0.5
     end
   end
+  @testset "twinning splits beat random splits under the energy distance" begin
+    mixture = let rng = MersenneTwister(300), N = 400
+      c = rand(rng, 1:4, N)
+      centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+      centers[c, :] .+ randn(rng, N, 2)
+    end
+    for (seed, data) in ((301, mixture), (302, randn(MersenneTwister(302), 400, 4)))
+      s = TwinningSplitter()
+      r = datasplit(s, data)
+      q = splitquality(data, r)
+      n_test = length(test_indices(r))
+      random_qs = map(1:25) do i
+        perm = randperm(MersenneTwister(1_000 * seed + i), size(data, 1))
+        fake = SPlit.SplitResult(perm[(n_test+1):end], perm[1:n_test], true, 0, s)
+        splitquality(data, fake)
+      end
+      @test q < mean(random_qs)
+    end
+  end
 end
