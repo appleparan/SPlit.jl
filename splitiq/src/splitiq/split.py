@@ -111,7 +111,7 @@ def datasplit(
             pandas DataFrame.
         ratio: Fraction of rows assigned to the test set, in (0, 1).
         method: ``'support_points'`` (Mak & Joseph 2018; Joseph & Vakayil
-            2021) or ``'herding'`` (greedy kernel herding).
+            2022) or ``'herding'`` (greedy kernel herding).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
@@ -203,7 +203,7 @@ def select_rows(
             pandas DataFrame.
         n: Number of rows to select, in ``1:len(data)``.
         method: ``'support_points'`` (Mak & Joseph 2018; Joseph & Vakayil
-            2021) or ``'herding'`` (greedy kernel herding).
+            2022) or ``'herding'`` (greedy kernel herding).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.

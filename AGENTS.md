@@ -12,7 +12,7 @@ comments, or docs:
 
 - Mak & Joseph (2018), Support points, *Annals of Statistics* 46(6A): the
   MM update and the energy-distance objective.
-- Joseph & Vakayil (2021), SPlit, *Technometrics* 63(4): the splitting
+- Joseph & Vakayil (2022), SPlit, *Technometrics* 64(2): the splitting
   procedure, stochastic MM, nearest-neighbor subsampling.
 - Joseph (2022), Optimal Ratio for Data Splitting, *SADM* 15(4):
   γ = 1/(√p + 1).

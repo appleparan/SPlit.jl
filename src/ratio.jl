@@ -1,6 +1,6 @@
 """
 Optimal splitting ratio from Joseph (2022), "Optimal Ratio for Data Splitting"
-(Statistical Analysis and Data Mining 15(4), 537-546). The optimal testing
+(Statistical Analysis and Data Mining 15(4), 531-538). The optimal testing
 fraction is γ = 1/(√p + 1) (Eq. 11), where p is the number of parameters of
 the linear regression model f(x)'β expected to explain the data well,
 including the intercept (Section 2.2).

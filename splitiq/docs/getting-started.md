@@ -93,7 +93,7 @@ threshold (`exact_threshold`); pass `estimator=` explicitly to control that your
 
 ## Options
 
-- `method='support_points'` (default) runs the Mak & Joseph (2018) / Joseph & Vakayil (2021)
+- `method='support_points'` (default) runs the Mak & Joseph (2018) / Joseph & Vakayil (2022)
   majorization-minimization optimizer; `method='herding'` runs greedy kernel herding instead,
   which is deterministic given the data and a numeric kernel and has no `kappa`,
   `max_iterations`, or `tolerance` options.

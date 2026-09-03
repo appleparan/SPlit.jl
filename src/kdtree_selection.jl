@@ -1,6 +1,6 @@
 """
 Sequential nearest-neighbor selection: each support point, in order, claims
-its nearest not-yet-selected data row (Joseph & Vakayil 2021). Served by a
+its nearest not-yet-selected data row (Joseph & Vakayil 2022). Served by a
 k-d tree; when every returned neighbor is already claimed, the query doubles
 `k` and retries.
 """

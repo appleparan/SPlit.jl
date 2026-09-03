@@ -2,7 +2,7 @@
 
 `SupportPointSplitter` optimizes continuous support points and then maps
 each one to its nearest unclaimed data row (`select_nearest`, sequential
-nearest-neighbor, Joseph & Vakayil 2021). Points are initialized at a
+nearest-neighbor, Joseph & Vakayil 2022). Points are initialized at a
 random sample of data rows, jittered by 0.1% of the per-dimension range
 (`_initial_points`). This experiment measures, per (dataset, N), how far
 the optimizer moves the points relative to the spacing between data rows,

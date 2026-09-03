@@ -262,7 +262,7 @@ Nothing existing is rewritten. Additions:
 
 - Mak, S., & Joseph, V. R. (2018). Support points. *Annals of Statistics*,
   46(6A). MM update; the weighted majorizer is the same bound.
-- Joseph, V. R., & Vakayil, A. (2021). SPlit. *Technometrics*, 63(4).
+- Joseph, V. R., & Vakayil, A. (2022). SPlit. *Technometrics*, 64(2).
   Stochastic MM.
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-samples from kernel
   herding. *UAI*. Eq. 8.

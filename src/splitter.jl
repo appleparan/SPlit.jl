@@ -21,7 +21,7 @@ abstract type AbstractSplitter end
                           rng = Random.default_rng(), verbose = false)
 
 Configuration for optimal data splitting via support points
-(Joseph & Vakayil 2021): the smaller side is computed as a set of support
+(Joseph & Vakayil 2022): the smaller side is computed as a set of support
 points and mapped to data rows by sequential nearest-neighbor selection.
 
 - `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`

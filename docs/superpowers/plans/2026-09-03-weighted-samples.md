@@ -16,7 +16,7 @@
 - Estimator/kernel combinations are methods of `_energydistance`/`_mmd`: add a method, never an `if` (`AGENTS.md`).
 - All randomness flows through the caller's `rng`; nothing in `src/` seeds or prints on a default path.
 - The MM sweep in `optimizer.jl` stays allocation-free inside the per-point loop.
-- Correctness is judged against Mak & Joseph (2018), Joseph & Vakayil (2021), Chen, Welling & Smola (2010); do not cite or compare with other implementations anywhere.
+- Correctness is judged against Mak & Joseph (2018), Joseph & Vakayil (2022), Chen, Welling & Smola (2010); do not cite or compare with other implementations anywhere.
 - Docs: do not rewrite existing sections; add one "Weighted samples" section per page.
 - Every capability added to Julia is added to splitiq in this same branch, with tests.
 - Run a single Julia test file with `julia --project=. test/<file>.jl`; the full suite with `julia --project=. -e "using Pkg; Pkg.test()"`.

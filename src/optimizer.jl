@@ -3,7 +3,7 @@ Support-point optimization.
 
 Full-data mode applies the closed-form MM update of Mak & Joseph (2018),
 which decreases the energy-distance objective monotonically. When `kappa` is
-given, the stochastic variant of Joseph & Vakayil (2021) resamples `kappa`
+given, the stochastic variant of Joseph & Vakayil (2022) resamples `kappa`
 rows per iteration and stabilizes the update with running averages.
 For `GaussianKernel`, support points minimize the squared MMD by projected
 gradient descent with Armijo backtracking (Gretton et al. 2012 for the

@@ -5,7 +5,7 @@ CurrentModule = SPlit
 # SPlit.jl
 
 A Julia implementation of optimal data splitting via support points, based on
-[Joseph and Vakayil (2021)](https://arxiv.org/abs/2012.10945).
+[Joseph and Vakayil (2022)](https://arxiv.org/abs/2012.10945).
 
 ## Overview
 
@@ -13,7 +13,7 @@ SPlit.jl splits a dataset into training and test sets so that both subsets
 represent the original data distribution as closely as possible. It does so
 by computing *support points*, the sample of a given size that minimizes
 the energy distance to the full data (Mak & Joseph, 2018), and mapping each
-support point to its nearest unclaimed data row (Joseph & Vakayil, 2021).
+support point to its nearest unclaimed data row (Joseph & Vakayil, 2022).
 Unlike random splitting, this makes both the train and test distributions
 close to the population distribution, which improves the reliability of
 model evaluation.
@@ -95,7 +95,7 @@ See the [Reference](@ref reference) section for complete API documentation.
    Under `GaussianKernel` the optimizer is projected gradient descent on the
    squared MMD instead; see [Methods](@ref methods).
 3. Nearest-neighbor assignment. Each support point claims its nearest
-   unclaimed data row via a k-d tree (Joseph & Vakayil, 2021).
+   unclaimed data row via a k-d tree (Joseph & Vakayil, 2022).
 4. Partitioning. The claimed rows form the smaller subset and the rest form
    the larger one; `ratio` decides which of the two is the test set.
 
@@ -103,11 +103,11 @@ Planned work and its ordering are on the [Roadmap](@ref roadmap) page.
 
 ## References
 
-1. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502. [DOI](https://arxiv.org/abs/2012.10945)
+1. Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 64(2), 166-176. [DOI](https://doi.org/10.1080/00401706.2021.1921037)
 
 2. Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 
-3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
+3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 531-538.
 
 4. Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
 

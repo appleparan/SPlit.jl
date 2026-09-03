@@ -20,11 +20,11 @@ Correctness is judged against the papers, not any prior implementation:
 
 1. Mak, S., & Joseph, V. R. (2018). Support points. *Annals of Statistics*,
    46(6A), 2562–2592. — MM update, energy-distance objective.
-2. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data
-   Splitting. *Technometrics*, 63(4), 492–502. — splitting procedure,
+2. Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data
+   Splitting. *Technometrics*, 64(2), 166–176. — splitting procedure,
    stochastic MM for large n, nearest-neighbor subsampling.
 3. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Stat. Anal. Data
-   Mining*, 15(4), 537–546. — optimal test ratio γ = 1/(√p + 1).
+   Mining*, 15(4), 531–538. — optimal test ratio γ = 1/(√p + 1).
 
 Tests encode properties guaranteed by these papers (see Testing) rather than
 matching outputs of other implementations.
@@ -121,7 +121,7 @@ train_view = data[result, :train]    # getindex sugar retained
 
 - `optimize!(points, data, ::EnergyKernel; ...)` implements the closed-form MM
   update of Mak & Joseph (2018) — full-data or stochastic (Joseph & Vakayil
-  2021) depending on `kappa` — and returns `(converged::Bool,
+  2022) depending on `kappa` — and returns `(converged::Bool,
   iterations::Int)`, stored truthfully in `SplitResult`.
 - `SplitResult` fields: `train_indices`, `test_indices`, `converged`,
   `iterations`, `method`. The `quality` field is removed; quality is a
