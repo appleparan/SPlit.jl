@@ -79,6 +79,16 @@ output-matching tests. The design record is
   unweighted path; inside the optimizers the mean-one factor `ŵ` is
   exactly `1.0` for uniform weights. Tests use "weights as duplication
   counts equals duplicated rows".
+- `reference`/`reference_weights` (on `selectrows`, `datasplit`, `splitquality`,
+  `compare`) define the target measure; candidates are always rows of
+  `data`. Preprocessing is fit on the reference (`fit_preprocessor`) and
+  applied to both; `weights` and `reference` are mutually exclusive;
+  `reference = nothing` must stay bit-identical to the untargeted path.
+  `SplitResult.selected` names the side holding the chosen rows.
+- The selection function is named `selectrows`, not `select`, because
+  `DataFrames` exports `select`. Docstrings must sit directly above the
+  function they document; two got detached onto helper functions during
+  this branch and were fixed in review.
 
 ## Workflow
 
