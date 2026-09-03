@@ -113,6 +113,29 @@ isresolved(::GaussianKernel{Symbol}) = false
 const MEDIAN_HEURISTIC_ROWS = 1_000
 
 """
+    _median_bandwidth(data, rows) -> GaussianKernel
+
+Build the `:median`-heuristic `GaussianKernel` from the pairwise Euclidean
+distances among `data[rows, :]`: the bandwidth is the median of those
+distances. Throws `ArgumentError` when that median is zero (e.g. at least
+half of all row pairs coincide), since a zero bandwidth degenerates the
+kernel. Shared by the unweighted and weighted `resolve` methods, which
+differ only in how `rows` is drawn.
+"""
+function _median_bandwidth(data::AbstractMatrix, rows)
+  m = length(rows)
+  D = pairwise(Euclidean(), view(data, rows, :); dims = 1)
+  dists = [D[i, j] for i = 1:m for j = (i+1):m]
+  σ = median(dists)
+  σ > 0 || throw(
+    ArgumentError(
+      "median pairwise distance is zero; pass a numeric bandwidth to GaussianKernel",
+    ),
+  )
+  return GaussianKernel(σ)
+end
+
+"""
     resolve(kernel, data, rng) -> kernel with numeric parameters
 
 Replace data-dependent placeholders. For `GaussianKernel(:median)` the
@@ -126,15 +149,7 @@ function resolve(::GaussianKernel{Symbol}, data::AbstractMatrix, rng::AbstractRN
   N = size(data, 1)
   m = min(N, MEDIAN_HEURISTIC_ROWS)
   rows = m == N ? (1:N) : sample(rng, 1:N, m; replace = false)
-  D = pairwise(Euclidean(), view(data, rows, :); dims = 1)
-  dists = [D[i, j] for i = 1:m for j = (i+1):m]
-  σ = median(dists)
-  σ > 0 || throw(
-    ArgumentError(
-      "median pairwise distance is zero; pass a numeric bandwidth to GaussianKernel",
-    ),
-  )
-  return GaussianKernel(σ)
+  return _median_bandwidth(data, rows)
 end
 
 """
@@ -166,13 +181,5 @@ function resolve(
   m = min(N, MEDIAN_HEURISTIC_ROWS)
   rows =
     m == N ? (1:N) : sample(rng, 1:N, Weights(Vector{Float64}(weights)), m; replace = false)
-  D = pairwise(Euclidean(), view(data, rows, :); dims = 1)
-  dists = [D[i, j] for i = 1:m for j = (i+1):m]
-  σ = median(dists)
-  σ > 0 || throw(
-    ArgumentError(
-      "median pairwise distance is zero; pass a numeric bandwidth to GaussianKernel",
-    ),
-  )
-  return GaussianKernel(σ)
+  return _median_bandwidth(data, rows)
 end

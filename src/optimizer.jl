@@ -146,6 +146,11 @@ function _draw_subsample(
   w_hat::Vector{Float64},
   ::Val{:proportional},
 )
+  count(>(0), w_hat) >= kappa || throw(
+    ArgumentError(
+      "the :proportional rule needs at least kappa = $kappa rows with positive weight",
+    ),
+  )
   idx = sample(rng, 1:N, Weights(w_hat), kappa; replace = false)
   return idx, ones(kappa)
 end
@@ -276,14 +281,19 @@ function _objective_trajectory(
   weights === nothing || _check_weights(weights, N)
   weights = _uniform_as_nothing(weights)
   w_hat = weights === nothing ? ones(N) : _mean_one_weights(weights)
-  w_bar = weights === nothing ? _uniform_weights(N) : _normalize_weights(weights, N)
-  u = _uniform_weights(n)
+  score = if weights === nothing
+    points -> _exact_energydistance(points, data)
+  else
+    u = _uniform_weights(n)
+    w_bar = _normalize_weights(weights, N)
+    points -> _exact_energydistance(points, data, u, w_bar)
+  end
   bounds = _data_bounds(data)
   points = _initial_points(rng, copy(data), n, bounds)
   new_points = similar(points)
   running_const = zeros(n)
   current_const = zeros(n)
-  traj = Float64[_exact_energydistance(points, data, u, w_bar)]
+  traj = Float64[score(points)]
   for _ = 1:max_iterations
     _mm_sweep!(
       new_points,
@@ -297,7 +307,7 @@ function _objective_trajectory(
       1,
     )
     points, new_points = new_points, points
-    push!(traj, _exact_energydistance(points, data, u, w_bar))
+    push!(traj, score(points))
   end
   return traj
 end
@@ -326,9 +336,7 @@ function _mmd_objective(
   data::AbstractMatrix{Float64},
   w_bar::AbstractVector{Float64},
 )
-  n = size(points, 1)
-  return _mean_kernel(k, points, points) -
-         2 * _mean_kernel(k, points, data, _uniform_weights(n), w_bar)
+  return _mean_kernel(k, points, points) - 2 * _mean_kernel(k, points, data, nothing, w_bar)
 end
 
 # Full gradient of _mmd_objective with respect to every support point.

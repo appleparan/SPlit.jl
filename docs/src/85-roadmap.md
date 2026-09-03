@@ -75,8 +75,8 @@ series.
 
 ### M1: weighted samples
 
-Done (2026-09-03). Add `weights::AbstractVector` to `energydistance`, `mmd`, and the
-`support_points` optimizer, plus `HerdingSplitter`'s data term.
+Done (2026-09-03). Add `weights::AbstractVector` to `energydistance`, `mmd`,
+and the `support_points` optimizer, plus `HerdingSplitter`'s data term.
 
 - Empirical distribution terms become weighted averages; formulas go in
   docstrings.

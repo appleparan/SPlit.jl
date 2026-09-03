@@ -70,7 +70,8 @@ def energydistance(
         n_threads: Number of threads; ``None`` uses Julia's own default.
         weights_x: One non-negative entry per row of `x`, or ``None`` for
             uniform.
-        weights_y: Same for `y`.
+        weights_y: Same for `y`. Weights proportional to duplication counts
+            are equivalent to duplicating rows.
 
     Returns:
         The energy distance between `x` and `y`.
@@ -117,7 +118,8 @@ def mmd(
         n_threads: Number of threads; ``None`` uses Julia's own default.
         weights_x: One non-negative entry per row of `x`, or ``None`` for
             uniform.
-        weights_y: Same for `y`.
+        weights_y: Same for `y`. Weights proportional to duplication counts
+            are equivalent to duplicating rows.
 
     Returns:
         The squared MMD between `x` and `y` under `kernel`.

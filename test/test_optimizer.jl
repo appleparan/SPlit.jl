@@ -389,6 +389,22 @@ end
       end
     end
   end
+
+  @testset ":proportional errors when fewer than kappa rows have positive weight" begin
+    data = randn(MersenneTwister(95), 60, 2)
+    w = zeros(60)
+    w[1:3] .= 1.0
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      kappa = 10,
+      weights = w,
+      rng = MersenneTwister(1),
+      max_iterations = 3,
+      _subsampling = :proportional,
+    )
+  end
 end
 
 @testset "weighted support points (Gaussian kernel)" begin

@@ -347,3 +347,17 @@ end
   )
   @test_throws ArgumentError mmd(X, Y, k; weights_x = wr, estimator = RandomSlices(8))
 end
+
+@testset "_mean_kernel with implicit uniform X weights" begin
+  rng = MersenneTwister(63)
+  X = randn(rng, 20, 2)
+  Y = randn(rng, 15, 2)
+  wy = rand(rng, 15)
+  wy ./= sum(wy)
+  k = GaussianKernel(1.1)
+  @test isapprox(
+    SPlit._mean_kernel(k, X, Y, nothing, wy),
+    SPlit._mean_kernel(k, X, Y, fill(1 / 20, 20), wy);
+    atol = 1e-12,
+  )
+end
