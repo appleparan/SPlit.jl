@@ -150,6 +150,30 @@ function _mean_kernel(
   end
 end
 
+# Mean Gaussian kernel value with the X side implicitly uniform (1/size(X, 1)
+# each), avoiding the allocation of an explicit uniform weight vector — used
+# by the optimizer's per-trial objective, where X is the current points.
+function _mean_kernel(
+  k::GaussianKernel{Float64},
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  ::Nothing,
+  wy::AbstractVector{Float64};
+  block::Int = 1_024,
+  n_threads::Int = Threads.nthreads(),
+)
+  scale = -1 / (2 * k.bandwidth^2)
+  pairs = _block_pairs(size(X, 1), size(Y, 1), block)
+  total = _threaded_block_sum(pairs, n_threads) do (xblock, yblock)
+    i0, i1 = xblock
+    j0, j1 = yblock
+    @views D = pairwise(SqEuclidean(), X[i0:i1, :], Y[j0:j1, :]; dims = 1)
+    D .= exp.(scale .* D)
+    @views sum(D * wy[j0:j1])
+  end
+  return total / size(X, 1)
+end
+
 function _exact_mmd(
   k::GaussianKernel{Float64},
   X::AbstractMatrix,
@@ -433,7 +457,6 @@ function splitquality(
     _fallback_estimator(k)
   end
   weights === nothing && return mmd(train, test, k; estimator = chosen, rng, n_threads)
-  w = _normalize_weights(weights, size(X, 1))
   return mmd(
     train,
     test,
@@ -441,7 +464,7 @@ function splitquality(
     estimator = chosen,
     rng,
     n_threads,
-    weights_x = w[result.train_indices],
-    weights_y = w[result.test_indices],
+    weights_x = weights[result.train_indices],
+    weights_y = weights[result.test_indices],
   )
 end
