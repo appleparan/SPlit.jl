@@ -28,6 +28,10 @@ looks at the whole class first and deliberately picks a team so that both
 teams resemble the class as a whole, tall kids, fast runners, and everyone
 else, in proportion. The rest of this page explains how it does that.
 
+The whole procedure, at a glance, before each step is explained below:
+
+![Rows go through preprocessing, then either the support-point route or the kernel-herding route, and end in a two-sided split](assets/intuition/pipeline.png)
+
 ## Measuring "looks like": the energy distance
 
 Before you can choose a split that "looks like" the whole data, you need a
@@ -52,6 +56,8 @@ grows and the score grows with it. In words, the energy distance is twice
 the cross-distance minus the two within-distances; it is zero only when the
 two groups come from the same distribution, and grows as they drift apart.
 Lower is always better.
+
+![Two panels: intermingled groups where cross- and within-distances match, and separated groups where the cross-distance is much longer](assets/intuition/energy-distance.png)
 
 This quantity is implemented by `energydistance`, and `splitquality(data, result)`
 computes it between the resulting train and test rows, after the
@@ -88,6 +94,8 @@ energy distance between the trucks and the population is exactly the
 mathematical version of balancing that pull and that push: enough attraction
 to sit where the data is dense, enough repulsion to still spread out and
 cover where the data is sparse.
+
+![One support point pulled toward the dense data and pushed away from its neighboring support points, with the resulting move](assets/intuition/support-points.png)
 
 `n` is the size of the smaller side of the split. With `ratio = 0.2` on
 1,000 rows, `n` is 200; those 200 points are what the optimizer places.
@@ -129,6 +137,8 @@ much like a game of musical chairs where each player in turn sits in the
 nearest empty chair. This search is served by a k-d tree, so it stays fast
 even with many rows and many points.
 
+![Four support points claiming rows in turn; the third finds its nearest row already taken and moves to the next nearest](assets/intuition/nearest-neighbor.png)
+
 The set of claimed rows is the smaller of the two subsets. If `ratio <= 0.5`,
 that smaller subset becomes the test set and the rest becomes the training
 set; otherwise it is the other way around, the claimed rows become the
@@ -169,6 +179,8 @@ A few values make the shape of that curve concrete:
 | 10 | 0.24 |
 | 26 | 0.16 |
 | 101 | 0.09 |
+
+![The optimal test fraction against the number of parameters: steep drop for small p, then a long flat tail](assets/intuition/optimal-ratio.png)
 
 Simple models, with few parameters, can afford to give up a large share of
 the data for testing. Complex models, with many parameters, need to keep
