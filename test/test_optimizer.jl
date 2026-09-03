@@ -655,7 +655,73 @@ end
     @test count(>(0.0), pts[:, 1]) >= 30
   end
 
+  @testset "kappa at or above the target size runs in full-target mode" begin
+    big = randn(MersenneTwister(304), 600, 2)
+    Rbig = big[big[:, 1].>0, :]
+    M = size(Rbig, 1)
+    full, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      big,
+      20;
+      kappa = M + 10,
+      max_iterations = 5,
+      rng = MersenneTwister(1),
+      target = Rbig,
+    )
+    @test size(full) == (20, 2)
+    plain, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      big,
+      20;
+      max_iterations = 5,
+      rng = MersenneTwister(1),
+      target = Rbig,
+    )
+    @test full == plain
+  end
+
+  @testset "target_weights through support_points" begin
+    v = rand(MersenneTwister(305), size(R, 1))
+    weighted, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      20;
+      max_iterations = 30,
+      rng = MersenneTwister(2),
+      target = R,
+      target_weights = v,
+    )
+    @test size(weighted) == (20, 2)
+
+    for kernel in (EnergyKernel(), GaussianKernel(1.0))
+      constant, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 30,
+        rng = MersenneTwister(2),
+        target = R,
+        target_weights = fill(0.3, size(R, 1)),
+      )
+      uniform, _, _ = SPlit.support_points(
+        kernel,
+        data,
+        20;
+        max_iterations = 30,
+        rng = MersenneTwister(2),
+        target = R,
+      )
+      @test constant == uniform
+    end
+  end
+
   @testset "validation" begin
+    @test_throws ArgumentError SPlit.support_points(
+      EnergyKernel(),
+      data,
+      5;
+      target = zeros(0, 2),
+    )
     @test_throws ArgumentError SPlit.support_points(
       EnergyKernel(),
       data,

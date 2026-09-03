@@ -124,7 +124,8 @@ end
 
 # Validate the (weights | target, target_weights) combination and return the
 # target matrix plus its mean-one and sum-one weight vectors. `weights`
-# belongs to the data-as-target case only.
+# belongs to the data-as-target case only. On the no-target path, `R` is
+# `data` itself (not a copy) — callers must not mutate it.
 function _resolve_target(data::Matrix{Float64}, weights, target, target_weights)
   N = size(data, 1)
   if target === nothing
@@ -499,9 +500,8 @@ approximate the empirical distribution of `target` instead of `data`:
 the data term of the objective runs over the rows of `target`, weighted by
 `target_weights` (sum-one normalized, `nothing` for uniform; a constant
 vector is treated as `nothing`), while the initial points and the bounding
-box come from `data`, whose rows the points are later rounded to. In
-stochastic mode `kappa` subsamples the rows of `target`. `weights` is only
-for the case without a target; giving both is an `ArgumentError`.
+box come from `data`, whose rows the points are later rounded to. `weights`
+is only for the case without a target; giving both is an `ArgumentError`.
 """
 function support_points(
   k::GaussianKernel,
