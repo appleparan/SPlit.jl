@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagram</title>
+  <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif; background: #f5f5f5; padding: 2rem; }
+    svg { width: 100%; max-width: 960px; display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mm-update-title mm-update-desc">
+    <title id="mm-update-title">One MM step for a single support point</title>
+    <desc id="mm-update-desc">Schematic of the Mak &amp; Joseph MM update for one support point ξm: thin lines to each data row weighted by inverse distance, two unit repulsion arrows away from the other support points, and an accent arrow to the new position, all inside the bounding box of the data.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+      <marker id="arrow-ink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2d3142"/></marker>
+    </defs>
+
+    <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+    <!-- Clamp box: bounding box of the data -->
+    <rect x="296" y="140" width="316" height="372" rx="4" fill="none"
+          stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="308" y="156" fill="#7a8399" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif"
+          letter-spacing="0.12em">CLAMP BOX = bounding box of the data</text>
+
+    <!-- Data-term lines: F to each data row, width encodes weight 1/distance -->
+    <line x1="477.1" y1="314.7" x2="437.9" y2="243.5" stroke="#4f5d75" stroke-width="2.4"/>
+    <line x1="474.2" y1="318.5" x2="407.9" y2="301.0" stroke="#4f5d75" stroke-width="2.4"/>
+    <line x1="485.1" y1="316.9" x2="536.6" y2="286.1" stroke="#4f5d75" stroke-width="2.4"/>
+    <line x1="475.1" y1="323.4" x2="335.3" y2="421.7" stroke="#4f5d75" stroke-width="1.4"/>
+    <line x1="483.0" y1="314.8" x2="562.0" y2="175.5" stroke="#4f5d75" stroke-width="1.4"/>
+    <line x1="483.0" y1="325.2" x2="570.0" y2="472.6" stroke="#4f5d75" stroke-width="0.8"/>
+
+    <!-- Weight label, beside the G line (most open canvas) -->
+    <path d="M 555 254 L 530 254" fill="none" stroke="rgba(45,49,66,0.35)" stroke-width="0.8" stroke-dasharray="2,2"/>
+    <rect x="522" y="247" width="100" height="14" rx="2" fill="#f5f5f5"/>
+    <text x="572" y="257" fill="#4f5d75" font-size="8"
+          font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan font-style="italic" font-size="5.6" dy="3">l</tspan><tspan font-size="8" dy="-3"> = 1/&#8214;</tspan><tspan font-style="italic">x</tspan><tspan font-style="italic" font-size="5.6" dy="3">l</tspan><tspan font-size="8" dy="-3"> &#8722; </tspan><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="5.6" dy="3">m</tspan><tspan font-size="8" dy="-3">&#8214;</tspan></text>
+
+    <!-- Repulsion arrows: away from each other support point, start at F's edge -->
+    <line x1="474.10" y1="321.07" x2="436" y2="328" stroke="#2d3142" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+    <line x1="478.93" y1="314.10" x2="472" y2="276" stroke="#2d3142" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+
+    <!-- Repulsion label, below the left-pointing repulsion arrow -->
+    <path d="M 400 333 L 410 322" fill="none" stroke="rgba(45,49,66,0.35)" stroke-width="0.8" stroke-dasharray="2,2"/>
+    <rect x="325" y="333" width="120" height="14" rx="2" fill="#f5f5f5"/>
+    <text x="385" y="343" fill="#4f5d75" font-size="8"
+          font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan>(</tspan><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="5.6" dy="3">m</tspan><tspan font-size="8" dy="-3"> &#8722; </tspan><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="5.6" dy="3">o</tspan><tspan font-size="8" dy="-3">)/&#8214;</tspan><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="5.6" dy="3">m</tspan><tspan font-size="8" dy="-3"> &#8722; </tspan><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="5.6" dy="3">o</tspan><tspan font-size="8" dy="-3">&#8214;&#183;</tspan><tspan font-style="italic">N</tspan><tspan font-size="8">/</tspan><tspan font-style="italic">n</tspan></text>
+
+    <!-- Result arrow: F to new position P -->
+    <line x1="475.3" y1="316.3" x2="444.7" y2="291.7" stroke="#eb6c36" stroke-width="1.8" marker-end="url(#arrow-accent)"/>
+
+    <!-- Data rows -->
+    <circle cx="436" cy="240" r="4" fill="#f5f5f5"/>
+    <circle cx="436" cy="240" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="429" y="227" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">A</text>
+
+    <circle cx="404" cy="300" r="4" fill="#f5f5f5"/>
+    <circle cx="404" cy="300" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="388" y="299" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">B</text>
+
+    <circle cx="540" cy="284" r="4" fill="#f5f5f5"/>
+    <circle cx="540" cy="284" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="556" y="277" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">C</text>
+
+    <circle cx="332" cy="424" r="4" fill="#f5f5f5"/>
+    <circle cx="332" cy="424" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="317" y="438" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">D</text>
+
+    <circle cx="564" cy="172" r="4" fill="#f5f5f5"/>
+    <circle cx="564" cy="172" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="571" y="162" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">G</text>
+
+    <circle cx="572" cy="476" r="4" fill="#f5f5f5"/>
+    <circle cx="572" cy="476" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="580" y="493" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">E</text>
+
+    <!-- Other support points -->
+    <circle cx="608" cy="296" r="6" fill="#f5f5f5"/>
+    <circle cx="608" cy="296" r="6" fill="none" stroke="#2d3142" stroke-width="1.2"/>
+    <rect x="592" y="270" width="32" height="13" rx="2" fill="#f5f5f5"/>
+    <text x="608" y="280" fill="#2d3142" font-size="9"
+          font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="6.3" dy="3">o</tspan></text>
+
+    <circle cx="504" cy="448" r="6" fill="#f5f5f5"/>
+    <circle cx="504" cy="448" r="6" fill="none" stroke="#2d3142" stroke-width="1.2"/>
+    <rect x="488" y="461" width="32" height="13" rx="2" fill="#f5f5f5"/>
+    <text x="504" y="471" fill="#2d3142" font-size="9"
+          font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="6.3" dy="3">o</tspan></text>
+
+    <!-- Focal point ξ_m -->
+    <circle cx="480" cy="320" r="6" fill="#f5f5f5"/>
+    <circle cx="480" cy="320" r="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+    <rect x="503" y="329" width="60" height="18" rx="2" fill="#f5f5f5"/>
+    <text x="507" y="343" fill="#eb6c36" font-size="9"
+          font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="start"><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="6.3" dy="3">m</tspan><tspan font-size="6.3" dy="-9">(</tspan><tspan font-style="italic" font-size="6.3">t</tspan><tspan font-size="6.3">)</tspan></text>
+
+    <!-- Result: new position ξ_m^(t+1) -->
+    <circle cx="440" cy="288" r="6" fill="none" stroke="#eb6c36" stroke-width="1.2" stroke-dasharray="3,3"/>
+    <rect x="387.5" y="264.4" width="64" height="18" rx="2" fill="#f5f5f5"/>
+    <text x="391.5" y="278.4" fill="#eb6c36" font-size="9"
+          font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="start"><tspan font-style="italic">&#958;</tspan><tspan font-style="italic" font-size="6.3" dy="3">m</tspan><tspan font-size="6.3" dy="-9">(</tspan><tspan font-style="italic" font-size="6.3">t</tspan><tspan font-size="6.3">+1)</tspan></text>
+
+    <!-- Editorial aside 1: left margin, outside the box, leader enters through the left edge -->
+    <text x="280" y="204" fill="#4f5d75" font-size="13" font-style="italic"
+          font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">near rows pull harder:</text>
+    <text x="280" y="220" fill="#4f5d75" font-size="13" font-style="italic"
+          font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">weight 1/distance</text>
+    <path d="M 288 214 Q 373 235 458 280" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+    <circle cx="458" cy="280" r="2" fill="#2d3142"/>
+
+    <!-- Editorial aside 2: just outside the box's right edge, short horizontal leader beside ξ_o1 -->
+    <text x="648" y="300" fill="#4f5d75" font-size="13" font-style="italic"
+          font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start">each other point pushes</text>
+    <text x="648" y="316" fill="#4f5d75" font-size="13" font-style="italic"
+          font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start">with a unit vector</text>
+    <path d="M 644 296 L 624 296" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+    <circle cx="624" cy="296" r="2" fill="#2d3142"/>
+
+    <!-- Legend -->
+    <line x1="40" y1="544" x2="920" y2="544" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+    <text x="40" y="558" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">LEGEND</text>
+
+    <circle cx="48" cy="574" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+    <text x="60" y="578" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">data row</text>
+
+    <circle cx="132" cy="574" r="6" fill="none" stroke="#2d3142" stroke-width="1.2"/>
+    <text x="148" y="578" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">support point</text>
+
+    <circle cx="244" cy="574" r="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+    <text x="260" y="578" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">&#958;</tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic" font-size="6.3" dy="3">m</tspan><tspan dy="-3"> (focal)</tspan></text>
+
+    <line x1="340" y1="574" x2="364" y2="574" stroke="#4f5d75" stroke-width="2"/>
+    <text x="372" y="578" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">data pull (line weight = 1/distance)</text>
+
+    <line x1="580" y1="574" x2="604" y2="574" stroke="#2d3142" stroke-width="1.4" marker-end="url(#arrow-ink)"/>
+    <text x="612" y="578" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">repulsion (unit vector)</text>
+
+    <line x1="756" y1="574" x2="780" y2="574" stroke="#eb6c36" stroke-width="1.8" marker-end="url(#arrow-accent)"/>
+    <text x="788" y="578" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">MM step (accent)</text>
+  </svg>
+</body>
+</html>

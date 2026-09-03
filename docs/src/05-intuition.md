@@ -28,7 +28,12 @@ looks at the whole class first and deliberately picks a team so that both
 teams resemble the class as a whole, tall kids, fast runners, and everyone
 else, in proportion. The rest of this page explains how it does that.
 
-The whole procedure, at a glance, before each step is explained below:
+The whole procedure, at a glance, before each step is explained below.
+Read the figure left to right: the rows are preprocessed, then either
+travel the upper lane (`SupportPointSplitter`: place ideal points, then let
+each point claim a real row) or the dashed lower lane (`HerdingSplitter`:
+pick rows directly), and both lanes end in the same two-sided split. The
+highlighted box is the step the next sections spend the most time on.
 
 ![Rows go through preprocessing, then either the support-point route or the kernel-herding route, and end in a two-sided split](assets/intuition/pipeline.png)
 
@@ -56,6 +61,14 @@ grows and the score grows with it. In words, the energy distance is twice
 the cross-distance minus the two within-distances; it is zero only when the
 two groups come from the same distribution, and grows as they drift apart.
 Lower is always better.
+
+The figure below shows the two situations. Grey circles are rows of group
+A, blue circles rows of group B. In each panel one orange line measures a
+cross-distance (an A row to a B row) and two dashed lines measure a
+within-distance (two A rows, two B rows). On the left the groups are mixed
+and the three lines are about equally long, so the score is near zero. On
+the right the groups sit in different corners, the orange line is much
+longer than the dashed ones, and the score is large.
 
 ![Two panels: intermingled groups where cross- and within-distances match, and separated groups where the cross-distance is much longer](assets/intuition/energy-distance.png)
 
@@ -94,6 +107,14 @@ energy distance between the trucks and the population is exactly the
 mathematical version of balancing that pull and that push: enough attraction
 to sit where the data is dense, enough repulsion to still spread out and
 cover where the data is sparse.
+
+The figure shows this balance for one support point (the orange circle)
+sitting a little too close to another support point (a hollow circle)
+at the edge of a dense cluster. The solid arrow is the attraction toward
+the data, the dashed arrow is the repulsion away from the crowded neighbor,
+and the orange arrow is where the point moves next: away from the crowd,
+but still toward the data. The other hollow circles are support points
+that already sit well and are left alone in this picture.
 
 ![One support point pulled toward the dense data and pushed away from its neighboring support points, with the resulting move](assets/intuition/support-points.png)
 
@@ -137,6 +158,13 @@ much like a game of musical chairs where each player in turn sits in the
 nearest empty chair. This search is served by a k-d tree, so it stays fast
 even with many rows and many points.
 
+In the figure, the hollow circles are support points numbered in the order
+they pick, grey circles are unclaimed rows, and filled circles are rows
+that have been claimed. Points 1 and 2 simply take their nearest row.
+Point 3 (orange) finds its nearest row already taken by point 1, shown by
+the dashed line, so it takes the next nearest row instead, shown by the
+solid orange arrow. Point 4 takes its nearest row as usual.
+
 ![Four support points claiming rows in turn; the third finds its nearest row already taken and moves to the next nearest](assets/intuition/nearest-neighbor.png)
 
 The set of claimed rows is the smaller of the two subsets. If `ratio <= 0.5`,
@@ -179,6 +207,12 @@ A few values make the shape of that curve concrete:
 | 10 | 0.24 |
 | 26 | 0.16 |
 | 101 | 0.09 |
+
+Plotted as a curve, the same formula drops steeply for the first few
+parameters and then flattens: past a few dozen parameters the optimal test
+fraction changes very little. The dots mark the five rows of the table,
+and the dashed line is the default `ratio = 0.2`, which the curve crosses
+at about 16 parameters.
 
 ![The optimal test fraction against the number of parameters: steep drop for small p, then a long flat tail](assets/intuition/optimal-ratio.png)
 

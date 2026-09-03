@@ -8,6 +8,8 @@ after editing a source:
 
 The optional argument points at a Chromium binary when the Playwright
 browsers are not installed (`playwright install chromium` installs them).
+Text is set in Pretendard (install it locally; Helvetica is the fallback)
+and math in STIX Two Text, fetched from Google Fonts at render time.
 """
 
 import pathlib
