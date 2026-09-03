@@ -1,3 +1,7 @@
 [default.extend-words]
 # "Mak" is a surname (Simon Mak, co-author of the SPlit paper), not a typo.
 Mak = "Mak"
+
+[files]
+# Exported figures carry base64 woff2 font blobs.
+extend-exclude = ["docs/src/assets/intuition/*.svg"]

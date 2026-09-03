@@ -57,7 +57,8 @@ then the nearest-neighbor claim. The dashed lower lane is
 `HerdingSplitter`, which replaces both halves of step 4 by one greedy
 selection. Both lanes end in step 5.
 
-![The five steps: preprocessing, then either support points followed by the nearest-neighbor claim or kernel herding, ending in the two-sided split](assets/intuition/pipeline.png)
+![The five steps: preprocessing, then either support points followed by the nearest-neighbor claim or kernel herding, ending in the two-sided split](assets/intuition/pipeline-light.svg)
+![The five steps: preprocessing, then either support points followed by the nearest-neighbor claim or kernel herding, ending in the two-sided split](assets/intuition/pipeline-dark.svg)
 
 `splitquality(data, result)` closes the loop. It repeats step 1 on the
 original data and evaluates the same discrepancy, energy distance or MMD²,
@@ -113,7 +114,8 @@ by ``N/n``; the orange arrow is the resulting move to ``\xi_m^{(t+1)}``,
 and the dashed rectangle is the bounding box to which the result is
 clamped.
 
-![One MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves to the weighted mean inside the data's bounding box](assets/intuition/mm-update.png)
+![One MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves to the weighted mean inside the data's bounding box](assets/intuition/mm-update-light.svg)
+![One MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves to the weighted mean inside the data's bounding box](assets/intuition/mm-update-dark.svg)
 
 ## Maximum mean discrepancy and the Gaussian kernel
 
@@ -219,7 +221,8 @@ rows. Point 3 (orange) finds its nearest row already claimed by point 1
 (dashed line) and takes its second-nearest row instead (solid orange
 arrow).
 
-![Support points claiming rows in turn; a point whose nearest row is already claimed takes the next nearest](assets/intuition/nearest-neighbor.png)
+![Support points claiming rows in turn; a point whose nearest row is already claimed takes the next nearest](assets/intuition/nearest-neighbor-light.svg)
+![Support points claiming rows in turn; a point whose nearest row is already claimed takes the next nearest](assets/intuition/nearest-neighbor-dark.svg)
 
 This rounding step has a limitation: when the optimizer's displacement is
 below the spacing between data rows, as is typical in high dimension on

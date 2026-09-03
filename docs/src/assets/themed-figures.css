@@ -1,0 +1,4 @@
+/* Paired light/dark figures: show the one matching the active Documenter theme. */
+img[src$="-dark.svg"] { display: none; }
+html.theme--documenter-dark img[src$="-light.svg"] { display: none; }
+html.theme--documenter-dark img[src$="-dark.svg"] { display: inline; }

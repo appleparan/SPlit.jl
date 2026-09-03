@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nearest-neighbor-title nearest-neighbor-desc" width="960" height="600">
+  <title id="nearest-neighbor-title">Nearest-neighbor claiming</title>
+  <desc id="nearest-neighbor-desc">Four support points claim the nearest unclaimed data row in turn; a point whose nearest row is already taken moves on to its next-nearest row instead.</desc>
+<style>
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:700;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAUcAA0AAAAACkAAAATJAAFPGgAAAAAAAAAAAAAAAAAAAAAAAAAAGjAbgzAcgWoGYAA8CocwhjEBNgIkA0wLKAAEIAWCPAcgG7gIUZRQzqXJfhymcB8yf9/MQQ0RIioO6ihmLtUz80Li4f/3+7bPeTrm9adJJsmwKBriNAudRKh4nEVIZDp1tIGHRJ0L3//v99sz99xnnr4oFnV1QiSTaYEWOcizJmXqI7qisyXWwL3Ml+j/OWa69V/V80ixvQE10IQiEjA5OAqHQ2qMSPA9H8h0d/f8+ADoLOYGGBnHm+NPLosfSMAoQLBRkBBAoFlOMOyBNdwD32AMmMfyrBRgCvCJHPBInZECKCQEK2IdnIo1XiEWBKgdwnwcGS0g4uTS+mJ/avjki1Yj1a68oU15qHH5skC/GzzULMkqjdFkpVUQ3jocAmigJrIgSgpB0MOQEqk7rVStIue9hp49IMAGRzgZlJ3IfiELrU5voLdSFizdGWUPktHClSYvwlHVkywdpqQmw5p/NPyqsOk0OzkDNIGQICEgWNZ5JZKgQguhksgC8QsE1ExKAzB8yWwQOwekWry7g2ZQ1YxJplDzy7VsoTNavet2KQ9q0GzU54D3jVR+czCb1qeqACkgAMD9l9FRMGbAuhu+XQXscLzDs6j3mzkM0CGhgll4ajIEL4DlXLuwLgUJLLLLj3IRIj20GYBFYBL4B+IYwB3gAUALQcQQ1SsSXeeg23doRHTLSpkoLMQV5JvyiJdh0SlUGV7J4GZev34dKb+8Rm04B/rl1XVa48VVKDu/gmHAsvy4do3DGL+4Smu8uq45SQhQkd6sTb/CphstAnY1BFfbWanCQgaJBk3S8cxUIjUOpMMYwqWRqFzl+ctI+TNU6iuDyWQYArRh0wCNoUlPYQP1ugNqw+2MWBpuQE3QlXgqDyivj08A8gRAt5TYz2zZut7n6b/fz5WGPug8Vf14C6TekO8+zA3A5CYyOzdHcZylZ0x+Xuw2aCy7+DK9r/9lUtmx4miPoYmjXTW3r6IJP+jerP6R1HIcV2iu7RGRauzjl2bpykepnsJCS6zmXo1vspkL197OOkpq6uaeYOweuZaNFNQfeZfQ2fUkoXg/pEOod1lRVDiDHkfv5Ae1AB/yW4//Px4H/ltdr/0Fu/d+2gvbHD3xMYlZLaXDZz/SnswdZ0p3447yaXT4fFiia+xv4eDoZWO5Pyw8s8VVJG5yD0r1iYypzAhIDSNhYymgMdLjgiUgnqc1Ag3sXcJNdXTDzfxEHSInf2MdbXcTG+tgI9ZBxAOLbXfg8+sdg5Uu7lzMD0VFqELk78WNH3CUg9mC+uW3F2kjaUX7iyb0mB7e0F+fIkF0UKKsktgKW2Mbbok8x1bYGtW0sP07wE6Zjp25hn2DSOltrEubN+zm09ifnEWQV6C5BnkFmgeQZ6F5AHlFvzUPAvFkU4TFa1spy/l/X6EAfpxIWpqx0wU/K//WrDvrZ4SSgUD36XYVmP8J4PdYEyH9Wc30wJu4AaqvZPUjymYLReMJAm9AbrDNF+wrOnxWusynD4DAjEoj/vXETkhwCLQCOj/wVFMAu2AQysZZaJVvYfKJJwwnTcJsZ+EvXjg5yUuqNPkyxIsVJwvbvAFL5ixZYQsSLwmbv3zZUsQykSBeinAZ1LKopVCRy6DiKVUSFQumrJhz4MQLJloUJ7LHxCkM8Ow4h9rhZoqXWsW+vZQbg3iprmLoIAAA) format('woff2');}
+</style>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(180, 188, 204)"></polygon></marker>
+    <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(242, 138, 90)"></polygon></marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="rgb(38, 43, 43)"></rect>
+
+  <!-- ===================== claim arrows (drawn before points) ===================== -->
+  <!-- Point 1 -> R1 -->
+  <line x1="205" y1="304" x2="235" y2="328" stroke="rgb(180, 188, 204)" stroke-width="1.2" marker-end="url(#arrow)"></line>
+  <!-- Point 2 -> R2 -->
+  <line x1="564" y1="176" x2="595" y2="145" stroke="rgb(180, 188, 204)" stroke-width="1.2" marker-end="url(#arrow)"></line>
+  <!-- Point 3 -> R1 (TAKEN attempt, dashed, no arrowhead) -->
+  <line x1="291" y1="307" x2="246" y2="329" stroke="rgb(242, 138, 90)" stroke-width="1.2" stroke-dasharray="4,3"></line>
+  <!-- Point 3 -> R3 (actual claim, accent solid) -->
+  <line x1="301" y1="301" x2="366" y2="267" stroke="rgb(242, 138, 90)" stroke-width="1.2" marker-end="url(#arrow-accent)"></line>
+  <!-- Point 4 -> R4 -->
+  <line x1="706" y1="402" x2="753" y2="418" stroke="rgb(180, 188, 204)" stroke-width="1.2" marker-end="url(#arrow)"></line>
+
+  <!-- ===================== arrow labels (mask + text) ===================== -->
+  <!-- TAKEN: lower-left of the P3->R1 segment -->
+  <rect x="196" y="344" width="56" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+  <text x="224" y="356" fill="rgb(138, 148, 168)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">TAKEN</text>
+
+  <!-- NEXT NEAREST: above-left of the P3->R3 segment -->
+  <rect x="236" y="256" width="104" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+  <text x="288" y="268" fill="rgb(138, 148, 168)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">NEXT NEAREST</text>
+
+  <!-- ===================== unclaimed data rows ===================== -->
+  <circle cx="100" cy="120" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="160" cy="480" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="340" cy="120" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="420" cy="420" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="480" cy="300" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="640" cy="300" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="680" cy="120" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="760" cy="240" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="820" cy="480" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="880" cy="140" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="600" cy="480" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <circle cx="880" cy="340" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+
+  <!-- ===================== claimed rows ===================== -->
+  <circle cx="240" cy="332" r="4" fill="rgb(232, 234, 240)"></circle>
+  <circle cx="600" cy="140" r="4" fill="rgb(232, 234, 240)"></circle>
+  <circle cx="372" cy="264" r="4" fill="rgb(232, 234, 240)"></circle>
+  <circle cx="760" cy="420" r="4" fill="rgb(232, 234, 240)"></circle>
+
+  <!-- ===================== support points ===================== -->
+  <!-- Point 1 -->
+  <circle cx="200" cy="300" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+  <text x="188" y="288" fill="rgb(232, 234, 240)" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">1</text>
+
+  <!-- Point 2 -->
+  <circle cx="560" cy="180" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+  <text x="548" y="168" fill="rgb(232, 234, 240)" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">2</text>
+
+  <!-- Point 3 (focal) -->
+  <circle cx="296" cy="304" r="6" fill="rgb(38, 43, 43)"></circle>
+  <circle cx="296" cy="304" r="6" fill="rgba(242, 138, 90, 0.12)" stroke="rgb(242, 138, 90)" stroke-width="1.2"></circle>
+  <text x="284" y="292" fill="rgb(242, 138, 90)" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">3</text>
+
+  <!-- Point 4 -->
+  <circle cx="700" cy="400" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+  <text x="688" y="388" fill="rgb(232, 234, 240)" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">4</text>
+
+  <!-- ===================== editorial aside ===================== -->
+  <text x="920" y="64" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">the claimed rows are the smaller side of the split</text>
+  <path d="M 880 80 C 800 60, 700 60, 600 154" fill="none" stroke="rgba(232, 234, 240, 0.4)" stroke-width="1" stroke-dasharray="4,3"></path>
+  <circle cx="600" cy="154" r="2" fill="rgb(232, 234, 240)"></circle>
+
+  <!-- ===================== legend strip ===================== -->
+  <line x1="40" y1="548" x2="920" y2="548" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
+  <text x="40" y="576" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">LEGEND</text>
+
+  <circle cx="160" cy="572" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+  <text x="172" y="576" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">SUPPORT POINT</text>
+
+  <circle cx="332" cy="572" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
+  <text x="344" y="576" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">DATA ROW</text>
+
+  <circle cx="484" cy="572" r="4" fill="rgb(232, 234, 240)"></circle>
+  <text x="496" y="576" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">CLAIMED ROW</text>
+
+  <line x1="628" y1="572" x2="652" y2="572" stroke="rgb(180, 188, 204)" stroke-width="1.2" marker-end="url(#arrow)"></line>
+  <text x="664" y="576" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">CLAIM</text>
+
+  <line x1="756" y1="572" x2="780" y2="572" stroke="rgb(242, 138, 90)" stroke-width="1.2" stroke-dasharray="4,3"></line>
+  <text x="792" y="576" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">ALREADY TAKEN</text>
+</svg>

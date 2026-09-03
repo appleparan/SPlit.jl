@@ -35,7 +35,8 @@ each point claim a real row) or the dashed lower lane (`HerdingSplitter`:
 pick rows directly), and both lanes end in the same two-sided split. The
 highlighted box is the step the next sections spend the most time on.
 
-![Rows go through preprocessing, then either the support-point route or the kernel-herding route, and end in a two-sided split](assets/intuition/pipeline.png)
+![Rows go through preprocessing, then either the support-point route or the kernel-herding route, and end in a two-sided split](assets/intuition/pipeline-light.svg)
+![Rows go through preprocessing, then either the support-point route or the kernel-herding route, and end in a two-sided split](assets/intuition/pipeline-dark.svg)
 
 ## Measuring "looks like": the energy distance
 
@@ -70,7 +71,8 @@ and the three lines are about equally long, so the score is near zero. On
 the right the groups sit in different corners, the orange line is much
 longer than the dashed ones, and the score is large.
 
-![Two panels: intermingled groups where cross- and within-distances match, and separated groups where the cross-distance is much longer](assets/intuition/energy-distance.png)
+![Two panels: intermingled groups where cross- and within-distances match, and separated groups where the cross-distance is much longer](assets/intuition/energy-distance-light.svg)
+![Two panels: intermingled groups where cross- and within-distances match, and separated groups where the cross-distance is much longer](assets/intuition/energy-distance-dark.svg)
 
 This quantity is implemented by `energydistance`, and `splitquality(data, result)`
 computes it between the resulting train and test rows, after the
@@ -116,7 +118,8 @@ and the orange arrow is where the point moves next: away from the crowd,
 but still toward the data. The other hollow circles are support points
 that already sit well and are left alone in this picture.
 
-![One support point pulled toward the dense data and pushed away from its neighboring support points, with the resulting move](assets/intuition/support-points.png)
+![One support point pulled toward the dense data and pushed away from its neighboring support points, with the resulting move](assets/intuition/support-points-light.svg)
+![One support point pulled toward the dense data and pushed away from its neighboring support points, with the resulting move](assets/intuition/support-points-dark.svg)
 
 `n` is the size of the smaller side of the split. With `ratio = 0.2` on
 1,000 rows, `n` is 200; those 200 points are what the optimizer places.
@@ -165,7 +168,8 @@ Point 3 (orange) finds its nearest row already taken by point 1, shown by
 the dashed line, so it takes the next nearest row instead, shown by the
 solid orange arrow. Point 4 takes its nearest row as usual.
 
-![Four support points claiming rows in turn; the third finds its nearest row already taken and moves to the next nearest](assets/intuition/nearest-neighbor.png)
+![Four support points claiming rows in turn; the third finds its nearest row already taken and moves to the next nearest](assets/intuition/nearest-neighbor-light.svg)
+![Four support points claiming rows in turn; the third finds its nearest row already taken and moves to the next nearest](assets/intuition/nearest-neighbor-dark.svg)
 
 The set of claimed rows is the smaller of the two subsets. If `ratio <= 0.5`,
 that smaller subset becomes the test set and the rest becomes the training
@@ -214,7 +218,8 @@ fraction changes very little. The dots mark the five rows of the table,
 and the dashed line is the default `ratio = 0.2`, which the curve crosses
 at about 16 parameters.
 
-![The optimal test fraction against the number of parameters: steep drop for small p, then a long flat tail](assets/intuition/optimal-ratio.png)
+![The optimal test fraction against the number of parameters: steep drop for small p, then a long flat tail](assets/intuition/optimal-ratio-light.svg)
+![The optimal test fraction against the number of parameters: steep drop for small p, then a long flat tail](assets/intuition/optimal-ratio-dark.svg)
 
 Simple models, with few parameters, can afford to give up a large share of
 the data for testing. Complex models, with many parameters, need to keep
