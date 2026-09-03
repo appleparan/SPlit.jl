@@ -54,8 +54,63 @@ function _data_term(
   return d
 end
 
+# Cross data term d_i = mean over the rows r_l of R of k(x_i, r_l), for every
+# candidate row x_i of X; threaded over i on the transposes.
+function _data_term(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  R::Matrix{Float64},
+  n_threads::Int,
+)
+  N = size(X, 1)
+  M = size(R, 1)
+  Xt = permutedims(X)
+  Rt = permutedims(R)
+  d = Vector{Float64}(undef, N)
+  chunks = collect(Iterators.partition(1:N, cld(N, max(1, n_threads))))
+  @sync for chunk in chunks
+    Threads.@spawn for i in chunk
+      s = 0.0
+      @views xi = Xt[:, i]
+      @views for l = 1:M
+        s += kernelvalue(kernel, xi, Rt[:, l])
+      end
+      d[i] = s / M
+    end
+  end
+  return d
+end
+
+# Weighted cross data term d_i = Σ_l v̄_l k(x_i, r_l), v̄ scaled to sum one.
+function _data_term(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  R::Matrix{Float64},
+  v_bar::AbstractVector{Float64},
+  n_threads::Int,
+)
+  N = size(X, 1)
+  M = size(R, 1)
+  Xt = permutedims(X)
+  Rt = permutedims(R)
+  d = Vector{Float64}(undef, N)
+  chunks = collect(Iterators.partition(1:N, cld(N, max(1, n_threads))))
+  @sync for chunk in chunks
+    Threads.@spawn for i in chunk
+      s = 0.0
+      @views xi = Xt[:, i]
+      @views for l = 1:M
+        s += v_bar[l] * kernelvalue(kernel, xi, Rt[:, l])
+      end
+      d[i] = s
+    end
+  end
+  return d
+end
+
 """
-    herd(kernel, X, n; weights = nothing, n_threads = Threads.nthreads()) -> Vector{Int}
+    herd(kernel, X, n; weights = nothing, target = nothing, target_weights = nothing,
+         n_threads = Threads.nthreads()) -> Vector{Int}
 
 Select `n` rows of `X` by kernel herding: the first row maximizes the mean
 kernel value to the data, and each later row maximizes
@@ -75,6 +130,11 @@ selection targets the weighted empirical distribution; the selected-set term
 is unchanged. A constant weight vector is treated as `nothing`, so uniform
 weights take the unweighted path and reproduce it exactly.
 
+`target` (a matrix with the same columns as `X`) replaces the data term by
+the mean kernel value to the rows of `target`, weighted by `target_weights`
+when given; the candidates stay the rows of `X`. Cost `O(NM + nN)`. `weights`
+and `target` are mutually exclusive.
+
 # Examples
 
 ```julia
@@ -87,18 +147,23 @@ function herd(
   X::Matrix{Float64},
   n::Int;
   weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
   n_threads::Int = Threads.nthreads(),
 )
   isresolved(kernel) ||
     throw(ArgumentError("kernel parameters must be resolved; call resolve first"))
   N = size(X, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
-  weights === nothing || _check_weights(weights, N)
-  weights = _uniform_as_nothing(weights)
 
-  d =
-    weights === nothing ? _data_term(kernel, X, n_threads) :
-    _data_term(kernel, X, _normalize_weights(weights, N), n_threads)
+  R, _, v_bar = _resolve_target(X, weights, target, target_weights)
+  d = if target === nothing
+    v_bar === nothing ? _data_term(kernel, X, n_threads) :
+    _data_term(kernel, X, v_bar, n_threads)
+  else
+    v_bar === nothing ? _data_term(kernel, X, R, n_threads) :
+    _data_term(kernel, X, R, v_bar, n_threads)
+  end
   c = zeros(N)
   used = falses(N)
   selected = Vector{Int}(undef, n)
