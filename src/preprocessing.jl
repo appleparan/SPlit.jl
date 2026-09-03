@@ -92,6 +92,8 @@ function _column_specs(data::AbstractMatrix, extra)
     size(extra, 2) == size(data, 2) ||
       throw(ArgumentError("reference and data must have the same number of columns"))
     _check_no_missing(extra)
+    all(x -> x isa Number, extra) ||
+      throw(ArgumentError("Matrix input must contain only numeric values."))
   end
   return nothing, ColumnSpec[NumericColumn() for _ in axes(data, 2)]
 end
@@ -179,6 +181,10 @@ function _encode(names_::Vector{String}, specs::Vector{ColumnSpec}, data::DataFr
   return hcat(columns...)
 end
 
+# Vectors are single-column matrices.
+_as_matrix(x::AbstractVector) = reshape(collect(x), :, 1)
+_as_matrix(x) = x
+
 """
     fit_preprocessor(data; weights = nothing, extra = nothing) -> Preprocessor
 
@@ -189,9 +195,6 @@ are constant on `data` are dropped, and every kept column gets the mean and
 scale of `data` (weighted forms when `weights` is given, as in
 [`preprocess`](@ref)). Internal.
 """
-_as_matrix(x::AbstractVector) = reshape(collect(x), :, 1)
-_as_matrix(x) = x
-
 function fit_preprocessor(data; weights = nothing, extra = nothing)
   data = _as_matrix(data)
   extra = _as_matrix(extra)

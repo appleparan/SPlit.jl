@@ -251,6 +251,7 @@ end
       DataFrame(x = randn(10), g = randn(10)),
     )
     @test_throws ArgumentError SPlit.fit_preprocessor(R; extra = randn(5, 2))
+    @test_throws ArgumentError SPlit.fit_preprocessor(R; extra = fill("a", 5, 3))
     @test_throws ArgumentError SPlit.apply_preprocessor(prep, [1.0, missing, 2.0][:, :])
   end
 end
