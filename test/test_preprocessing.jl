@@ -109,8 +109,10 @@ end
 
   @testset "uniform weights match the unweighted result up to rounding" begin
     data = randn(MersenneTwister(32), 60, 2)
-    M = SPlit._encode(data)
-    X_w = SPlit._standardize!(copy(M), fill(1 / 60, 60))
+    X_w = SPlit.apply_preprocessor(
+      SPlit.fit_preprocessor(data; weights = fill(1 / 60, 60)),
+      data,
+    )
     @test isapprox(X_w, SPlit.preprocess(data); atol = 1e-12)
   end
 
@@ -140,5 +142,115 @@ end
 
   @testset "wrong length errors" begin
     @test_throws ArgumentError SPlit.preprocess(randn(10, 2), ones(9))
+  end
+end
+
+@testset "Preprocessor fit/apply" begin
+  @testset "preprocess is unchanged: matrix, weighted, DataFrame" begin
+    rng = MersenneTwister(200)
+    data = randn(rng, 70, 3) .* [1.0 4.0 0.2] .+ [1.0 -2.0 0.0]
+    # reference values computed with the pre-M2 formulas, inline
+    expected = copy(data)
+    for j = 1:3
+      μ = mean(expected[:, j])
+      σ = std(expected[:, j])
+      expected[:, j] .= (expected[:, j] .- μ) ./ σ
+    end
+    @test SPlit.preprocess(data) == expected
+    w = rand(rng, 70)
+    wn = w ./ sum(w)
+    correction = 1 - sum(abs2, wn)
+    expected_w = copy(data)
+    for j = 1:3
+      col = expected_w[:, j]
+      μ = sum(wn .* col)
+      σ = sqrt(sum(wn .* (col .- μ) .^ 2) / correction)
+      expected_w[:, j] .= (col .- μ) ./ σ
+    end
+    @test SPlit.preprocess(data, w) == expected_w
+    df = DataFrame(x = randn(MersenneTwister(201), 30), g = repeat(["a", "b", "c"], 10))
+    X = SPlit.preprocess(df)
+    @test size(X) == (30, 3)
+    H = SPlit.helmert_matrix(3)
+    idx = Dict("a" => 1, "b" => 2, "c" => 3)
+    raw = hcat(df.x, [H[idx[v], 1] for v in df.g], [H[idx[v], 2] for v in df.g])
+    for j = 1:3
+      raw[:, j] .= (raw[:, j] .- mean(raw[:, j])) ./ std(raw[:, j])
+    end
+    @test X == raw
+    # constant column dropped, all-constant errors
+    @test size(SPlit.preprocess(hcat(ones(10), randn(MersenneTwister(202), 10))), 2) == 1
+    @test_throws ArgumentError SPlit.preprocess(ones(10, 2))
+  end
+
+  @testset "apply uses the fitted μ and σ" begin
+    R = randn(MersenneTwister(203), 100, 2)
+    prep = SPlit.fit_preprocessor(R)
+    Y = randn(MersenneTwister(204), 40, 2) .+ 5.0
+    Ya = SPlit.apply_preprocessor(prep, Y)
+    @test SPlit.apply_preprocessor(prep, R) == SPlit.preprocess(R)
+    @test all(abs.(mean(Ya; dims = 1)) .> 3.0)     # not re-centered
+    @test isapprox(Ya, (Y .- mean(R; dims = 1)) ./ std(R; dims = 1); atol = 1e-12)
+  end
+
+  @testset "weighted fit uses the weighted moments" begin
+    R = randn(MersenneTwister(205), 80, 2)
+    w = rand(MersenneTwister(206), 80)
+    prep = SPlit.fit_preprocessor(R; weights = w)
+    @test SPlit.apply_preprocessor(prep, R) == SPlit.preprocess(R, w)
+  end
+
+  @testset "columns constant on the fit set are dropped for both sets" begin
+    R = hcat(ones(20), randn(MersenneTwister(207), 20))
+    X = randn(MersenneTwister(208), 15, 2)
+    prep = SPlit.fit_preprocessor(R; extra = X)
+    @test size(SPlit.apply_preprocessor(prep, X), 2) == 1
+    @test_throws ArgumentError SPlit.fit_preprocessor(ones(20, 2); extra = X)
+  end
+
+  @testset "categorical levels are the union, in canonical order" begin
+    R = DataFrame(x = randn(MersenneTwister(209), 12), g = repeat(["a", "b"], 6))
+    X = DataFrame(x = randn(MersenneTwister(210), 9), g = repeat(["a", "b", "c"], 3))
+    prep = SPlit.fit_preprocessor(R; extra = X)
+    spec = prep.specs[2]
+    @test spec isa SPlit.CategoricalColumn
+    @test spec.levels == ["a", "b", "c"]
+    XR = SPlit.apply_preprocessor(prep, R)
+    XX = SPlit.apply_preprocessor(prep, X)
+    # the (a,b) vs c contrast is constant on R and is dropped: one Helmert column survives
+    @test size(XR, 2) == 2
+    @test size(XX, 2) == 2
+    # level c is unknown when the preprocessor was fit without X
+    prep_r = SPlit.fit_preprocessor(R)
+    @test_throws ArgumentError SPlit.apply_preprocessor(prep_r, X)
+    # CategoricalVector keeps the declared order, then data-only levels
+    Rc = DataFrame(
+      g = categorical(repeat(["z", "y"], 5); levels = ["z", "y", "w"]),
+      x = randn(MersenneTwister(211), 10),
+    )
+    Xc = DataFrame(
+      g = categorical(repeat(["q", "z"], 3); levels = ["q", "z"]),
+      x = randn(MersenneTwister(212), 6),
+    )
+    prepc = SPlit.fit_preprocessor(Rc; extra = Xc)
+    @test prepc.specs[1].levels == ["z", "y", "q"]
+  end
+
+  @testset "shape and column mismatches error" begin
+    R = randn(MersenneTwister(213), 20, 3)
+    prep = SPlit.fit_preprocessor(R)
+    @test_throws ArgumentError SPlit.apply_preprocessor(prep, randn(5, 2))
+    Rd = DataFrame(x = randn(10), g = repeat(["a", "b"], 5))
+    prepd = SPlit.fit_preprocessor(Rd)
+    @test_throws ArgumentError SPlit.apply_preprocessor(
+      prepd,
+      DataFrame(g = repeat(["a", "b"], 5), x = randn(10)),
+    )
+    @test_throws ArgumentError SPlit.apply_preprocessor(
+      prepd,
+      DataFrame(x = randn(10), g = randn(10)),
+    )
+    @test_throws ArgumentError SPlit.fit_preprocessor(R; extra = randn(5, 2))
+    @test_throws ArgumentError SPlit.apply_preprocessor(prep, [1.0, missing, 2.0][:, :])
   end
 end
