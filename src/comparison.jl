@@ -51,6 +51,7 @@ function compare(
   k = if isresolved(kernel)
     kernel
   elseif reference !== nothing
+    _nrows(reference) >= 1 || throw(ArgumentError("reference must have at least one row"))
     resolve(
       kernel,
       apply_preprocessor(

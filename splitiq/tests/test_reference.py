@@ -73,8 +73,14 @@ def test_splitquality_against_reference_is_lower_for_the_targeted_split() -> Non
         {'reference': np.ones((10, 3))},
         {'reference_weights': np.ones(10)},
         {'reference': np.ones((10, 2)), 'weights': np.ones(300)},
+        {'reference': np.zeros((0, 2))},
     ],
-    ids=['column-mismatch', 'weights-without-reference', 'weights-and-reference'],
+    ids=[
+        'column-mismatch',
+        'weights-without-reference',
+        'weights-and-reference',
+        'empty-reference',
+    ],
 )
 def test_bad_reference_arguments_raise_value_error(kwargs: dict) -> None:
     data, _ = _data(14)

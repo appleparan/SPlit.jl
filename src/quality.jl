@@ -460,6 +460,7 @@ function splitquality(
         "with a reference, weight the reference (reference_weights), not the data",
       ),
     )
+    _nrows(reference) >= 1 || throw(ArgumentError("reference must have at least one row"))
     prep = fit_preprocessor(reference; weights = reference_weights, extra = data)
     R = apply_preprocessor(prep, reference)
     Xs = apply_preprocessor(prep, data)[_selected_indices(result), :]

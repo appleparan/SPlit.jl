@@ -208,6 +208,7 @@ function fit_preprocessor(data; weights = nothing, extra = nothing)
   extra = _as_matrix(extra)
   names_, specs = _column_specs(data, extra)
   M = _encode(names_, specs, data)
+  size(M, 1) >= 1 || throw(ArgumentError("the fit set must have at least one row"))
   keep_fit = [!_is_constant(view(M, :, j)) for j in axes(M, 2)]
   E = extra === nothing ? nothing : _encode(names_, specs, extra)
   keep = if E === nothing

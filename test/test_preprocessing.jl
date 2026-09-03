@@ -220,7 +220,7 @@ end
     )
     # a column constant on both sets is dropped
     Rboth = hcat(ones(20), randn(MersenneTwister(209), 20))
-    Xboth = hcat(ones(15), randn(15))
+    Xboth = hcat(ones(15), randn(MersenneTwister(217), 15))
     prep_both = SPlit.fit_preprocessor(Rboth; extra = Xboth)
     @test size(SPlit.apply_preprocessor(prep_both, Xboth), 2) == 1
     # all constant on both sets errors
@@ -273,5 +273,20 @@ end
     @test_throws ArgumentError SPlit.fit_preprocessor(R; extra = randn(5, 2))
     @test_throws ArgumentError SPlit.fit_preprocessor(R; extra = fill("a", 5, 3))
     @test_throws ArgumentError SPlit.apply_preprocessor(prep, [1.0, missing, 2.0][:, :])
+    @test_throws ArgumentError SPlit.fit_preprocessor(zeros(0, 2))
+  end
+
+  @testset "weighted fit keeps a column constant on the reference with the data's scale" begin
+    R = hcat(fill(2.0, 30), randn(MersenneTwister(214), 30))
+    X = randn(MersenneTwister(215), 20, 2)
+    w = rand(MersenneTwister(216), 30)
+    prep = SPlit.fit_preprocessor(R; weights = w, extra = X)
+    @test SPlit.apply_preprocessor(prep, R)[:, 1] == zeros(30)
+    @test isapprox(
+      SPlit.apply_preprocessor(prep, X)[:, 1],
+      (X[:, 1] .- 2.0) ./ std(X[:, 1]);
+      atol = 1e-12,
+    )
+    @test SPlit.apply_preprocessor(prep, R)[:, 2] == SPlit.preprocess(R[:, 2:2], w)[:, 1]
   end
 end

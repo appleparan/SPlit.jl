@@ -333,6 +333,7 @@ end
     @test_throws ArgumentError selectrows(s, data, 10; reference_weights = ones(300))
     @test_throws ArgumentError selectrows(s, data, 10; reference = randn(20, 3))
     @test_throws ArgumentError datasplit(s, data; reference = R, weights = ones(300))
+    @test_throws ArgumentError selectrows(s, data, 10; reference = zeros(0, 2))
   end
 
   @testset "selectrows preserves the splitter's own selection order" begin

@@ -57,7 +57,7 @@ train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[
 | Function | Description |
 | --- | --- |
 | `datasplit(data, ratio=0.2, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, weights, reference, reference_weights)` | Split `data` into train/test sets whose distributions match closely; returns a `SplitResult`. |
-| `select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, weights, reference, reference_weights)` | The `n` row indices `data` chosen, without building a train/test partition. |
+| `select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, weights, reference, reference_weights)` | The indices of the `n` rows of `data` the splitter chose, without building a train/test partition. |
 | `SplitResult` | `train_indices`, `test_indices` (0-based numpy arrays), `converged`, `iterations`, `method`, `kernel`, `bandwidth`, `ratio`, `selected` (`'test'`/`'train'`, the side holding the chosen rows); `.apply(data)` returns `(train, test)`; supports `train_idx, test_idx = result`. |
 | `splitquality(data, result, *, kernel, bandwidth, estimator, exact_threshold, seed, n_threads)` | Discrepancy between the train and test rows of `data`; lower is better. |
 | `energydistance(x, y, *, estimator, seed, n_threads)` | Energy distance between two samples. |

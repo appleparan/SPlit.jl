@@ -716,7 +716,8 @@ end
   end
 
   @testset "target with duplicate rows runs (jitter branch)" begin
-    Rdup = repeat(randn(MersenneTwister(306), 10, 2), 3, 1)   # 30 rows, each 3 times
+    Rsmall = randn(MersenneTwister(306), 10, 2)
+    Rdup = repeat(Rsmall, 3, 1)   # 30 rows, each 3 times
     pts, _, _ = SPlit.support_points(
       EnergyKernel(),
       data,
@@ -726,6 +727,7 @@ end
       target = Rdup,
     )
     @test size(pts) == (10, 2)
+    @test all(isfinite, pts)
     pts_g, _, _ = SPlit.support_points(
       GaussianKernel(1.0),
       data,
@@ -735,6 +737,26 @@ end
       target = Rdup,
     )
     @test size(pts_g) == (10, 2)
+    @test all(isfinite, pts_g)
+
+    # Duplicating the target 3x is the same measure as weighting it 3x, so the
+    # two runs should be equivalent up to the jitter (which perturbs the
+    # duplicated target by up to 1e-3 of its range) and the different rng
+    # consumption (the jitter draw) between the two code paths. The point
+    # sets themselves land in different local configurations of comparable
+    # quality (observed max abs diff ~2.7, well past 1e-2), so `isapprox` on
+    # the raw points is not robust; comparing the energy distance to the
+    # underlying target is (observed diff ~3e-3), so use that instead.
+    weighted, _, _ = SPlit.support_points(
+      EnergyKernel(),
+      data,
+      10;
+      max_iterations = 20,
+      rng = MersenneTwister(1),
+      target = Rsmall,
+      target_weights = fill(3.0, 10),
+    )
+    @test abs(energydistance(pts, Rsmall) - energydistance(weighted, Rsmall)) < 1e-2
   end
 
   @testset "validation" begin
