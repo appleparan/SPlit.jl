@@ -126,35 +126,6 @@ train_indices(r::SplitResult) = r.train_indices
 """
 test_indices(r::SplitResult) = r.test_indices
 
-"""
-    datasplit(splitter::AbstractSplitter, data) -> SplitResult
-
-Split `data` (matrix, `DataFrame`, or vector; observations in rows) into
-train and test sets whose distributions are as similar as possible, using
-the method's own procedure; see the splitter types
-([`SupportPointSplitter`](@ref), [`HerdingSplitter`](@ref)).
-
-`weights` (one non-negative entry per row; `nothing` for uniform) makes the
-split target the weighted empirical distribution `Σ w̄ᵢ δ(xᵢ)`: the smaller
-subset is chosen to approximate it, preprocessing standardizes with the
-weighted mean and variance, and a `:median` bandwidth is resolved from rows
-drawn in proportion to the weights — this only changes the resolved
-bandwidth for datasets above 1000 rows; below that every row enters the
-median and the weights do not change it. The train/test labeling rule is
-unchanged. Weights proportional to duplication counts are equivalent to
-duplicating rows, up to the common column rescaling of the weighted
-standardization, which changes nothing under `EnergyKernel` or a `:median`
-bandwidth but does matter for a fixed numeric Gaussian bandwidth.
-
-`reference` (same kind and columns as `data`; optionally weighted by
-`reference_weights`) makes the chosen side approximate the distribution of
-`reference` instead of the data: preprocessing is fit on `reference` and
-applied to both sets, a `:median` bandwidth is resolved on the encoded
-reference, and candidates remain the rows of `data`. `weights` cannot be
-combined with `reference`. The train/test labeling rule is unchanged;
-`result.selected` names the side that holds the chosen rows. See
-[`selectrows`](@ref) for the indices alone.
-"""
 _with_kernel(s::SupportPointSplitter, kernel) = SupportPointSplitter(
   kernel,
   s.ratio,
@@ -247,9 +218,9 @@ function selectrows(
   s::AbstractSplitter,
   data,
   n::Integer;
-  weights = nothing,
+  weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
-  reference_weights = nothing,
+  reference_weights::Union{Nothing,AbstractVector} = nothing,
 )
   return _select(s, data, n; weights, reference, reference_weights)[1]
 end
@@ -258,12 +229,41 @@ _nrows(data::AbstractMatrix) = size(data, 1)
 _nrows(data::AbstractVector) = length(data)
 _nrows(data::DataFrame) = nrow(data)
 
+"""
+    datasplit(splitter::AbstractSplitter, data) -> SplitResult
+
+Split `data` (matrix, `DataFrame`, or vector; observations in rows) into
+train and test sets whose distributions are as similar as possible, using
+the method's own procedure; see the splitter types
+([`SupportPointSplitter`](@ref), [`HerdingSplitter`](@ref)).
+
+`weights` (one non-negative entry per row; `nothing` for uniform) makes the
+split target the weighted empirical distribution `Σ w̄ᵢ δ(xᵢ)`: the smaller
+subset is chosen to approximate it, preprocessing standardizes with the
+weighted mean and variance, and a `:median` bandwidth is resolved from rows
+drawn in proportion to the weights — this only changes the resolved
+bandwidth for datasets above 1000 rows; below that every row enters the
+median and the weights do not change it. The train/test labeling rule is
+unchanged. Weights proportional to duplication counts are equivalent to
+duplicating rows, up to the common column rescaling of the weighted
+standardization, which changes nothing under `EnergyKernel` or a `:median`
+bandwidth but does matter for a fixed numeric Gaussian bandwidth.
+
+`reference` (same kind and columns as `data`; optionally weighted by
+`reference_weights`) makes the chosen side approximate the distribution of
+`reference` instead of the data: preprocessing is fit on `reference` and
+applied to both sets, a `:median` bandwidth is resolved on the encoded
+reference, and candidates remain the rows of `data`. `weights` cannot be
+combined with `reference`. The train/test labeling rule is unchanged;
+`result.selected` names the side that holds the chosen rows. See
+[`selectrows`](@ref) for the indices alone.
+"""
 function datasplit(
   s::AbstractSplitter,
   data;
-  weights = nothing,
+  weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
-  reference_weights = nothing,
+  reference_weights::Union{Nothing,AbstractVector} = nothing,
 )
   n_total = _nrows(data)
   n_small = round(Int, min(s.ratio, 1 - s.ratio) * n_total)

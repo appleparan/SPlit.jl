@@ -334,4 +334,13 @@ end
     @test_throws ArgumentError selectrows(s, data, 10; reference = randn(20, 3))
     @test_throws ArgumentError datasplit(s, data; reference = R, weights = ones(300))
   end
+
+  @testset "selectrows preserves the splitter's own selection order" begin
+    data2 = randn(MersenneTwister(510), 120, 2)
+    s = HerdingSplitter(kernel = GaussianKernel(1.0))
+    idx = selectrows(s, data2, 20)
+    @test idx == SPlit.herd(GaussianKernel(1.0), SPlit.preprocess(data2), 20)
+    # guard against an accidentally sorted result; true for this seed
+    @test idx != sort(idx)
+  end
 end
