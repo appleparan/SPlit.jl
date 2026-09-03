@@ -3,10 +3,8 @@ exclude = [
   # Medium-backed blog rejects requests from GitHub-hosted runners (connection reset)
   "^https://blog.esciencecenter.nl/",
   "^https://github.com/.*/releases/tag/v.*$",
-  "^https://doi.org/FIXME$",
   # `stable` exists only after the first tagged release; `dev` is live
-  "^https://appleparan.github.io/SPlit.jl/stable$",
-  "zenodo.org/badge/DOI/FIXME$"
+  "^https://liam.kim/SPlit.jl/stable$"
 ]
 
 exclude_path = [

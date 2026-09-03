@@ -50,5 +50,5 @@ releases come from one tag.
 
 For the splitting methods, kernels, and quality diagnostics themselves, the properties they
 guarantee, and the papers they come from, see the
-[Julia documentation](https://appleparan.github.io/SPlit.jl). `splitiq` changes none of that
+[Julia documentation](https://liam.kim/SPlit.jl). `splitiq` changes none of that
 behavior; it only exposes it to Python.

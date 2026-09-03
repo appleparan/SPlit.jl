@@ -8,7 +8,7 @@ makedocs(;
   authors = "Jongsu Kim <jongsukim8@gmail.com> and contributors",
   repo = "https://github.com/appleparan/SPlit.jl/blob/{commit}{path}#{line}",
   sitename = "SPlit.jl",
-  format = Documenter.HTML(; canonical = "https://appleparan.github.io/SPlit.jl"),
+  format = Documenter.HTML(; canonical = "https://liam.kim/SPlit.jl"),
   pages = [
     "index.md"
     [
