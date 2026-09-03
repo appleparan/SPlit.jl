@@ -5,6 +5,7 @@ Optimal train/test splitting via support points, backed by SPlit.jl
 
 from splitiq._version import __version__
 from splitiq.estimators import Exact, RandomFeatures, RandomSlices, Subsample
+from splitiq.multiplet import multiplet
 from splitiq.quality import energydistance, mmd, splitquality
 from splitiq.ratio import optimal_split_ratio
 from splitiq.split import SplitResult, datasplit, select_rows
@@ -22,6 +23,7 @@ __all__ = [
     'datasplit',
     'energydistance',
     'mmd',
+    'multiplet',
     'optimal_split_ratio',
     'select_rows',
     'splitquality',

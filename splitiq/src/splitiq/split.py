@@ -1,4 +1,4 @@
-"""Train/test splitting via support points or kernel herding."""
+"""Train/test splitting via support points, kernel herding, or twinning."""
 
 from __future__ import annotations
 
@@ -26,8 +26,10 @@ _DEFAULT_KAPPA = None
 _DEFAULT_MAX_ITERATIONS = 500
 _DEFAULT_TOLERANCE = 1e-10
 
-SplitMethod = Literal['support_points', 'herding']
+SplitMethod = Literal['support_points', 'herding', 'twinning']
 SplitKernelName = Literal['energy', 'gaussian']
+StartRule = Literal['farthest', 'random'] | int
+_METHODS = ('support_points', 'herding', 'twinning')
 
 
 @dataclass(frozen=True)
@@ -42,7 +44,7 @@ class SplitResult:
             criterion.
         iterations: Number of optimizer iterations run (kernel herding:
             number of greedy selections).
-        method: ``'support_points'`` or ``'herding'``.
+        method: ``'support_points'``, ``'herding'``, or ``'twinning'``.
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: Resolved Gaussian bandwidth, or ``None`` for the energy
             kernel.
@@ -100,6 +102,7 @@ def datasplit(
     tolerance: float = 1e-10,
     n_threads: int | None = None,
     seed: int | None = None,
+    start: StartRule | None = None,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -111,7 +114,9 @@ def datasplit(
             pandas DataFrame.
         ratio: Fraction of rows assigned to the test set, in (0, 1).
         method: ``'support_points'`` (Mak & Joseph 2018; Joseph & Vakayil
-            2022) or ``'herding'`` (greedy kernel herding).
+            2022) or ``'herding'`` (greedy kernel herding), or ``'twinning'``
+            (sequential nearest-neighbor twinning, Vakayil & Joseph 2022;
+            energy kernel only, deterministic by default).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
@@ -125,6 +130,11 @@ def datasplit(
         n_threads: Number of threads to use; ``None`` uses Julia's own
             default (``Threads.nthreads()``).
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
+        start: Starting row for ``method='twinning'``: ``'farthest'`` (the
+            row farthest from the centroid, deterministic), ``'random'``
+            (drawn with `seed`), or a 0-based row index. ``None`` (the
+            default) means ``'farthest'`` for ``method='twinning'``; any
+            explicit value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Makes the split target the weighted empirical
             distribution of the rows; the selected subset itself is
@@ -145,14 +155,19 @@ def datasplit(
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
             ``'herding'`` and `kappa`/`max_iterations`/`tolerance` are set
             away from their defaults (herding has no such options), if
-            Julia rejects the arguments (e.g. `ratio` outside (0, 1),
-            `reference` with a different number of columns than `data`,
-            `weights` combined with `reference`, or `reference_weights`
-            without `reference`), or if `weights` has the wrong length, a
-            negative or non-finite entry, or sums to zero.
+            `start` is set for a `method` other than ``'twinning'``, if
+            `method` is ``'twinning'`` and `kernel` is not ``'energy'`` or
+            `kappa`/`max_iterations`/`tolerance`/`n_threads` are set away
+            from their defaults (twinning has no such options), if Julia
+            rejects the arguments (e.g. `ratio`
+            outside (0, 1), `reference` with a different number of columns
+            than `data`, `weights` combined with `reference`, or
+            `reference_weights` without `reference`), or if `weights` has
+            the wrong length, a negative or non-finite entry, or sums to
+            zero.
     """
-    if method not in ('support_points', 'herding'):
-        msg = f"method must be 'support_points' or 'herding', got {method!r}"
+    if method not in _METHODS:
+        msg = f'method must be one of {_METHODS}, got {method!r}'
         raise ValueError(msg)
 
     jl = julia()
@@ -163,7 +178,17 @@ def datasplit(
     kernel_obj = build_kernel(jl, kernel, bandwidth)
     rng = build_rng(jl, seed)
     splitter = _build_splitter(
-        jl, method, kernel_obj, ratio, kappa, max_iterations, tolerance, n_threads, rng
+        jl,
+        method,
+        kernel,
+        kernel_obj,
+        ratio,
+        kappa,
+        max_iterations,
+        tolerance,
+        n_threads,
+        rng,
+        start,
     )
     with _translate_error():
         result = jl.datasplit(
@@ -188,6 +213,7 @@ def select_rows(
     tolerance: float = 1e-10,
     n_threads: int | None = None,
     seed: int | None = None,
+    start: StartRule | None = None,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -203,7 +229,9 @@ def select_rows(
             pandas DataFrame.
         n: Number of rows to select, in ``1:len(data)``.
         method: ``'support_points'`` (Mak & Joseph 2018; Joseph & Vakayil
-            2022) or ``'herding'`` (greedy kernel herding).
+            2022) or ``'herding'`` (greedy kernel herding), or ``'twinning'``
+            (sequential nearest-neighbor twinning, Vakayil & Joseph 2022;
+            energy kernel only, deterministic by default).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
@@ -217,6 +245,11 @@ def select_rows(
         n_threads: Number of threads to use; ``None`` uses Julia's own
             default (``Threads.nthreads()``).
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
+        start: Starting row for ``method='twinning'``: ``'farthest'`` (the
+            row farthest from the centroid, deterministic), ``'random'``
+            (drawn with `seed`), or a 0-based row index. ``None`` (the
+            default) means ``'farthest'`` for ``method='twinning'``; any
+            explicit value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or
@@ -229,19 +262,24 @@ def select_rows(
     Returns:
         A 0-based numpy array of `n` row indices, in selection order
         (support-point order for ``method='support_points'``, greedy order
-        for ``method='herding'``).
+        for ``method='herding'``, twin-group formation order for
+        ``method='twinning'``).
 
     Raises:
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
             ``'herding'`` and `kappa`/`max_iterations`/`tolerance` are set
-            away from their defaults (herding has no such options), or if
+            away from their defaults (herding has no such options), if
+            `start` is set for a `method` other than ``'twinning'``, if
+            `method` is ``'twinning'`` and `kernel` is not ``'energy'`` or
+            `kappa`/`max_iterations`/`tolerance`/`n_threads` are set away
+            from their defaults (twinning has no such options), or if
             Julia rejects the arguments (e.g. `n` out of range, `reference`
-            with a different number of columns than `data`, `weights`
-            combined with `reference`, or `reference_weights` without
-            `reference`).
+            with a different number of columns than
+            `data`, `weights` combined with `reference`, or
+            `reference_weights` without `reference`).
     """
-    if method not in ('support_points', 'herding'):
-        msg = f"method must be 'support_points' or 'herding', got {method!r}"
+    if method not in _METHODS:
+        msg = f'method must be one of {_METHODS}, got {method!r}'
         raise ValueError(msg)
 
     jl = julia()
@@ -254,7 +292,7 @@ def select_rows(
     # `ratio` only matters for the train/test partition `datasplit` builds;
     # `selectrows` never reads it.
     splitter = _build_splitter(
-        jl, method, kernel_obj, 0.5, kappa, max_iterations, tolerance, n_threads, rng
+        jl, method, kernel, kernel_obj, 0.5, kappa, max_iterations, tolerance, n_threads, rng, start
     )
     with _translate_error():
         indices = jl.selectrows(
@@ -270,6 +308,7 @@ def select_rows(
 def _build_splitter(
     jl: JuliaValue,
     method: SplitMethod,
+    kernel: SplitKernelName,
     kernel_obj: JuliaValue,
     ratio: float,
     kappa: int | None,
@@ -277,15 +316,21 @@ def _build_splitter(
     tolerance: float,
     n_threads: int | None,
     rng: JuliaValue | None,
+    start: StartRule | None,
 ) -> JuliaValue:
-    """Build the Julia splitter (``SupportPointSplitter``/``HerdingSplitter``) for `method`.
+    """Build the Julia splitter for `method`.
 
-    Assumes `method` is already known to be ``'support_points'`` or
-    ``'herding'``.
+    One of ``SupportPointSplitter``, ``HerdingSplitter``, or
+    ``TwinningSplitter``.
+
+    Assumes `method` is already known to be one of ``_METHODS``.
 
     Args:
         jl: The Julia ``Main`` handle from :func:`splitiq._julia.julia`.
-        method: ``'support_points'`` or ``'herding'``.
+        method: ``'support_points'``, ``'herding'``, or ``'twinning'``.
+        kernel: The kernel name (``'energy'`` or ``'gaussian'``) that built
+            `kernel_obj`; used to validate `method='twinning'`, which only
+            supports the energy kernel.
         kernel_obj: A Julia ``SplitKernel`` value.
         ratio: Fraction of rows assigned to the test set.
         kappa: Absolute per-iteration subsample size (``method=
@@ -295,16 +340,37 @@ def _build_splitter(
         tolerance: Convergence tolerance (``method='support_points'`` only).
         n_threads: Number of threads, or ``None`` to omit the keyword.
         rng: A Julia RNG value, or ``None`` to omit the keyword.
+        start: Twinning's starting row (``method='twinning'`` only), or
+            ``None`` to use ``'farthest'``; must stay ``None`` for every
+            other `method`.
 
     Returns:
-        A Julia ``SupportPointSplitter`` or ``HerdingSplitter`` value.
+        A Julia ``SupportPointSplitter``, ``HerdingSplitter``, or
+        ``TwinningSplitter`` value.
 
     Raises:
         ValueError: If `method` is ``'herding'`` and `kappa`/
             `max_iterations`/`tolerance` are set away from their defaults
-            (herding has no such options), or if Julia rejects the
-            arguments (e.g. `ratio` outside (0, 1)).
+            (herding has no such options), if `start` is not ``None`` for a
+            `method` other than ``'twinning'``, if `method` is
+            ``'twinning'`` and any of its unsupported options is set, or if
+            Julia rejects the arguments (e.g. `ratio` outside (0, 1)).
     """
+    if start is not None and method != 'twinning':
+        msg = "'start' is a twinning option; use method='twinning'"
+        raise ValueError(msg)
+    if method == 'twinning':
+        return _build_twinning_splitter(
+            jl,
+            kernel,
+            ratio,
+            kappa,
+            max_iterations,
+            tolerance,
+            n_threads,
+            rng,
+            'farthest' if start is None else start,
+        )
     splitter_kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
     if method == 'herding':
         herding_options_changed = (
@@ -325,6 +391,87 @@ def _build_splitter(
     splitter_kwargs['tolerance'] = tolerance
     with _translate_error():
         return jl.SupportPointSplitter(**splitter_kwargs)
+
+
+def _build_twinning_splitter(
+    jl: JuliaValue,
+    kernel: SplitKernelName,
+    ratio: float,
+    kappa: int | None,
+    max_iterations: int,
+    tolerance: float,
+    n_threads: int | None,
+    rng: JuliaValue | None,
+    start: StartRule,
+) -> JuliaValue:
+    """Build a Julia ``TwinningSplitter``; twinning has no kernel, optimizer, or thread options.
+
+    Args:
+        jl: The Julia ``Main`` handle from :func:`splitiq._julia.julia`.
+        kernel: Must be ``'energy'``.
+        ratio: Fraction of rows assigned to the test set.
+        kappa: Must be ``None``.
+        max_iterations: Must be the default.
+        tolerance: Must be the default.
+        n_threads: Must be ``None`` (twinning is serial).
+        rng: A Julia RNG value, or ``None`` to omit the keyword.
+        start: ``'farthest'``, ``'random'``, or a 0-based row index.
+
+    Returns:
+        A Julia ``TwinningSplitter`` value.
+
+    Raises:
+        ValueError: If any of the constraints above is violated, or if Julia
+            rejects the arguments.
+    """
+    if kernel != 'energy':
+        msg = "twinning minimizes the energy distance; use kernel='energy'"
+        raise ValueError(msg)
+    if (
+        kappa != _DEFAULT_KAPPA
+        or max_iterations != _DEFAULT_MAX_ITERATIONS
+        or tolerance != _DEFAULT_TOLERANCE
+    ):
+        msg = (
+            "twinning has no 'kappa'/'max_iterations'/'tolerance' options; "
+            'leave them at their defaults'
+        )
+        raise ValueError(msg)
+    if n_threads is not None:
+        msg = "twinning is serial and has no 'n_threads' option"
+        raise ValueError(msg)
+    kwargs: dict[str, JuliaValue] = {'ratio': ratio, 'start': _to_julia_start(jl, start)}
+    if rng is not None:
+        kwargs['rng'] = rng
+    with _translate_error():
+        return jl.TwinningSplitter(**kwargs)
+
+
+def _to_julia_start(jl: JuliaValue, start: StartRule) -> JuliaValue:
+    """Convert `start` to the Julia keyword value (Symbol, or 1-based row index).
+
+    Args:
+        jl: The Julia ``Main`` handle.
+        start: ``'farthest'``, ``'random'``, or a 0-based row index.
+
+    Returns:
+        ``:farthest``/``:random`` or ``start + 1``.
+
+    Raises:
+        ValueError: If `start` is a negative int, not an integer, or an unknown string.
+    """
+    if isinstance(start, str):
+        if start not in ('farthest', 'random'):
+            msg = f"start must be 'farthest', 'random', or a row index, got {start!r}"
+            raise ValueError(msg)
+        return jl.Symbol(start)
+    if not isinstance(start, (int, np.integer)) or isinstance(start, bool):
+        msg = f"start must be 'farthest', 'random', or an integer row index, got {start!r}"
+        raise ValueError(msg)
+    if int(start) < 0:
+        msg = f'start must be a non-negative row index, got {start}'
+        raise ValueError(msg)
+    return int(start) + 1
 
 
 def _splitter_kwargs(

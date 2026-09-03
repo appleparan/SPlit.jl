@@ -121,4 +121,37 @@ using Statistics
       @test mean(data[idx, 1]) > mean(data[:, 1]) + 0.5
     end
   end
+  @testset "twinning splits beat random splits under the energy distance" begin
+    mixture = let rng = MersenneTwister(300), N = 400
+      c = rand(rng, 1:4, N)
+      centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+      centers[c, :] .+ randn(rng, N, 2)
+    end
+    for (seed, data) in ((301, mixture), (302, randn(MersenneTwister(302), 400, 4)))
+      s = TwinningSplitter()
+      r = datasplit(s, data)
+      q = splitquality(data, r)
+      n_test = length(test_indices(r))
+      random_qs = map(1:25) do i
+        perm = randperm(MersenneTwister(1_000 * seed + i), size(data, 1))
+        fake = SPlit.SplitResult(perm[(n_test+1):end], perm[1:n_test], true, 0, s)
+        splitquality(data, fake)
+      end
+      @test q < mean(random_qs)
+    end
+  end
+
+  @testset "twinning multiplets beat random folds on the worst fold's energy distance" begin
+    data = randn(MersenneTwister(310), 400, 3)
+    X = SPlit.preprocess(data)
+    worst(folds) = maximum(energydistance(X[f, :], X) for f in folds)
+    random_worst = map(1:20) do i
+      perm = randperm(MersenneTwister(3_000 + i), 400)
+      worst([perm[(100*(j-1)+1):(100*j)] for j = 1:4])
+    end
+    for strategy in (:sequential, :halving, :single)
+      folds = multiplet(TwinningSplitter(), data, 4; strategy)
+      @test worst(folds) < mean(random_worst)
+    end
+  end
 end

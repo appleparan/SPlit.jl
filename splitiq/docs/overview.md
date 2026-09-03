@@ -21,6 +21,7 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 | Julia `ArgumentError` | Python `ValueError` |
 | any other Julia exception | `juliacall.JuliaError` |
 | 0-based numpy index array | 1-based Julia row index vector |
+| `'farthest'` / `'random'` / 0-based `start` | `:farthest` / `:random` / 1-based row index |
 
 ## `SplitResult`
 
@@ -30,7 +31,7 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 - `converged`: whether the optimizer's stopping rule fired (always `True` for kernel herding,
   which has no iterative convergence criterion).
 - `iterations`: number of optimizer iterations (kernel herding: number of greedy selections).
-- `method`: `'support_points'` or `'herding'`.
+- `method`: `'support_points'`, `'herding'`, or `'twinning'`.
 - `kernel`: `'energy'` or `'gaussian'`.
 - `bandwidth`: the resolved Gaussian bandwidth, or `None` for the energy kernel.
 - `ratio`: the requested test-set fraction.

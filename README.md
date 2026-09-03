@@ -96,6 +96,13 @@ of `data`'s own distribution, with candidates still drawn from `data`.
   points, under either `EnergyKernel` or `GaussianKernel`. It is
   deterministic given the data and a numeric kernel, with an exact
   (`O(N²)`) data term at every dataset size.
+- `TwinningSplitter`: partitions by sequential nearest-neighbor twinning
+  (Vakayil & Joseph, 2022) under the energy distance, with no kernel or
+  optimizer options. It is deterministic by default.
+- `multiplet(splitter, data, k; strategy = :sequential)`: splits `data`
+  into `k` distribution-balanced folds instead of one train/test pair,
+  using any splitter under the `:sequential`, `:halving`, or `:single`
+  strategy.
 
 ```julia
 herding = HerdingSplitter(kernel = EnergyKernel(), rng = MersenneTwister(2))
@@ -131,7 +138,8 @@ intercept).
 ### Comparison
 
 `compare(methods, data)` runs several splitter configurations
-(`SupportPointSplitter` or `HerdingSplitter`) on the same data and scores
+(any splitter: `SupportPointSplitter`, `HerdingSplitter`, or
+`TwinningSplitter`) on the same data and scores
 each with `splitquality`, returning a
 `SplitComparison` (convertible to a `DataFrame`); `best(comparison)` returns
 the method/result pair with the lowest energy distance.
@@ -139,7 +147,7 @@ the method/result pair with the lowest energy distance.
 ### Benchmarks
 
 See the [Benchmarks](docs/src/20-benchmarks.md)
-page for how `SupportPointSplitter` and `HerdingSplitter` compare across
+page for how the three splitters compare across
 kernels and dataset sizes.
 
 ## Algorithm details
@@ -169,6 +177,8 @@ kernels and dataset sizes.
 5. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 
 6. Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
+
+7. Vakayil, A., & Joseph, V. R. (2022). Data Twinning. *Statistical Analysis and Data Mining*, 15(5), 598-610.
 
 ## How to cite
 
