@@ -11,6 +11,7 @@ using Test
   include("test_kdtree_selection.jl")
   include("test_splitter.jl")
   include("test_herding.jl")
+  include("test_twinning.jl")
   include("test_ratio.jl")
   include("test_comparison.jl")
   include("test_properties.jl")
