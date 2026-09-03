@@ -1,4 +1,4 @@
-# Reference (target) distribution and `select` (roadmap M2)
+# Reference (target) distribution and `selectrows` (roadmap M2)
 
 **Status**: Approved design, pre-implementation
 **Date**: 2026-09-03
@@ -12,11 +12,11 @@ Let a splitter choose rows of `data` so that the chosen subset approximates
 a *different* distribution: a `reference` sample (optionally weighted by
 `reference_weights`) instead of the data itself. Preprocessing becomes
 fit/apply, fit on the reference and applied to both sets. A new public
-`select(splitter, data, n; ...)` returns the chosen row indices without
-building a train/test partition; `datasplit` is `select` plus the
+`selectrows(splitter, data, n; ...)` returns the chosen row indices without
+building a train/test partition; `datasplit` is `selectrows` plus the
 complement. `splitquality(...; reference)` scores the selected rows against
 the reference. splitiq mirrors `reference`, `reference_weights`, and
-`select`. Without `reference`, every existing code path is untouched and
+`select_rows`. Without `reference`, every existing code path is untouched and
 results are bit-identical.
 
 Decisions taken with the user on 2026-09-03:
@@ -28,7 +28,7 @@ Decisions taken with the user on 2026-09-03:
    the reference and applied to both sets.
 3. `splitquality(data, result; reference)` measures the selected rows
    against the reference.
-4. A selection-only public API, `select`, ships in the same change.
+4. A selection-only public API, `selectrows` (Python: `select_rows`), ships in the same change. It is not called `select` because `DataFrames`, a dependency, exports `select`.
 
 ## Semantics
 
@@ -135,7 +135,7 @@ the existing methods; the target versions are new methods, and constant
 ## Public API
 
 ```julia
-select(s::AbstractSplitter, data, n::Integer;
+selectrows(s::AbstractSplitter, data, n::Integer;
        weights = nothing, reference = nothing, reference_weights = nothing) -> Vector{Int}
 datasplit(s::AbstractSplitter, data;
           weights = nothing, reference = nothing, reference_weights = nothing) -> SplitResult
@@ -143,7 +143,7 @@ splitquality(data, result; reference = nothing, reference_weights = nothing, kwa
 compare(methods, data; reference = nothing, reference_weights = nothing, kwargs...)
 ```
 
-- `select` returns the `n` selected row indices of `data` in selection
+- `selectrows` returns the `n` selected row indices of `data` in selection
   order (support-point order, or greedy order for herding), as the roadmap's
   design principle asks (`Vector{Int}`). Convergence diagnostics are
   available through `datasplit`. `1 ≤ n ≤ N`, else `ArgumentError`.
@@ -167,7 +167,7 @@ compare(methods, data; reference = nothing, reference_weights = nothing, kwargs.
 Python (splitiq), mirroring the names:
 
 ```python
-select(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance,
+select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance,
        n_threads, seed, weights=None, reference=None, reference_weights=None) -> np.ndarray   # 0-based
 datasplit(..., reference=None, reference_weights=None)
 splitquality(data, result, *, reference=None, reference_weights=None, ...)
@@ -202,21 +202,21 @@ Properties, appended to the existing files (existing tests untouched):
   and for one MM sweep (as in M1, with the reference duplicated).
 - Monotone descent of the energy objective toward `P_R` in full-data mode.
 - `select(s, data, n)` equals the selected side of `datasplit` for a
-  matching `ratio`; `select` returns exactly `n` distinct indices in
+  matching `ratio`; `selectrows` returns exactly `n` distinct indices in
   `1:N`; `n` out of range errors; `weights` together with `reference`
   errors.
 - `SplitResult.selected` is `:test` for `ratio ≤ 0.5` and `:train` above;
   the 5-argument constructor still works.
-- splitiq: parity tests for `select`, `reference`, `reference_weights`, the
+- splitiq: parity tests for `selectrows`, `reference`, `reference_weights`, the
   `selected` field, and the error cases.
 
 ## Docs
 
-- Methods page: new section "Reference distribution and `select`" (delta
+- Methods page: new section "Reference distribution and `selectrows`" (delta
   only: what changes in the five steps when a reference is given, and how
   `select` relates to `datasplit`).
 - Roadmap: M2 done, Current-state row updated, changelog line.
-- Python page and splitiq docs: the new keywords and `select`.
+- Python page and splitiq docs: the new keywords and `selectrows`.
 - AGENTS.md gotcha: with a reference, candidates are rows of `data`, the
   target is the reference; `weights` and `reference` are mutually exclusive;
   preprocessing is fit on the reference.
@@ -226,7 +226,7 @@ Properties, appended to the existing files (existing tests untouched):
 - Weighted candidates together with a reference (decision 1).
 - A reference for `TwinningSplitter` / k-fold (M3).
 - Bypassing preprocessing for embedding inputs (M5 open question).
-- Returning diagnostics from `select` (use `datasplit`).
+- Returning diagnostics from `selectrows` (use `datasplit`).
 
 ## References
 
