@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="optimal-ratio-title optimal-ratio-desc" width="960" height="600">
+      <title id="optimal-ratio-title">Optimal test fraction versus model complexity</title>
+      <desc id="optimal-ratio-desc">Line chart of the optimal test fraction gamma equals 1 over the square root of p plus 1, dropping steeply for small parameter counts and flattening as p grows, with five example values marked and a dashed reference line at the default ratio of 0.2.</desc>
+<style>
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'STIX Two Text';font-style:italic;font-weight:400;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAQUABAAAAAAB5AAAAO6AAIhSAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbgQgcNgZgP1NUQVREAEQRCAqDXIMkATYCJAMQCwoABCAFhB4HIAwHGzYGURSxpPiZYLrNQxqc0Hl5OCHqzkOULhlbcN+n43n+98e3z333fSh55KjQ4DhTqagmJoQ0ITFxdSalcZvVhTfVZu4CZxAXcuYGZxJzUnGmPxGzd6dfz//KwgAcOKeu+kXHxOuBrzfLpiqqoMQokF/0pO1V5OcDQr9NESzpiPmYmEiI7Bgdu7tgCFAEjQgGLFUMW722sROodk/2OYBqv89oB6ojI4wLqGDwg7Qc3utzgVAesarfEdhMQZ9iBgwLJEI0AHTfRTEcAVfUaJQymstlwpFwJB5p4VnUMplFWsrVQgM2FTFNtklPIlA/4yVt3lJHA9ac5mj5ReRXlec0AnlVFmMORESfglEIFkBO7LcwEHDw6IgDQlGNQlHS5hrlMSIkAgoajEIFozBLAX36FMzhaY52phZUPlvytxW0SKSDDyroG+DN8RfYp6koSh2qoShSEUk4eSH8SXP2QPYgMXc/2GUL5ob045A9evXqS8g+weecAqtXo1YGIPvS6X3+vHmfXeIa0DXnjixi+Wnd9tLtPXKmld+7pKH2Xry7tt/fXPNZJz60ciVkd+BztkFIEZ0EvWwVOE907TgD2aAvZesgXhxInYqNXosGTCsIctUzTlLd1MFNLyVd/JHtu+rO1InGlNoHSsUXjeqpXPER/97+pf1DRqwqpk8cLK1MLpiQmrhBLli8RSzfJsqoLhpobEzr0GWUZSaSdT9+EQbwCVdtO3357O3wjIaS2Cl06uI0nkGS9wjv2vhbqo6+HtGQP1i5INA69ujatCEsNIjPlRBlQLmAJ+Y2YuafwTGEcFYhcD//FElqDZUpDdX1mC1RE1K6QCnGcpJfz9Bo4sOrig2hFN6eJ1tZya+QNesait+B0iTqQZ4lY1g4APkVpmUv6AAEZe56dNezjCF+4bc+pPkCb3/1yQHePWn77+x/K4JEVQ7Ro4Bwj962yEP83a6LTr7pHly8ZCvc50f3a/PSgKC6bsgtrdBiVTDgJFRqP+6gKGKaQ4piyDNFY6UXimpJFIrWvJTKeyzIqFIYykUgrGebaI3khlXcPCbzsTKzYJDSpUqVJqmD6UFSpwM02jpAUIeetZqbC8OP1MrHzcZo7EywTEDkLNx8rtliWTAYHn75UqQws9JsAaOSjXFzSuHHsPJYZi0+iSnPH6eETogmch/GaBJGHcYIB6sx6ZKlyUAalSZHmoK4ZRrPWPpAErSbNkhSuJvxpQ5r0RFkfueZcYrxE56onZFZgMMIH5TuK909K3D1/fzvTp0P) format('woff2');}
+</style>
+
+      <rect width="100%" height="100%" fill="rgb(38, 43, 43)"></rect>
+
+      <!-- ============ PLOT AREA: left 80, right 40, top 40, bottom 100 ============ -->
+
+      <!-- faint horizontal gridlines at gamma = 0.1 .. 0.5 -->
+      <line x1="80" y1="408" x2="920" y2="408" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
+      <line x1="80" y1="316" x2="920" y2="316" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
+      <line x1="80" y1="224" x2="920" y2="224" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
+      <line x1="80" y1="132" x2="920" y2="132" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
+      <line x1="80" y1="40" x2="920" y2="40" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
+
+      <!-- dashed reference line at gamma = 0.2 (default ratio) -->
+      <line x1="80" y1="316" x2="920" y2="316" stroke="rgb(138, 148, 168)" stroke-width="1" stroke-dasharray="4,3"></line>
+      <rect x="796" y="292" width="120" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+      <text x="916" y="304" fill="rgb(138, 148, 168)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end" letter-spacing="0.04em">ratio = 0.2 (default)</text>
+
+      <!-- axes -->
+      <line x1="80" y1="40" x2="80" y2="500" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+      <line x1="80" y1="500" x2="920" y2="500" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+
+      <!-- y tick labels -->
+      <text x="72" y="503" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.0</text>
+      <text x="72" y="411" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.1</text>
+      <text x="72" y="319" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.2</text>
+      <text x="72" y="227" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.3</text>
+      <text x="72" y="135" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.4</text>
+      <text x="72" y="43" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.5</text>
+
+      <!-- y axis title (rotated) -->
+      <text x="44" y="270" fill="rgb(232, 234, 240)" font-size="12" font-weight="400" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" transform="rotate(-90 44 270)"><tspan>optimal test fraction </tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">γ</tspan></text>
+
+      <!-- x ticks -->
+      <line x1="80" y1="500" x2="80" y2="504" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+      <line x1="241.5" y1="500" x2="241.5" y2="504" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+      <line x1="403.1" y1="500" x2="403.1" y2="504" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+      <line x1="564.6" y1="500" x2="564.6" y2="504" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+      <line x1="726.2" y1="500" x2="726.2" y2="504" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+      <line x1="887.7" y1="500" x2="887.7" y2="504" stroke="rgb(95, 103, 103)" stroke-width="1"></line>
+
+      <!-- x tick labels -->
+      <text x="80" y="516" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">0</text>
+      <text x="241.5" y="516" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">20</text>
+      <text x="403.1" y="516" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">40</text>
+      <text x="564.6" y="516" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">60</text>
+      <text x="726.2" y="516" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">80</text>
+      <text x="887.7" y="516" fill="rgb(180, 188, 204)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">100</text>
+
+      <!-- x axis title -->
+      <text x="500" y="540" fill="rgb(232, 234, 240)" font-size="12" font-weight="400" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan> — parameters, intercept included</tspan></text>
+
+      <!-- ============ EDITORIAL ASIDE (upper-right margin, accent-adjacent) ============ -->
+      <path d="M 812 92 Q 700 200 564.6 394.8" fill="none" stroke="rgba(242, 138, 90, 0.55)" stroke-width="1" stroke-dasharray="4,3"></path>
+      <circle cx="564.6" cy="394.8" r="2" fill="rgb(242, 138, 90)"></circle>
+      <text x="900" y="64" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">complex models keep</text>
+      <text x="900" y="84" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">most rows for training</text>
+
+      <!-- ============ CURVE: gamma(p) = 1 / (sqrt(p) + 1), p = 1..101 ============ -->
+      <polyline points="88.1,40.0 96.2,118.9 104.2,163.3 112.3,193.3 120.4,215.7 128.5,233.3 136.5,247.7 144.6,259.7 152.7,270.0 160.8,279.0 168.8,286.9 176.9,293.9 185.0,300.2 193.1,306.0 201.2,311.2 209.2,316.0 217.3,320.4 225.4,324.5 233.5,328.3 241.5,331.9 249.6,335.2 257.7,338.3 265.8,341.3 273.8,344.0 281.9,346.7 290.0,349.2 298.1,351.5 306.2,353.8 314.2,355.9 322.3,358.0 330.4,359.9 338.5,361.8 346.5,363.6 354.6,365.3 362.7,367.0 370.8,368.6 378.8,370.1 386.9,371.6 395.0,373.0 403.1,374.4 411.2,375.7 419.2,377.0 427.3,378.3 435.4,379.5 443.5,380.6 451.5,381.8 459.6,382.9 467.7,384.0 475.8,385.0 483.8,386.0 491.9,387.0 500.0,388.0 508.1,388.9 516.2,389.8 524.2,390.7 532.3,391.6 540.4,392.4 548.5,393.2 556.5,394.0 564.6,394.8 572.7,395.6 580.8,396.3 588.8,397.1 596.9,397.8 605.0,398.5 613.1,399.2 621.2,399.8 629.2,400.5 637.3,401.1 645.4,401.8 653.5,402.4 661.5,403.0 669.6,403.6 677.7,404.2 685.8,404.8 693.8,405.3 701.9,405.9 710.0,406.4 718.1,407.0 726.2,407.5 734.2,408.0 742.3,408.5 750.4,409.0 758.5,409.5 766.5,410.0 774.6,410.5 782.7,410.9 790.8,411.4 798.8,411.8 806.9,412.3 815.0,412.7 823.1,413.1 831.2,413.6 839.2,414.0 847.3,414.4 855.4,414.8 863.5,415.2 871.5,415.6 879.6,416.0 887.7,416.4 895.8,416.7" fill="none" stroke="rgb(242, 138, 90)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></polyline>
+
+      <!-- ============ MARKED VALUES: p = 2, 5, 10, 26, 101 ============ -->
+
+      <!-- p = 2 -->
+      <circle cx="96.2" cy="118.9" r="5" fill="rgb(38, 43, 43)"></circle>
+      <circle cx="96.2" cy="118.9" r="4" fill="rgb(242, 138, 90)"></circle>
+      <rect x="104" y="88" width="60" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+      <text x="110" y="100" fill="rgb(232, 234, 240)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=2 · 0.41</tspan></text>
+
+      <!-- p = 5 -->
+      <circle cx="120.4" cy="215.7" r="5" fill="rgb(38, 43, 43)"></circle>
+      <circle cx="120.4" cy="215.7" r="4" fill="rgb(242, 138, 90)"></circle>
+      <rect x="128" y="188" width="60" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+      <text x="134" y="200" fill="rgb(232, 234, 240)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=5 · 0.31</tspan></text>
+
+      <!-- p = 10 -->
+      <circle cx="160.8" cy="279.0" r="5" fill="rgb(38, 43, 43)"></circle>
+      <circle cx="160.8" cy="279.0" r="4" fill="rgb(242, 138, 90)"></circle>
+      <rect x="172" y="248" width="64" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+      <text x="178" y="260" fill="rgb(232, 234, 240)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=10 · 0.24</tspan></text>
+
+      <!-- p = 26 -->
+      <circle cx="290.0" cy="349.2" r="5" fill="rgb(38, 43, 43)"></circle>
+      <circle cx="290.0" cy="349.2" r="4" fill="rgb(242, 138, 90)"></circle>
+      <rect x="256" y="322" width="68" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+      <text x="290" y="334" fill="rgb(232, 234, 240)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=26 · 0.16</tspan></text>
+
+      <!-- p = 101 -->
+      <circle cx="895.8" cy="416.7" r="5" fill="rgb(38, 43, 43)"></circle>
+      <circle cx="895.8" cy="416.7" r="4" fill="rgb(242, 138, 90)"></circle>
+      <rect x="848" y="384" width="68" height="16" rx="2" fill="rgb(38, 43, 43)"></rect>
+      <text x="912" y="396" fill="rgb(232, 234, 240)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=101 · 0.09</tspan></text>
+    </svg>

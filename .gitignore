@@ -6,3 +6,6 @@ benchmark/Manifest.toml
 docs/build/
 *.rej
 node_modules
+
+# Font downloads cached by docs/diagrams/export.py
+docs/diagrams/.cache/

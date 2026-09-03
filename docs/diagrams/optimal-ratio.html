@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Optimal ratio</title>
   <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif;
-      background: #f5f5f5;
+      background: var(--paper);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -26,97 +27,97 @@
       <title id="optimal-ratio-title">Optimal test fraction versus model complexity</title>
       <desc id="optimal-ratio-desc">Line chart of the optimal test fraction gamma equals 1 over the square root of p plus 1, dropping steeply for small parameter counts and flattening as p grows, with five example values marked and a dashed reference line at the default ratio of 0.2.</desc>
 
-      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect width="100%" height="100%" fill="var(--paper)"/>
 
       <!-- ============ PLOT AREA: left 80, right 40, top 40, bottom 100 ============ -->
 
       <!-- faint horizontal gridlines at gamma = 0.1 .. 0.5 -->
-      <line x1="80" y1="408" x2="920" y2="408" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
-      <line x1="80" y1="316" x2="920" y2="316" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
-      <line x1="80" y1="224" x2="920" y2="224" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
-      <line x1="80" y1="132" x2="920" y2="132" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
-      <line x1="80" y1="40"  x2="920" y2="40"  stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+      <line x1="80" y1="408" x2="920" y2="408" stroke="var(--ink-a12)" stroke-width="0.8"/>
+      <line x1="80" y1="316" x2="920" y2="316" stroke="var(--ink-a12)" stroke-width="0.8"/>
+      <line x1="80" y1="224" x2="920" y2="224" stroke="var(--ink-a12)" stroke-width="0.8"/>
+      <line x1="80" y1="132" x2="920" y2="132" stroke="var(--ink-a12)" stroke-width="0.8"/>
+      <line x1="80" y1="40"  x2="920" y2="40"  stroke="var(--ink-a12)" stroke-width="0.8"/>
 
       <!-- dashed reference line at gamma = 0.2 (default ratio) -->
-      <line x1="80" y1="316" x2="920" y2="316" stroke="#7a8399" stroke-width="1" stroke-dasharray="4,3"/>
-      <rect x="796" y="292" width="120" height="16" rx="2" fill="#f5f5f5"/>
-      <text x="916" y="304" fill="#7a8399" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end" letter-spacing="0.04em">ratio = 0.2 (default)</text>
+      <line x1="80" y1="316" x2="920" y2="316" stroke="var(--soft)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="796" y="292" width="120" height="16" rx="2" fill="var(--paper)"/>
+      <text x="916" y="304" fill="var(--soft)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end" letter-spacing="0.04em">ratio = 0.2 (default)</text>
 
       <!-- axes -->
-      <line x1="80" y1="40" x2="80" y2="500" stroke="#bfc0c0" stroke-width="1"/>
-      <line x1="80" y1="500" x2="920" y2="500" stroke="#bfc0c0" stroke-width="1"/>
+      <line x1="80" y1="40" x2="80" y2="500" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="80" y1="500" x2="920" y2="500" stroke="var(--rule)" stroke-width="1"/>
 
       <!-- y tick labels -->
-      <text x="72" y="503" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.0</text>
-      <text x="72" y="411" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.1</text>
-      <text x="72" y="319" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.2</text>
-      <text x="72" y="227" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.3</text>
-      <text x="72" y="135" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.4</text>
-      <text x="72" y="43"  fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.5</text>
+      <text x="72" y="503" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.0</text>
+      <text x="72" y="411" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.1</text>
+      <text x="72" y="319" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.2</text>
+      <text x="72" y="227" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.3</text>
+      <text x="72" y="135" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.4</text>
+      <text x="72" y="43"  fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">0.5</text>
 
       <!-- y axis title (rotated) -->
-      <text x="44" y="270" fill="#2d3142" font-size="12" font-weight="400" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" transform="rotate(-90 44 270)"><tspan>optimal test fraction </tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">&#947;</tspan></text>
+      <text x="44" y="270" fill="var(--ink)" font-size="12" font-weight="400" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" transform="rotate(-90 44 270)"><tspan>optimal test fraction </tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">&#947;</tspan></text>
 
       <!-- x ticks -->
-      <line x1="80"    y1="500" x2="80"    y2="504" stroke="#bfc0c0" stroke-width="1"/>
-      <line x1="241.5" y1="500" x2="241.5" y2="504" stroke="#bfc0c0" stroke-width="1"/>
-      <line x1="403.1" y1="500" x2="403.1" y2="504" stroke="#bfc0c0" stroke-width="1"/>
-      <line x1="564.6" y1="500" x2="564.6" y2="504" stroke="#bfc0c0" stroke-width="1"/>
-      <line x1="726.2" y1="500" x2="726.2" y2="504" stroke="#bfc0c0" stroke-width="1"/>
-      <line x1="887.7" y1="500" x2="887.7" y2="504" stroke="#bfc0c0" stroke-width="1"/>
+      <line x1="80"    y1="500" x2="80"    y2="504" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="241.5" y1="500" x2="241.5" y2="504" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="403.1" y1="500" x2="403.1" y2="504" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="564.6" y1="500" x2="564.6" y2="504" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="726.2" y1="500" x2="726.2" y2="504" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="887.7" y1="500" x2="887.7" y2="504" stroke="var(--rule)" stroke-width="1"/>
 
       <!-- x tick labels -->
-      <text x="80"    y="516" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">0</text>
-      <text x="241.5" y="516" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">20</text>
-      <text x="403.1" y="516" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">40</text>
-      <text x="564.6" y="516" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">60</text>
-      <text x="726.2" y="516" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">80</text>
-      <text x="887.7" y="516" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">100</text>
+      <text x="80"    y="516" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">0</text>
+      <text x="241.5" y="516" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">20</text>
+      <text x="403.1" y="516" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">40</text>
+      <text x="564.6" y="516" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">60</text>
+      <text x="726.2" y="516" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">80</text>
+      <text x="887.7" y="516" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">100</text>
 
       <!-- x axis title -->
-      <text x="500" y="540" fill="#2d3142" font-size="12" font-weight="400" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan> &#8212; parameters, intercept included</tspan></text>
+      <text x="500" y="540" fill="var(--ink)" font-size="12" font-weight="400" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan> &#8212; parameters, intercept included</tspan></text>
 
       <!-- ============ EDITORIAL ASIDE (upper-right margin, accent-adjacent) ============ -->
-      <path d="M 812 92 Q 700 200 564.6 394.8" fill="none" stroke="rgba(235,108,54,0.50)" stroke-width="1" stroke-dasharray="4,3"/>
-      <circle cx="564.6" cy="394.8" r="2" fill="#eb6c36"/>
-      <text x="900" y="64" fill="#4f5d75" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">complex models keep</text>
-      <text x="900" y="84" fill="#4f5d75" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">most rows for training</text>
+      <path d="M 812 92 Q 700 200 564.6 394.8" fill="none" stroke="var(--accent-a50)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="564.6" cy="394.8" r="2" fill="var(--accent)"/>
+      <text x="900" y="64" fill="var(--muted)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">complex models keep</text>
+      <text x="900" y="84" fill="var(--muted)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">most rows for training</text>
 
       <!-- ============ CURVE: gamma(p) = 1 / (sqrt(p) + 1), p = 1..101 ============ -->
       <polyline points="88.1,40.0 96.2,118.9 104.2,163.3 112.3,193.3 120.4,215.7 128.5,233.3 136.5,247.7 144.6,259.7 152.7,270.0 160.8,279.0 168.8,286.9 176.9,293.9 185.0,300.2 193.1,306.0 201.2,311.2 209.2,316.0 217.3,320.4 225.4,324.5 233.5,328.3 241.5,331.9 249.6,335.2 257.7,338.3 265.8,341.3 273.8,344.0 281.9,346.7 290.0,349.2 298.1,351.5 306.2,353.8 314.2,355.9 322.3,358.0 330.4,359.9 338.5,361.8 346.5,363.6 354.6,365.3 362.7,367.0 370.8,368.6 378.8,370.1 386.9,371.6 395.0,373.0 403.1,374.4 411.2,375.7 419.2,377.0 427.3,378.3 435.4,379.5 443.5,380.6 451.5,381.8 459.6,382.9 467.7,384.0 475.8,385.0 483.8,386.0 491.9,387.0 500.0,388.0 508.1,388.9 516.2,389.8 524.2,390.7 532.3,391.6 540.4,392.4 548.5,393.2 556.5,394.0 564.6,394.8 572.7,395.6 580.8,396.3 588.8,397.1 596.9,397.8 605.0,398.5 613.1,399.2 621.2,399.8 629.2,400.5 637.3,401.1 645.4,401.8 653.5,402.4 661.5,403.0 669.6,403.6 677.7,404.2 685.8,404.8 693.8,405.3 701.9,405.9 710.0,406.4 718.1,407.0 726.2,407.5 734.2,408.0 742.3,408.5 750.4,409.0 758.5,409.5 766.5,410.0 774.6,410.5 782.7,410.9 790.8,411.4 798.8,411.8 806.9,412.3 815.0,412.7 823.1,413.1 831.2,413.6 839.2,414.0 847.3,414.4 855.4,414.8 863.5,415.2 871.5,415.6 879.6,416.0 887.7,416.4 895.8,416.7"
-        fill="none" stroke="#eb6c36" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+        fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
 
       <!-- ============ MARKED VALUES: p = 2, 5, 10, 26, 101 ============ -->
 
       <!-- p = 2 -->
-      <circle cx="96.2" cy="118.9" r="5" fill="#f5f5f5"/>
-      <circle cx="96.2" cy="118.9" r="4" fill="#eb6c36"/>
-      <rect x="104" y="88" width="60" height="16" rx="2" fill="#f5f5f5"/>
-      <text x="110" y="100" fill="#2d3142" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=2 &#183; 0.41</tspan></text>
+      <circle cx="96.2" cy="118.9" r="5" fill="var(--paper)"/>
+      <circle cx="96.2" cy="118.9" r="4" fill="var(--accent)"/>
+      <rect x="104" y="88" width="60" height="16" rx="2" fill="var(--paper)"/>
+      <text x="110" y="100" fill="var(--ink)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=2 &#183; 0.41</tspan></text>
 
       <!-- p = 5 -->
-      <circle cx="120.4" cy="215.7" r="5" fill="#f5f5f5"/>
-      <circle cx="120.4" cy="215.7" r="4" fill="#eb6c36"/>
-      <rect x="128" y="188" width="60" height="16" rx="2" fill="#f5f5f5"/>
-      <text x="134" y="200" fill="#2d3142" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=5 &#183; 0.31</tspan></text>
+      <circle cx="120.4" cy="215.7" r="5" fill="var(--paper)"/>
+      <circle cx="120.4" cy="215.7" r="4" fill="var(--accent)"/>
+      <rect x="128" y="188" width="60" height="16" rx="2" fill="var(--paper)"/>
+      <text x="134" y="200" fill="var(--ink)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=5 &#183; 0.31</tspan></text>
 
       <!-- p = 10 -->
-      <circle cx="160.8" cy="279.0" r="5" fill="#f5f5f5"/>
-      <circle cx="160.8" cy="279.0" r="4" fill="#eb6c36"/>
-      <rect x="172" y="248" width="64" height="16" rx="2" fill="#f5f5f5"/>
-      <text x="178" y="260" fill="#2d3142" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=10 &#183; 0.24</tspan></text>
+      <circle cx="160.8" cy="279.0" r="5" fill="var(--paper)"/>
+      <circle cx="160.8" cy="279.0" r="4" fill="var(--accent)"/>
+      <rect x="172" y="248" width="64" height="16" rx="2" fill="var(--paper)"/>
+      <text x="178" y="260" fill="var(--ink)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=10 &#183; 0.24</tspan></text>
 
       <!-- p = 26 -->
-      <circle cx="290.0" cy="349.2" r="5" fill="#f5f5f5"/>
-      <circle cx="290.0" cy="349.2" r="4" fill="#eb6c36"/>
-      <rect x="256" y="322" width="68" height="16" rx="2" fill="#f5f5f5"/>
-      <text x="290" y="334" fill="#2d3142" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=26 &#183; 0.16</tspan></text>
+      <circle cx="290.0" cy="349.2" r="5" fill="var(--paper)"/>
+      <circle cx="290.0" cy="349.2" r="4" fill="var(--accent)"/>
+      <rect x="256" y="322" width="68" height="16" rx="2" fill="var(--paper)"/>
+      <text x="290" y="334" fill="var(--ink)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=26 &#183; 0.16</tspan></text>
 
       <!-- p = 101 -->
-      <circle cx="895.8" cy="416.7" r="5" fill="#f5f5f5"/>
-      <circle cx="895.8" cy="416.7" r="4" fill="#eb6c36"/>
-      <rect x="848" y="384" width="68" height="16" rx="2" fill="#f5f5f5"/>
-      <text x="912" y="396" fill="#2d3142" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=101 &#183; 0.09</tspan></text>
+      <circle cx="895.8" cy="416.7" r="5" fill="var(--paper)"/>
+      <circle cx="895.8" cy="416.7" r="4" fill="var(--accent)"/>
+      <rect x="848" y="384" width="68" height="16" rx="2" fill="var(--paper)"/>
+      <text x="912" y="396" fill="var(--ink)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">p</tspan><tspan>=101 &#183; 0.09</tspan></text>
     </svg>
   </div>
 </body>
