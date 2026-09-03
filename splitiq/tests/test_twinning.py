@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from splitiq import datasplit, energydistance, multiplet, select_rows
+
+if TYPE_CHECKING:
+    from splitiq.multiplet import MultipletStrategy
 
 
 def _data(seed: int = 0, n: int = 300) -> np.ndarray:
@@ -52,9 +57,9 @@ def test_select_rows_start_index_is_zero_based() -> None:
 
 
 @pytest.mark.parametrize('strategy', ['sequential', 'halving', 'single'])
-def test_multiplet_partitions_into_balanced_folds(strategy: str) -> None:
+def test_multiplet_partitions_into_balanced_folds(strategy: MultipletStrategy) -> None:
     data = _data(6, 203)
-    folds = multiplet(data, 4, strategy=strategy)  # ty: ignore[invalid-argument-type]
+    folds = multiplet(data, 4, strategy=strategy)
     assert len(folds) == 4
     sizes = sorted(len(f) for f in folds)
     assert max(sizes) - min(sizes) <= 1

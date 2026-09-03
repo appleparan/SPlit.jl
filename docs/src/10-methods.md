@@ -481,7 +481,7 @@ Section 5), with sizes differing by at most one:
   re-fits the preprocessing on the remaining rows each time.
 - `:halving` (S2): split every part in half repeatedly; ``k`` must be a
   power of two. Works with every splitter.
-- `:single` (S3): one twinning run with groups of ``k`` rows; fold ``j``
+- `:single` (S3): one twinning run with groups of at least ``k`` rows; fold ``j``
   collects the ``j``-th member of every group. `TwinningSplitter` only,
   a single pass, and the paper measures it slightly behind S1 and S2.
 

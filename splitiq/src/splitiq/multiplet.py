@@ -15,7 +15,7 @@ from splitiq._convert import (
     to_weights,
 )
 from splitiq._julia import _translate_error, julia
-from splitiq.split import SplitKernelName, SplitMethod, StartRule, _build_splitter
+from splitiq.split import _METHODS, SplitKernelName, SplitMethod, StartRule, _build_splitter
 
 if TYPE_CHECKING:
     import numpy as np
@@ -90,8 +90,8 @@ def multiplet(
     if strategy not in _STRATEGIES:
         msg = f'strategy must be one of {_STRATEGIES}, got {strategy!r}'
         raise ValueError(msg)
-    if method not in ('support_points', 'herding', 'twinning'):
-        msg = f"method must be 'support_points', 'herding', or 'twinning', got {method!r}"
+    if method not in _METHODS:
+        msg = f'method must be one of {_METHODS}, got {method!r}'
         raise ValueError(msg)
     jl = julia()
     julia_data = to_julia_data(data)

@@ -45,16 +45,16 @@ end
 _build_tree(Xt::Matrix{Float64}, rows::Vector{Int}, brute_force::Bool) =
   brute_force ? BruteTree(Xt[:, rows]) : KDTree(Xt[:, rows])
 
-# Nearest alive row to `point`; `map` sends tree-local indices to data rows.
-function _nearest_alive(tree, map::Vector{Int}, alive::BitVector, point)
-  idx, _ = nn(tree, point, j -> !alive[map[j]])
-  return map[idx]
+# Nearest alive row to `point`; `rows` sends tree-local indices to data rows.
+function _nearest_alive(tree, rows::Vector{Int}, alive::BitVector, point)
+  idx, _ = nn(tree, point, j -> !alive[rows[j]])
+  return rows[idx]
 end
 
 # The k nearest alive rows to `point` other than row `u`, by increasing distance.
-function _neighbors_alive(tree, map::Vector{Int}, alive::BitVector, point, k::Int, u::Int)
-  idxs, _ = knn(tree, point, k, true, j -> (r = map[j]; !alive[r] || r == u))
-  return map[idxs]
+function _neighbors_alive(tree, rows::Vector{Int}, alive::BitVector, point, k::Int, u::Int)
+  idxs, _ = knn(tree, point, k, true, j -> (r = rows[j]; !alive[r] || r == u))
+  return rows[idxs]
 end
 
 """
@@ -80,26 +80,26 @@ function _twin_groups(
   sizes = _group_sizes(N, n)
   Xt = permutedims(X)                      # rows as contiguous columns
   alive = trues(N)
-  map = collect(1:N)
-  tree = _build_tree(Xt, map, brute_force)
+  rows = collect(1:N)
+  tree = _build_tree(Xt, rows, brute_force)
   dead_in_tree = 0
   groups = Vector{Vector{Int}}(undef, n)
   far = u                                  # v_{i−1}^{r−1}; unused for i = 1
   for i = 1:n
-    i > 1 && (u = _nearest_alive(tree, map, alive, view(Xt, :, far)))
+    i > 1 && (u = _nearest_alive(tree, rows, alive, view(Xt, :, far)))
     group = Vector{Int}(undef, sizes[i])
     group[1] = u
     k = sizes[i] - 1
-    k > 0 && (group[2:end] = _neighbors_alive(tree, map, alive, view(Xt, :, u), k, u))
+    k > 0 && (group[2:end] = _neighbors_alive(tree, rows, alive, view(Xt, :, u), k, u))
     for row in group
       alive[row] = false
     end
     dead_in_tree += length(group)
     far = group[end]
     groups[i] = group
-    if i < n && 2 * dead_in_tree > length(map)
-      map = findall(alive)
-      tree = _build_tree(Xt, map, brute_force)
+    if i < n && 2 * dead_in_tree > length(rows)
+      rows = findall(alive)
+      tree = _build_tree(Xt, rows, brute_force)
       dead_in_tree = 0
     end
   end

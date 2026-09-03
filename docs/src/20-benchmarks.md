@@ -95,9 +95,9 @@ Twinning finishes in 0.15 s at N = 10,000, 4.4 s at N = 100,000, and
 120 s at N = 1,000,000 — 4x faster than herding at 10⁵ and 16x faster
 at 10⁶, and 22x faster than support points at 10⁵. Its energy distance
 is 3.0x, 4.4x, and 4.1x below the random split at those three sizes,
-though herding's is lower still, by a steady 1.6x at every N. Use
-twinning once N reaches 10⁵ or whenever wall time matters; keep herding
-for the best quality while its `O(N²)` pass stays affordable. Support
+though herding's is lower still, by a steady 1.6x at every N. Twinning
+is faster from N = 10⁴ on, by a widening margin at 10⁵ and 10⁶; keep
+herding for the best quality while its `O(N²)` pass stays affordable. Support
 points stop at N = 10⁵ because the MM repulsion term is quadratic in
 the selected count; herding runs a single `O(N²)` pass. Twinning is
 serial. Numbers: [`assets/benchmarks/twinning.md`](assets/benchmarks/twinning.md);

@@ -36,6 +36,11 @@ end
     data2 = randn(MersenneTwister(21), 123, 2)
     folds2 = multiplet(TwinningSplitter(), data2, 4; strategy = :single)
     @test length.(folds2) == [31, 31, 31, 30]
+    # r > k: N = 11, k = 4 gives n = 2 groups of 5 and 6 rows; the 3 rows above rank 4 go to folds 1..3
+    data3 = randn(MersenneTwister(27), 11, 2)
+    folds3 = multiplet(TwinningSplitter(), data3, 4; strategy = :single)
+    @test sort(reduce(vcat, folds3)) == 1:11
+    @test length.(folds3) == [3, 3, 3, 2]
   end
 
   @testset ":sequential and :halving work with other splitters" begin

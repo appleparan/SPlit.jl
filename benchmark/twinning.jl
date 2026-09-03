@@ -9,8 +9,6 @@
 
 using SPlit, DataFrames, Random, Statistics, CairoMakie
 
-include(joinpath(@__DIR__, "datasets.jl"))
-
 const QUICK = "--quick" in ARGS
 const OUT = joinpath(@__DIR__, "..", "docs", "src", "assets", "benchmarks")
 mkpath(OUT)

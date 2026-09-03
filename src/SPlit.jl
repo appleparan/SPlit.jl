@@ -18,7 +18,8 @@ export SplitKernel, EnergyKernel, GaussianKernel
 export DiscrepancyEstimator, Exact, Subsample, RandomSlices, RandomFeatures
 export AbstractSplitter,
   SupportPointSplitter, HerdingSplitter, TwinningSplitter, SplitResult, datasplit
-export selectrows, multiplet
+export selectrows
+export multiplet
 export train_indices, test_indices
 export energydistance, mmd, splitquality
 export optimal_split_ratio
