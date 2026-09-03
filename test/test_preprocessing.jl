@@ -84,3 +84,61 @@ using Statistics
     @test size(SPlit.helmert_matrix(1)) == (1, 0)
   end
 end
+
+@testset "weighted preprocess" begin
+  using Random
+
+  @testset "nothing dispatches to the unweighted method" begin
+    data = randn(MersenneTwister(30), 50, 3)
+    @test SPlit.preprocess(data, nothing) == SPlit.preprocess(data)
+  end
+
+  @testset "weighted mean 0 and weighted variance 1 per column" begin
+    rng = MersenneTwister(31)
+    data = randn(rng, 80, 3) .* [1.0 5.0 0.1] .+ [2.0 -1.0 0.0]
+    w = rand(rng, 80)
+    X = SPlit.preprocess(data, w)
+    wn = w ./ sum(w)
+    for j = 1:3
+      μ = sum(wn .* X[:, j])
+      σ2 = sum(wn .* (X[:, j] .- μ) .^ 2) / (1 - sum(abs2, wn))
+      @test isapprox(μ, 0.0; atol = 1e-12)
+      @test isapprox(σ2, 1.0; atol = 1e-12)
+    end
+  end
+
+  @testset "uniform weights match the unweighted result up to rounding" begin
+    data = randn(MersenneTwister(32), 60, 2)
+    M = SPlit._encode(data)
+    X_w = SPlit._standardize!(copy(M), fill(1 / 60, 60))
+    @test isapprox(X_w, SPlit.preprocess(data); atol = 1e-12)
+  end
+
+  @testset "constant weight vector is treated as nothing and matches exactly" begin
+    data = randn(MersenneTwister(32), 60, 2)
+    @test SPlit.preprocess(data, ones(60)) == SPlit.preprocess(data)
+  end
+
+  @testset "all weight on one row errors" begin
+    w = zeros(10)
+    w[3] = 1.0
+    @test_throws ArgumentError SPlit.preprocess(randn(10, 2), w)
+  end
+
+  @testset "column constant on positive-weight rows errors" begin
+    @test_throws ArgumentError SPlit.preprocess(
+      [5.0 1.0; 5.0 2.0; 7.0 3.0],
+      [1.0, 1.0, 0.0],
+    )
+  end
+
+  @testset "DataFrame with categoricals accepts weights" begin
+    df = DataFrame(x = randn(MersenneTwister(33), 30), g = repeat(["a", "b", "c"], 10))
+    X = SPlit.preprocess(df, ones(30))
+    @test size(X) == (30, 3)
+  end
+
+  @testset "wrong length errors" begin
+    @test_throws ArgumentError SPlit.preprocess(randn(10, 2), ones(9))
+  end
+end

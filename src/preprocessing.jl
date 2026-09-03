@@ -36,24 +36,18 @@ function _standardize!(M::Matrix{Float64})
   return M
 end
 
-"""
-    preprocess(data) -> Matrix{Float64}
-
-Validate and transform `data` for splitting: reject missing values, encode
-categorical columns with Helmert contrasts, drop constant columns, and
-standardize every remaining column. Accepts `AbstractMatrix`, `DataFrame`,
-and `AbstractVector` inputs.
-"""
-function preprocess(data::AbstractMatrix)
+# Encoded, unstandardized column matrix: constant columns dropped, categorical
+# columns Helmert-encoded. Shared by the unweighted and weighted `preprocess`.
+function _encode(data::AbstractMatrix)
   any(ismissing, data) && throw(ArgumentError("Dataset contains missing value(s)."))
   all(x -> x isa Number, data) ||
     throw(ArgumentError("Matrix input must contain only numeric values."))
   keep = [!_is_constant(view(data, :, j)) for j in axes(data, 2)]
   any(keep) || throw(ArgumentError("All columns are constant."))
-  return _standardize!(Float64.(data[:, keep]))
+  return Float64.(data[:, keep])
 end
 
-preprocess(data::AbstractVector) = preprocess(reshape(collect(data), :, 1))
+_encode(data::AbstractVector) = _encode(reshape(collect(data), :, 1))
 
 _is_categorical(col) =
   Base.nonmissingtype(eltype(col)) <: AbstractString || col isa CategoricalVector
@@ -66,7 +60,7 @@ function _canonical_levels(col)
   return sort(unique(col))
 end
 
-function preprocess(data::DataFrame)
+function _encode(data::DataFrame)
   for col in eachcol(data)
     any(ismissing, col) && throw(ArgumentError("Dataset contains missing value(s)."))
   end
@@ -92,5 +86,52 @@ function preprocess(data::DataFrame)
 
   isempty(columns) && throw(ArgumentError("All columns are constant."))
   # hcat(columns...) (not reduce) so a single column still yields an n×1 Matrix
-  return _standardize!(hcat(columns...))
+  return hcat(columns...)
+end
+
+"""
+    preprocess(data) -> Matrix{Float64}
+    preprocess(data, weights) -> Matrix{Float64}
+
+Validate and transform `data` for splitting: reject missing values, encode
+categorical columns with Helmert contrasts, drop constant columns, and
+standardize every remaining column. Accepts `AbstractMatrix`, `DataFrame`,
+and `AbstractVector` inputs.
+
+With `weights` (one non-negative entry per row), standardization uses the
+weighted mean `μⱼ = Σ w̄ᵢ xᵢⱼ` and the unbiased weighted variance
+`σⱼ² = Σ w̄ᵢ (xᵢⱼ − μⱼ)² / (1 − Σ w̄ᵢ²)` with `w̄` the weights scaled to sum
+one, which reduces to the `n − 1` denominator of `std` for uniform weights;
+the encoding steps are the same. `weights = nothing` is the unweighted
+method. A constant weight vector is treated as `nothing`, so uniform
+weights take the unweighted path and reproduce it exactly.
+"""
+preprocess(data) = _standardize!(_encode(data))
+preprocess(data, ::Nothing) = preprocess(data)
+function preprocess(data, weights::AbstractVector)
+  M = _encode(data)
+  _check_weights(weights, size(M, 1))
+  w = _uniform_as_nothing(weights)
+  w === nothing && return _standardize!(M)
+  return _standardize!(M, _normalize_weights(w, size(M, 1)))
+end
+
+# Weighted standardization in place, `w` scaled to sum one. The variance
+# denominator 1 − Σ w² is the unbiased correction for normalized weights;
+# for uniform weights it equals (n − 1)/n, matching `std`.
+function _standardize!(M::Matrix{Float64}, w::Vector{Float64})
+  correction = 1 - sum(abs2, w)
+  correction > 0 || throw(ArgumentError("weights must be positive on at least two rows"))
+  for j in axes(M, 2)
+    col = view(M, :, j)
+    μ = sum(w .* col)
+    σ = sqrt(sum(w .* (col .- μ) .^ 2) / correction)
+    σ > 0 || throw(
+      ArgumentError(
+        "column $j is constant on the rows with positive weight; drop it or give those rows weight",
+      ),
+    )
+    col .= (col .- μ) ./ σ
+  end
+  return M
 end

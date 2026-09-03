@@ -39,7 +39,7 @@ State of the exported API at v0.5.2.
 | Quality diagnostics | done | `energydistance`, `mmd`, `splitquality` with `Exact`, `Subsample`, `RandomSlices`, `RandomFeatures` estimators and automatic fallback above `exact_threshold`; see [Design experiments](@ref design-experiments). |
 | `compare` / `best` | done | Splitter comparison on one dataset. |
 | Python package `splitiq` | done | Wraps the Julia package through juliacall; every computation still runs in Julia. See [Python](30-python.md). |
-| Weighted samples | not supported | |
+| Weighted samples | done | `weights` on `datasplit`, `splitquality`, `compare`; `weights_x`/`weights_y` on `energydistance` and `mmd`; see [Methods](@ref weighted-samples). |
 | Reference (target) distribution | not supported | The reference is always the data itself. |
 | k-fold splitting | not supported | Two-way splits only. |
 | High-dimensional data (p in the hundreds) | untested | [Benchmarks](@ref benchmarks) covers p up to 10 (`normal-10d`). `select_nearest` uses a k-d tree, which degrades in high dimension. |
@@ -75,7 +75,7 @@ series.
 
 ### M1: weighted samples
 
-Planned. Add `weights::AbstractVector` to `energydistance`, `mmd`, and the
+Done (2026-09-03). Add `weights::AbstractVector` to `energydistance`, `mmd`, and the
 `support_points` optimizer, plus `HerdingSplitter`'s data term.
 
 - Empirical distribution terms become weighted averages; formulas go in
@@ -86,8 +86,8 @@ Planned. Add `weights::AbstractVector` to `energydistance`, `mmd`, and the
   `RandomFeatures`) also need weighted forms, added as new methods, never
   as `if` branches, matching how estimator/kernel combinations are already
   organized.
-- Decide and document how `kappa` subsampling interacts with weights
-  (weight-proportional vs. uniform sampling): open question below.
+- How `kappa` subsampling interacts with weights was decided by
+  experiment: see [Design experiments](@ref weighted-kappa).
 - Tests: uniform weights reproduce current results exactly; concentrated
   weights pull support points toward the weighted cluster.
 
@@ -165,9 +165,8 @@ a baseline.
 
 ## Open questions
 
-- Weighted `kappa` subsampling (M1). Weight-proportional sampling gives
-  unbiased weighted estimates but wastes draws on low-weight regions;
-  uniform sampling with reweighting is simpler. Decide empirically.
+- Weighted `kappa` subsampling (M1). Resolved 2026-09-03 by the experiment
+  on the [Design experiments](@ref weighted-kappa) page.
 - High-dimensional nearest neighbours (M3). A k-d tree is the wrong
   structure for p around 768. Options: brute-force with BLAS, a
   NearestNeighbors.jl ball tree, or random projection before assignment.
@@ -212,3 +211,4 @@ a baseline.
 ## Changelog
 
 - 2026-09-03: initial roadmap.
+- 2026-09-03: M1 (weighted samples) done; kappa question resolved.

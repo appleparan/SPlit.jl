@@ -5,6 +5,7 @@ Mak & Joseph 2018).
 """
 
 using Distances: Euclidean, SqEuclidean, pairwise
+using LinearAlgebra: dot
 using Random
 using Statistics
 using StatsBase: sample
@@ -66,6 +67,38 @@ function _exact_energydistance(
          _mean_pairwise(X, X; block, n_threads) - _mean_pairwise(Y, Y; block, n_threads)
 end
 
+# Weighted mean pairwise distance Σᵢⱼ wxᵢ wyⱼ ‖xᵢ − yⱼ‖ with both weight
+# vectors scaled to sum one (so no 1/(nm) division), block-wise.
+function _mean_pairwise(
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  wx::AbstractVector{Float64},
+  wy::AbstractVector{Float64};
+  block::Int = 1_024,
+  n_threads::Int = Threads.nthreads(),
+)
+  pairs = _block_pairs(size(X, 1), size(Y, 1), block)
+  return _threaded_block_sum(pairs, n_threads) do (xblock, yblock)
+    i0, i1 = xblock
+    j0, j1 = yblock
+    @views D = pairwise(Euclidean(), X[i0:i1, :], Y[j0:j1, :]; dims = 1)
+    @views dot(wx[i0:i1], D, wy[j0:j1])
+  end
+end
+
+function _exact_energydistance(
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  wx::AbstractVector{Float64},
+  wy::AbstractVector{Float64};
+  block::Int = 1_024,
+  n_threads::Int = Threads.nthreads(),
+)
+  return 2 * _mean_pairwise(X, Y, wx, wy; block, n_threads) -
+         _mean_pairwise(X, X, wx, wx; block, n_threads) -
+         _mean_pairwise(Y, Y, wy, wy; block, n_threads)
+end
+
 # Mean Gaussian kernel value over all row pairs of X and Y, block-wise.
 function _mean_kernel(
   k::GaussianKernel{Float64},
@@ -96,6 +129,48 @@ function _exact_mmd(
          2 * _mean_kernel(k, X, Y; block, n_threads)
 end
 
+# Weighted mean kernel value Σᵢⱼ wxᵢ wyⱼ k(xᵢ, yⱼ), weights scaled to sum one.
+function _mean_kernel(
+  k::GaussianKernel{Float64},
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  wx::AbstractVector{Float64},
+  wy::AbstractVector{Float64};
+  block::Int = 1_024,
+  n_threads::Int = Threads.nthreads(),
+)
+  scale = -1 / (2 * k.bandwidth^2)
+  pairs = _block_pairs(size(X, 1), size(Y, 1), block)
+  return _threaded_block_sum(pairs, n_threads) do (xblock, yblock)
+    i0, i1 = xblock
+    j0, j1 = yblock
+    @views D = pairwise(SqEuclidean(), X[i0:i1, :], Y[j0:j1, :]; dims = 1)
+    D .= exp.(scale .* D)
+    @views dot(wx[i0:i1], D, wy[j0:j1])
+  end
+end
+
+function _exact_mmd(
+  k::GaussianKernel{Float64},
+  X::AbstractMatrix,
+  Y::AbstractMatrix,
+  wx::AbstractVector{Float64},
+  wy::AbstractVector{Float64};
+  block::Int = 1_024,
+  n_threads::Int = Threads.nthreads(),
+)
+  return _mean_kernel(k, X, X, wx, wx; block, n_threads) +
+         _mean_kernel(k, Y, Y, wy, wy; block, n_threads) -
+         2 * _mean_kernel(k, X, Y, wx, wy; block, n_threads)
+end
+
+# Weights of a drawn subsample rescaled to sum one.
+function _renormalized(w::AbstractVector)
+  s = sum(w)
+  s > 0 || throw(ArgumentError("a subsample drew only zero-weight rows; use a larger m"))
+  return w ./ s
+end
+
 """
     mmd(X, Y, kernel; estimator = Exact(), rng = Random.default_rng(),
         n_threads = Threads.nthreads(), subsample = nothing, repeats = 8)
@@ -116,6 +191,18 @@ works and `RandomFeatures` raises `ArgumentError`). A `:median` bandwidth is
 resolved on the pooled rows of `X` and `Y` with `rng`. The
 `subsample = m, repeats = r` keywords are a compatibility path equivalent to
 `estimator = Subsample(m, r)`.
+
+`weights_x` and `weights_y` (one non-negative entry per row of `X` and
+`Y`; `nothing` means uniform) turn each sample into a weighted empirical
+distribution, `Σᵢ w̄ᵢ δ(xᵢ)` with `w̄` scaled to sum one, and the statistic
+becomes `Σ w̄ᵢ w̄ₖ k(xᵢ, xₖ) + Σ v̄ⱼ v̄ₗ k(yⱼ, yₗ) − 2 Σ w̄ᵢ v̄ⱼ k(xᵢ, yⱼ)`.
+`Subsample` draws rows uniformly and rescales the drawn weights to sum
+one. Weights proportional to duplication counts are equivalent to
+duplicating rows. A constant weight vector is treated as `nothing`, so
+uniform weights take the unweighted path and reproduce its value exactly.
+A `:median` bandwidth is still resolved on the pooled rows without weights;
+pass a numeric bandwidth or resolve it with `datasplit`/`splitquality` for
+a weighted one.
 """
 function mmd(
   X::AbstractMatrix,
@@ -126,13 +213,25 @@ function mmd(
   n_threads::Int = Threads.nthreads(),
   subsample::Union{Nothing,Int} = nothing,
   repeats::Int = 8,
+  weights_x::Union{Nothing,AbstractVector} = nothing,
+  weights_y::Union{Nothing,AbstractVector} = nothing,
 )
   size(X, 2) == size(Y, 2) ||
     throw(ArgumentError("Samples must have the same number of columns."))
   subsample === nothing || (estimator = Subsample(subsample, repeats))
-  kernel isa EnergyKernel && return energydistance(X, Y; estimator, rng, n_threads)
+  weights_x === nothing || _check_weights(weights_x, size(X, 1))
+  weights_y === nothing || _check_weights(weights_y, size(Y, 1))
+  weights_x = _uniform_as_nothing(weights_x)
+  weights_y = _uniform_as_nothing(weights_y)
+  kernel isa EnergyKernel &&
+    return energydistance(X, Y; estimator, rng, n_threads, weights_x, weights_y)
   k = isresolved(kernel) ? kernel : resolve(kernel, vcat(X, Y), rng)
-  return _mmd(estimator, k, X, Y, rng, n_threads)
+  weights_x === nothing &&
+    weights_y === nothing &&
+    return _mmd(estimator, k, X, Y, rng, n_threads)
+  wx = _side_weights(weights_x, size(X, 1))
+  wy = _side_weights(weights_y, size(Y, 1))
+  return _mmd(estimator, k, X, Y, wx, wy, rng, n_threads)
 end
 
 _mmd(::Exact, k, X, Y, rng, n_threads) = _exact_mmd(k, X, Y; n_threads)
@@ -151,6 +250,29 @@ _mmd(e::RandomFeatures, k::GaussianKernel{Float64}, X, Y, rng, n_threads) =
 _mmd(e::DiscrepancyEstimator, k, X, Y, rng, n_threads) =
   _undefined(e, "mmd under $(nameof(typeof(k)))")
 
+_mmd(::Exact, k, X, Y, wx, wy, rng, n_threads) = _exact_mmd(k, X, Y, wx, wy; n_threads)
+function _mmd(e::Subsample, k, X, Y, wx, wy, rng, n_threads)
+  (size(X, 1) <= e.m && size(Y, 1) <= e.m) && return _exact_mmd(k, X, Y, wx, wy; n_threads)
+  estimates = Vector{Float64}(undef, e.repeats)
+  for r = 1:e.repeats
+    xs = sample(rng, 1:size(X, 1), min(e.m, size(X, 1)); replace = false)
+    ys = sample(rng, 1:size(Y, 1), min(e.m, size(Y, 1)); replace = false)
+    estimates[r] = _exact_mmd(
+      k,
+      X[xs, :],
+      Y[ys, :],
+      _renormalized(wx[xs]),
+      _renormalized(wy[ys]);
+      n_threads,
+    )
+  end
+  return mean(estimates)
+end
+_mmd(e::RandomFeatures, k::GaussianKernel{Float64}, X, Y, wx, wy, rng, n_threads) =
+  _rff_mmd(k, X, Y, wx, wy, e.D, rng)
+_mmd(e::DiscrepancyEstimator, k, X, Y, wx, wy, rng, n_threads) =
+  _undefined(e, "mmd under $(nameof(typeof(k))) with weights")
+
 """
     energydistance(X, Y; estimator = Exact(), rng = Random.default_rng(),
                    n_threads = Threads.nthreads(), subsample = nothing, repeats = 8)
@@ -166,6 +288,14 @@ to compare splits rather than as an absolute value; [`RandomSlices`](@ref) avera
 `subsample = m, repeats = r` keywords are a compatibility path equivalent to
 `estimator = Subsample(m, r)`.
 
+`weights_x` and `weights_y` (one non-negative entry per row; `nothing`
+means uniform) give the energy distance between the weighted empirical
+distributions `Σᵢ w̄ᵢ δ(xᵢ)` and `Σⱼ v̄ⱼ δ(yⱼ)`, with the weights scaled to
+sum one: `2 Σ w̄ᵢ v̄ⱼ ‖xᵢ − yⱼ‖ − Σ w̄ᵢ w̄ₖ ‖xᵢ − xₖ‖ − Σ v̄ⱼ v̄ₗ ‖yⱼ − yₗ‖`.
+Weights proportional to duplication counts are equivalent to duplicating
+rows. A constant weight vector is treated as `nothing`, so uniform weights
+take the unweighted path and reproduce its value exactly.
+
 Vectors are treated as single-column samples.
 """
 function energydistance(
@@ -176,11 +306,22 @@ function energydistance(
   n_threads::Int = Threads.nthreads(),
   subsample::Union{Nothing,Int} = nothing,
   repeats::Int = 8,
+  weights_x::Union{Nothing,AbstractVector} = nothing,
+  weights_y::Union{Nothing,AbstractVector} = nothing,
 )
   size(X, 2) == size(Y, 2) ||
     throw(ArgumentError("Samples must have the same number of columns."))
   subsample === nothing || (estimator = Subsample(subsample, repeats))
-  return _energydistance(estimator, X, Y, rng, n_threads)
+  weights_x === nothing || _check_weights(weights_x, size(X, 1))
+  weights_y === nothing || _check_weights(weights_y, size(Y, 1))
+  weights_x = _uniform_as_nothing(weights_x)
+  weights_y = _uniform_as_nothing(weights_y)
+  weights_x === nothing &&
+    weights_y === nothing &&
+    return _energydistance(estimator, X, Y, rng, n_threads)
+  wx = _side_weights(weights_x, size(X, 1))
+  wy = _side_weights(weights_y, size(Y, 1))
+  return _energydistance(estimator, X, Y, wx, wy, rng, n_threads)
 end
 
 _energydistance(::Exact, X, Y, rng, n_threads) = _exact_energydistance(X, Y; n_threads)
@@ -198,6 +339,30 @@ _energydistance(e::RandomSlices, X, Y, rng, n_threads) =
   _sliced_energydistance(X, Y, e.k, rng)
 _energydistance(e::DiscrepancyEstimator, X, Y, rng, n_threads) =
   _undefined(e, "the energy distance")
+
+_energydistance(::Exact, X, Y, wx, wy, rng, n_threads) =
+  _exact_energydistance(X, Y, wx, wy; n_threads)
+function _energydistance(e::Subsample, X, Y, wx, wy, rng, n_threads)
+  (size(X, 1) <= e.m && size(Y, 1) <= e.m) &&
+    return _exact_energydistance(X, Y, wx, wy; n_threads)
+  estimates = Vector{Float64}(undef, e.repeats)
+  for r = 1:e.repeats
+    xs = sample(rng, 1:size(X, 1), min(e.m, size(X, 1)); replace = false)
+    ys = sample(rng, 1:size(Y, 1), min(e.m, size(Y, 1)); replace = false)
+    estimates[r] = _exact_energydistance(
+      X[xs, :],
+      Y[ys, :],
+      _renormalized(wx[xs]),
+      _renormalized(wy[ys]);
+      n_threads,
+    )
+  end
+  return mean(estimates)
+end
+_energydistance(e::RandomSlices, X, Y, wx, wy, rng, n_threads) =
+  _sliced_energydistance(X, Y, wx, wy, e.k, rng)
+_energydistance(e::DiscrepancyEstimator, X, Y, wx, wy, rng, n_threads) =
+  _undefined(e, "the energy distance with weights")
 
 energydistance(X::AbstractVector, Y::AbstractVector; kwargs...) = energydistance(
   reshape(collect(Float64, X), :, 1),
@@ -237,6 +402,10 @@ the Design experiments page (currently [`RandomSlices`](@ref)`(64)` for
 `subsample = m, repeats = r` keywords are a compatibility path: when
 `subsample` is given explicitly, it always wins over `estimator` and maps to
 `Subsample(m, r)`.
+
+`weights` (one non-negative entry per row of `data`) applies the weighted
+preprocessing `datasplit` used and compares the weighted train rows with
+the weighted test rows, each side's weights rescaled to sum one.
 """
 function splitquality(
   data,
@@ -248,11 +417,12 @@ function splitquality(
   repeats::Int = 8,
   rng::AbstractRNG = Random.default_rng(),
   n_threads::Int = Threads.nthreads(),
+  weights::Union{Nothing,AbstractVector} = nothing,
 )
-  X = preprocess(data)
+  X = preprocess(data, weights)
   train = X[result.train_indices, :]
   test = X[result.test_indices, :]
-  k = isresolved(kernel) ? kernel : resolve(kernel, X, rng)
+  k = isresolved(kernel) ? kernel : resolve(kernel, X, rng, weights)
   chosen = if subsample !== nothing
     Subsample(subsample, repeats)
   elseif estimator !== nothing
@@ -262,5 +432,16 @@ function splitquality(
   else
     _fallback_estimator(k)
   end
-  return mmd(train, test, k; estimator = chosen, rng, n_threads)
+  weights === nothing && return mmd(train, test, k; estimator = chosen, rng, n_threads)
+  w = _normalize_weights(weights, size(X, 1))
+  return mmd(
+    train,
+    test,
+    k;
+    estimator = chosen,
+    rng,
+    n_threads,
+    weights_x = w[result.train_indices],
+    weights_y = w[result.test_indices],
+  )
 end

@@ -122,15 +122,31 @@ Split `data` (matrix, `DataFrame`, or vector; observations in rows) into
 train and test sets whose distributions are as similar as possible, using
 the method's own procedure; see the splitter types
 ([`SupportPointSplitter`](@ref), [`HerdingSplitter`](@ref)).
+
+`weights` (one non-negative entry per row; `nothing` for uniform) makes the
+split target the weighted empirical distribution `Σ w̄ᵢ δ(xᵢ)`: the smaller
+subset is chosen to approximate it, preprocessing standardizes with the
+weighted mean and variance, and a `:median` bandwidth is resolved from rows
+drawn in proportion to the weights — this only changes the resolved
+bandwidth for datasets above 1000 rows; below that every row enters the
+median and the weights do not change it. The train/test labeling rule is
+unchanged. Weights proportional to duplication counts are equivalent to
+duplicating rows, up to the common column rescaling of the weighted
+standardization, which changes nothing under `EnergyKernel` or a `:median`
+bandwidth but does matter for a fixed numeric Gaussian bandwidth.
 """
-function datasplit(s::SupportPointSplitter, data)
-  X = preprocess(data)
+function datasplit(
+  s::SupportPointSplitter,
+  data;
+  weights::Union{Nothing,AbstractVector} = nothing,
+)
+  X = preprocess(data, weights)
   n_total = size(X, 1)
   n_small = round(Int, min(s.ratio, 1 - s.ratio) * n_total)
   0 < n_small < n_total ||
     throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
 
-  kernel = resolve(s.kernel, X, s.rng)
+  kernel = resolve(s.kernel, X, s.rng, weights)
   fitted = SupportPointSplitter(
     kernel,
     s.ratio,
@@ -152,6 +168,7 @@ function datasplit(s::SupportPointSplitter, data)
     n_threads = s.n_threads,
     rng = s.rng,
     verbose = s.verbose,
+    weights,
   )
   small = select_nearest(X, points)
   rest = setdiff(1:n_total, small)

@@ -29,17 +29,21 @@ every split with [`splitquality`](@ref) under `kernel`. `kernel` selects the
 scoring discrepancy; a `:median` bandwidth is resolved once on the
 preprocessed data with `rng` and the resolved kernel is stored in the
 comparison. Remaining keyword arguments are forwarded to `splitquality`.
+
+`weights` is forwarded to `datasplit`, to the `:median` resolution of the
+scoring kernel, and to `splitquality`.
 """
 function compare(
   methods::Vector{<:AbstractSplitter},
   data;
   kernel::SplitKernel = EnergyKernel(),
   rng::AbstractRNG = Random.default_rng(),
+  weights::Union{Nothing,AbstractVector} = nothing,
   kwargs...,
 )
-  results = [datasplit(m, data) for m in methods]
-  k = isresolved(kernel) ? kernel : resolve(kernel, preprocess(data), rng)
-  qualities = [splitquality(data, r; kernel = k, rng, kwargs...) for r in results]
+  results = [datasplit(m, data; weights) for m in methods]
+  k = isresolved(kernel) ? kernel : resolve(kernel, preprocess(data, weights), rng, weights)
+  qualities = [splitquality(data, r; kernel = k, rng, weights, kwargs...) for r in results]
   return SplitComparison([r.method for r in results], results, qualities, k)
 end
 

@@ -24,7 +24,7 @@ struct EnergyKernel <: SplitKernel end
 using Distances: Euclidean, pairwise
 using Random
 using Statistics: median
-using StatsBase: sample
+using StatsBase: sample, Weights
 
 """
     GaussianKernel(bandwidth = :median)
@@ -126,6 +126,46 @@ function resolve(::GaussianKernel{Symbol}, data::AbstractMatrix, rng::AbstractRN
   N = size(data, 1)
   m = min(N, MEDIAN_HEURISTIC_ROWS)
   rows = m == N ? (1:N) : sample(rng, 1:N, m; replace = false)
+  D = pairwise(Euclidean(), view(data, rows, :); dims = 1)
+  dists = [D[i, j] for i = 1:m for j = (i+1):m]
+  σ = median(dists)
+  σ > 0 || throw(
+    ArgumentError(
+      "median pairwise distance is zero; pass a numeric bandwidth to GaussianKernel",
+    ),
+  )
+  return GaussianKernel(σ)
+end
+
+"""
+    resolve(kernel, data, rng, weights)
+
+Weighted form of [`resolve`](@ref): for `GaussianKernel(:median)` the rows
+behind the median heuristic are drawn with probability proportional to
+`weights` (without replacement), so the bandwidth reflects the weighted
+distribution. This only changes the resolved bandwidth for datasets above
+1000 rows; below that every row enters the median and the weights do not
+change it. `weights = nothing` is the unweighted method;
+numeric kernels and `EnergyKernel` are returned unchanged. A constant weight
+vector is treated as `nothing`, so uniform weights take the unweighted path
+and reproduce it exactly.
+"""
+resolve(k::SplitKernel, data::AbstractMatrix, rng::AbstractRNG, ::Nothing) =
+  resolve(k, data, rng)
+resolve(k::EnergyKernel, ::AbstractMatrix, ::AbstractRNG, ::AbstractVector) = k
+resolve(k::GaussianKernel{Float64}, ::AbstractMatrix, ::AbstractRNG, ::AbstractVector) = k
+function resolve(
+  ::GaussianKernel{Symbol},
+  data::AbstractMatrix,
+  rng::AbstractRNG,
+  weights::AbstractVector,
+)
+  N = size(data, 1)
+  _check_weights(weights, N)
+  _isuniform(weights) && return resolve(GaussianKernel(), data, rng)
+  m = min(N, MEDIAN_HEURISTIC_ROWS)
+  rows =
+    m == N ? (1:N) : sample(rng, 1:N, Weights(Vector{Float64}(weights)), m; replace = false)
   D = pairwise(Euclidean(), view(data, rows, :); dims = 1)
   dists = [D[i, j] for i = 1:m for j = (i+1):m]
   σ = median(dists)

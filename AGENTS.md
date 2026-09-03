@@ -69,6 +69,16 @@ output-matching tests. The design record is
   on `normal-10d`/`uniform-5d` at N = 10,000, see Benchmarks): the split is
   then exactly the initial random sample. `HerdingSplitter` has no such
   rounding step.
+- `weights` (on `datasplit`, `splitquality`, `compare`) and
+  `weights_x`/`weights_y` (on `energydistance`, `mmd`) define weighted
+  empirical distributions; the selected subset is always uniform.
+  `nothing` dispatches to the unweighted methods, which must stay
+  bit-identical; weighted behavior lives in separate methods. In
+  particular, a constant weight vector is turned into `nothing` after
+  validation (`_uniform_as_nothing`), so uniform weights take the
+  unweighted path; inside the optimizers the mean-one factor `ŵ` is
+  exactly `1.0` for uniform weights. Tests use "weights as duplication
+  counts equals duplicated rows".
 
 ## Workflow
 
@@ -76,3 +86,6 @@ output-matching tests. The design record is
 - Formatting runs through pre-commit (JuliaFormatter, markdownlint); it is
   not a package dependency.
 - Docs are Documenter.jl (`docs/make.jl`), deployed from `main` to `gh-pages`.
+- Julia/Python parity: every capability exposed in SPlit.jl must be exposed
+  in `splitiq/` in the same change, with tests under `splitiq/tests` and a
+  docs mention; a Julia-only feature PR is incomplete.

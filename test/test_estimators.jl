@@ -123,3 +123,24 @@ end
         energydistance(X, Y; estimator = RandomSlices(32), rng = MersenneTwister(3))
   @test_throws ArgumentError mmd(X, Y, EnergyKernel(); estimator = RandomFeatures(8))
 end
+
+@testset "weighted one-dimensional energy distance" begin
+  rng = MersenneTwister(60)
+  a = randn(rng, 40)
+  b = randn(rng, 35) .+ 0.3
+  w = rand(rng, 40)
+  v = rand(rng, 35)
+  w ./= sum(w)
+  v ./= sum(v)
+  brute =
+    2 * sum(w[i] * v[j] * abs(a[i] - b[j]) for i = 1:40, j = 1:35) -
+    sum(w[i] * w[k] * abs(a[i] - a[k]) for i = 1:40, k = 1:40) -
+    sum(v[j] * v[l] * abs(b[j] - b[l]) for j = 1:35, l = 1:35)
+  @test isapprox(SPlit._ed1d(a, w, b, v), brute; atol = 1e-12)
+  # uniform weights reduce to the unweighted routine
+  @test isapprox(
+    SPlit._ed1d(a, fill(1 / 40, 40), b, fill(1 / 35, 35)),
+    SPlit._ed1d(a, b);
+    atol = 1e-12,
+  )
+end

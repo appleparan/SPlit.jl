@@ -313,3 +313,50 @@ columns plus one.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 - Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249-1272.
+
+## [Weighted samples](@id weighted-samples)
+
+Every quantity above is defined for the empirical distribution of the
+data, in which each row has mass ``1/N``. Passing `weights` (one
+non-negative entry per row, positive sum) replaces it by the weighted
+empirical distribution ``P_w = \sum_i \bar w_i\, \delta_{x_i}`` with
+``\bar w_i = w_i / \sum_l w_l``; the selected subset itself stays
+uniformly weighted. Nothing else changes: the procedure runs the same five
+steps, and `weights = nothing` (the default) is the unweighted case. A
+constant weight vector is turned into `nothing` after validation, so
+uniform weights take the same unweighted path and reproduce it exactly.
+
+Which steps read the weights:
+
+1. **Preprocess.** `preprocess(data, weights)` standardizes with the
+   weighted mean ``\mu_j = \sum_i \bar w_i x_{ij}`` and the unbiased
+   weighted variance
+   ``\sigma_j^2 = \sum_i \bar w_i (x_{ij} - \mu_j)^2 / (1 - \sum_i \bar w_i^2)``,
+   which is the usual ``n - 1`` denominator for uniform weights.
+2. **Resolve the kernel.** A `:median` bandwidth is the median pairwise
+   distance over rows drawn in proportion to the weights. This only changes
+   the resolved bandwidth for datasets above 1000 rows; below that every
+   row enters the median and the weights do not change it.
+3. **Choose ``n`` rows.** The data terms carry the weights:
+   - The energy distance between the support points and ``P_w`` is
+     ``\frac{2}{n} \sum_{m,i} \bar w_i \|\xi_m - x_i\| - \frac{1}{n^2}\sum_{m,o} \|\xi_m - \xi_o\| - \sum_{i,k} \bar w_i \bar w_k \|x_i - x_k\|``,
+     and MMD² is the same expression with kernel values in place of
+     negated distances. The MM update of Mak & Joseph (2018) and the
+     projected gradient keep their form with ``\bar w_i`` multiplying every
+     data term, so the MM step is still monotone.
+   - Kernel herding's data term becomes ``\sum_l \bar w_l\, k(x, x_l)``.
+
+`splitquality(data, result; weights)` compares the weighted train rows with
+the weighted test rows, each side's weights rescaled to sum one, and
+`energydistance`/`mmd` accept `weights_x` and `weights_y` for the two
+samples; every [`DiscrepancyEstimator`](@ref) has a weighted form
+(`Subsample` rescales the weights of the rows it draws, `RandomSlices` uses
+the weighted one-dimensional energy distance on each projection, and
+`RandomFeatures` uses weighted feature means). Weights proportional to
+duplication counts are equivalent to duplicating rows, up to the common
+column rescaling of the weighted standardization, which changes nothing
+under `EnergyKernel` or a `:median` bandwidth but does matter for a fixed
+numeric Gaussian bandwidth, which is what the tests check. How stochastic
+`kappa` subsampling combines with weights was decided by the experiment on
+the
+[Design experiments](@ref weighted-kappa) page.

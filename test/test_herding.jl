@@ -120,3 +120,43 @@ end
     @test length(test_indices(r2)) == 10
   end
 end
+
+@testset "weighted herding" begin
+  k = GaussianKernel(1.0)
+
+  @testset "uniform weights reproduce the unweighted selection exactly" begin
+    X = randn(MersenneTwister(90), 120, 2)
+    @test SPlit.herd(k, X, 20; weights = ones(120)) == SPlit.herd(k, X, 20)
+    @test SPlit.herd(EnergyKernel(), X, 20; weights = fill(2.5, 120)) ==
+          SPlit.herd(EnergyKernel(), X, 20)
+  end
+
+  @testset "weighted data term equals the data term on duplicated rows" begin
+    X = randn(MersenneTwister(91), 25, 2)
+    Xdup = vcat(X[1:1, :], X)
+    d_w = SPlit._data_term(k, X, vcat([2.0], ones(24)) ./ 26, 1)
+    d_dup = SPlit._data_term(k, Xdup, 1)
+    @test isapprox(d_w, d_dup[2:end]; atol = 1e-12)
+  end
+
+  @testset "concentrated weights pull selections toward the heavy cluster" begin
+    rng = MersenneTwister(92)
+    A = randn(rng, 150, 2) .- 4.0
+    B = randn(rng, 150, 2) .+ 4.0
+    X = vcat(A, B)
+    w = vcat(fill(9.0, 150), fill(1.0, 150))
+    for kernel in (k, EnergyKernel())
+      unweighted = SPlit.herd(kernel, X, 30)
+      weighted = SPlit.herd(kernel, X, 30; weights = w)
+      @test count(<=(150), weighted) > count(<=(150), unweighted)
+    end
+  end
+
+  @testset "datasplit forwards weights" begin
+    data = randn(MersenneTwister(93), 100, 2)
+    s = HerdingSplitter(kernel = k)
+    @test datasplit(s, data; weights = ones(100)).test_indices ==
+          datasplit(s, data).test_indices
+    @test_throws ArgumentError datasplit(s, data; weights = ones(99))
+  end
+end

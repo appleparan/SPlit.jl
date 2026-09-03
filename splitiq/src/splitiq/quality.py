@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from splitiq._convert import DataLike, build_kernel, build_rng, to_julia_data, to_matrix
+from splitiq._convert import (
+    DataLike,
+    _weights_kwarg,
+    build_kernel,
+    build_rng,
+    to_julia_data,
+    to_matrix,
+    to_weights,
+)
 from splitiq._julia import JuliaValue, _translate_error, julia
 
 if TYPE_CHECKING:
@@ -48,6 +56,8 @@ def energydistance(
     estimator: DiscrepancyEstimator | None = None,
     seed: int | None = None,
     n_threads: int | None = None,
+    weights_x: DataLike | None = None,
+    weights_y: DataLike | None = None,
 ) -> float:
     """Energy distance (Székely & Rizzo) between two samples.
 
@@ -58,6 +68,9 @@ def energydistance(
             (`~splitiq.estimators.Exact`).
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
         n_threads: Number of threads; ``None`` uses Julia's own default.
+        weights_x: One non-negative entry per row of `x`, or ``None`` for
+            uniform.
+        weights_y: Same for `y`.
 
     Returns:
         The energy distance between `x` and `y`.
@@ -70,6 +83,10 @@ def energydistance(
     x_matrix = to_matrix(x)
     y_matrix = to_matrix(y)
     kwargs = _estimator_kwargs(jl, estimator, seed, n_threads)
+    if weights_x is not None:
+        kwargs['weights_x'] = to_weights(weights_x)
+    if weights_y is not None:
+        kwargs['weights_y'] = to_weights(weights_y)
     with _translate_error():
         return float(jl.energydistance(x_matrix, y_matrix, **kwargs))
 
@@ -83,6 +100,8 @@ def mmd(
     estimator: DiscrepancyEstimator | None = None,
     seed: int | None = None,
     n_threads: int | None = None,
+    weights_x: DataLike | None = None,
+    weights_y: DataLike | None = None,
 ) -> float:
     """Squared maximum mean discrepancy (Gretton et al. 2012) between two samples.
 
@@ -96,6 +115,9 @@ def mmd(
             (`~splitiq.estimators.Exact`).
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
         n_threads: Number of threads; ``None`` uses Julia's own default.
+        weights_x: One non-negative entry per row of `x`, or ``None`` for
+            uniform.
+        weights_y: Same for `y`.
 
     Returns:
         The squared MMD between `x` and `y` under `kernel`.
@@ -111,6 +133,10 @@ def mmd(
     y_matrix = to_matrix(y)
     kernel_obj = build_kernel(jl, kernel, bandwidth)
     kwargs = _estimator_kwargs(jl, estimator, seed, n_threads)
+    if weights_x is not None:
+        kwargs['weights_x'] = to_weights(weights_x)
+    if weights_y is not None:
+        kwargs['weights_y'] = to_weights(weights_y)
     with _translate_error():
         return float(jl.mmd(x_matrix, y_matrix, kernel_obj, **kwargs))
 
@@ -125,6 +151,7 @@ def splitquality(
     exact_threshold: int = 20_000,
     seed: int | None = None,
     n_threads: int | None = None,
+    weights: DataLike | None = None,
 ) -> float:
     """Discrepancy between the train and test rows of `data`. Smaller is better.
 
@@ -142,6 +169,8 @@ def splitquality(
             computes exactly.
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
         n_threads: Number of threads; ``None`` uses Julia's own default.
+        weights: One non-negative entry per row of `data`, or ``None``;
+            compares the weighted train rows with the weighted test rows.
 
     Returns:
         The discrepancy between the train and test rows of `data`.
@@ -162,5 +191,6 @@ def splitquality(
                 result._julia_result,
                 kernel=kernel_obj,
                 **kwargs,
+                **_weights_kwarg(to_weights(weights)),
             )
         )

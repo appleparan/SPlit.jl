@@ -140,3 +140,24 @@ make test                          # run pytest against .julia_dev/
 checkout instead of the git-pinned revision in `src/splitiq/juliapkg.json`. Run it once before
 `make test`. See the [README](index.md#development)
 for the full set of `make` targets.
+
+## Weighted samples
+
+Pass `weights` (one non-negative entry per row) to make the split target
+the weighted distribution of the rows, for example a quality score per
+sample:
+
+```python
+import numpy as np
+from splitiq import datasplit, splitquality
+
+data = np.random.default_rng(0).standard_normal((1000, 8))
+weights = np.exp(np.random.default_rng(1).standard_normal(1000))
+
+result = datasplit(data, ratio=0.2, seed=42, weights=weights)
+print(splitquality(data, result, weights=weights))
+```
+
+`energydistance` and `mmd` take `weights_x` and `weights_y` for their two
+samples. Weights proportional to duplication counts are equivalent to
+duplicating rows.
