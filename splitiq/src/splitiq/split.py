@@ -30,7 +30,6 @@ SplitMethod = Literal['support_points', 'herding', 'twinning']
 SplitKernelName = Literal['energy', 'gaussian']
 StartRule = Literal['farthest', 'random'] | int
 _METHODS = ('support_points', 'herding', 'twinning')
-_DEFAULT_START: StartRule = 'farthest'
 
 
 @dataclass(frozen=True)
@@ -103,7 +102,7 @@ def datasplit(
     tolerance: float = 1e-10,
     n_threads: int | None = None,
     seed: int | None = None,
-    start: StartRule = 'farthest',
+    start: StartRule | None = None,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -133,8 +132,9 @@ def datasplit(
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
         start: Starting row for ``method='twinning'``: ``'farthest'`` (the
             row farthest from the centroid, deterministic), ``'random'``
-            (drawn with `seed`), or a 0-based row index. Only valid with
-            ``method='twinning'``.
+            (drawn with `seed`), or a 0-based row index. ``None`` (the
+            default) means ``'farthest'`` for ``method='twinning'``; any
+            explicit value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Makes the split target the weighted empirical
             distribution of the rows; the selected subset itself is
@@ -155,11 +155,11 @@ def datasplit(
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
             ``'herding'`` and `kappa`/`max_iterations`/`tolerance` are set
             away from their defaults (herding has no such options), if
-            `start` is set away from its default for a `method` other than
-            ``'twinning'``, if `method` is ``'twinning'`` and `kernel` is
-            not ``'energy'`` or `kappa`/`max_iterations`/`tolerance`/
-            `n_threads` are set away from their defaults (twinning has no
-            such options), if Julia rejects the arguments (e.g. `ratio`
+            `start` is set for a `method` other than ``'twinning'``, if
+            `method` is ``'twinning'`` and `kernel` is not ``'energy'`` or
+            `kappa`/`max_iterations`/`tolerance`/`n_threads` are set away
+            from their defaults (twinning has no such options), if Julia
+            rejects the arguments (e.g. `ratio`
             outside (0, 1), `reference` with a different number of columns
             than `data`, `weights` combined with `reference`, or
             `reference_weights` without `reference`), or if `weights` has
@@ -213,7 +213,7 @@ def select_rows(
     tolerance: float = 1e-10,
     n_threads: int | None = None,
     seed: int | None = None,
-    start: StartRule = 'farthest',
+    start: StartRule | None = None,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -247,8 +247,9 @@ def select_rows(
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
         start: Starting row for ``method='twinning'``: ``'farthest'`` (the
             row farthest from the centroid, deterministic), ``'random'``
-            (drawn with `seed`), or a 0-based row index. Only valid with
-            ``method='twinning'``.
+            (drawn with `seed`), or a 0-based row index. ``None`` (the
+            default) means ``'farthest'`` for ``method='twinning'``; any
+            explicit value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or
@@ -268,12 +269,12 @@ def select_rows(
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
             ``'herding'`` and `kappa`/`max_iterations`/`tolerance` are set
             away from their defaults (herding has no such options), if
-            `start` is set away from its default for a `method` other than
-            ``'twinning'``, if `method` is ``'twinning'`` and `kernel` is
-            not ``'energy'`` or `kappa`/`max_iterations`/`tolerance`/
-            `n_threads` are set away from their defaults (twinning has no
-            such options), or if Julia rejects the arguments (e.g. `n` out
-            of range, `reference` with a different number of columns than
+            `start` is set for a `method` other than ``'twinning'``, if
+            `method` is ``'twinning'`` and `kernel` is not ``'energy'`` or
+            `kappa`/`max_iterations`/`tolerance`/`n_threads` are set away
+            from their defaults (twinning has no such options), or if
+            Julia rejects the arguments (e.g. `n` out of range, `reference`
+            with a different number of columns than
             `data`, `weights` combined with `reference`, or
             `reference_weights` without `reference`).
     """
@@ -315,7 +316,7 @@ def _build_splitter(
     tolerance: float,
     n_threads: int | None,
     rng: JuliaValue | None,
-    start: StartRule,
+    start: StartRule | None,
 ) -> JuliaValue:
     """Build the Julia splitter for `method`.
 
@@ -339,8 +340,9 @@ def _build_splitter(
         tolerance: Convergence tolerance (``method='support_points'`` only).
         n_threads: Number of threads, or ``None`` to omit the keyword.
         rng: A Julia RNG value, or ``None`` to omit the keyword.
-        start: Twinning's starting row (``method='twinning'`` only); must
-            stay at its default for every other `method`.
+        start: Twinning's starting row (``method='twinning'`` only), or
+            ``None`` to use ``'farthest'``; must stay ``None`` for every
+            other `method`.
 
     Returns:
         A Julia ``SupportPointSplitter``, ``HerdingSplitter``, or
@@ -349,17 +351,25 @@ def _build_splitter(
     Raises:
         ValueError: If `method` is ``'herding'`` and `kappa`/
             `max_iterations`/`tolerance` are set away from their defaults
-            (herding has no such options), if `start` is set away from its
-            default for a `method` other than ``'twinning'``, if `method`
-            is ``'twinning'`` and any of its unsupported options is set, or
-            if Julia rejects the arguments (e.g. `ratio` outside (0, 1)).
+            (herding has no such options), if `start` is not ``None`` for a
+            `method` other than ``'twinning'``, if `method` is
+            ``'twinning'`` and any of its unsupported options is set, or if
+            Julia rejects the arguments (e.g. `ratio` outside (0, 1)).
     """
-    if start != _DEFAULT_START and method != 'twinning':
+    if start is not None and method != 'twinning':
         msg = "'start' is a twinning option; use method='twinning'"
         raise ValueError(msg)
     if method == 'twinning':
         return _build_twinning_splitter(
-            jl, kernel, ratio, kappa, max_iterations, tolerance, n_threads, rng, start
+            jl,
+            kernel,
+            ratio,
+            kappa,
+            max_iterations,
+            tolerance,
+            n_threads,
+            rng,
+            'farthest' if start is None else start,
         )
     splitter_kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
     if method == 'herding':

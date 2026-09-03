@@ -37,7 +37,7 @@ def multiplet(
     tolerance: float = 1e-10,
     n_threads: int | None = None,
     seed: int | None = None,
-    start: StartRule = 'farthest',
+    start: StartRule | None = None,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -68,7 +68,9 @@ def multiplet(
         n_threads: Number of threads (not available for twinning).
         seed: Seed for a fresh RNG; ``None`` uses Julia's default RNG.
         start: Twinning's starting row: ``'farthest'``, ``'random'``, or a
-            0-based row index.
+            0-based row index. ``None`` (the default) means ``'farthest'``
+            for ``method='twinning'``; any explicit value with another
+            method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` (not available
             for twinning). Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or

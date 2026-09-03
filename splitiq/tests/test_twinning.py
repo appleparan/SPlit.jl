@@ -56,6 +56,13 @@ def test_select_rows_start_index_is_zero_based() -> None:
     assert np.array_equal(random_a, random_b)
 
 
+def test_select_rows_omitted_start_matches_explicit_farthest() -> None:
+    data = _data(9)
+    default = select_rows(data, 30, method='twinning')
+    explicit = select_rows(data, 30, method='twinning', start='farthest')
+    assert np.array_equal(default, explicit)
+
+
 @pytest.mark.parametrize('strategy', ['sequential', 'halving', 'single'])
 def test_multiplet_partitions_into_balanced_folds(strategy: MultipletStrategy) -> None:
     data = _data(6, 203)
@@ -85,6 +92,10 @@ def test_twinning_option_errors() -> None:
         select_rows(data, 20, method='twinning', n_threads=2)
     with pytest.raises(ValueError, match='start'):
         datasplit(data, method='herding', start='random')
+    with pytest.raises(ValueError, match='start'):
+        datasplit(data, method='herding', start='farthest')
+    with pytest.raises(ValueError, match='start'):
+        multiplet(data, 3, method='herding', start='farthest')
     with pytest.raises(ValueError, match='start'):
         select_rows(data, 20, method='twinning', start=-1)
     with pytest.raises(ValueError, match='start'):

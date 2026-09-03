@@ -98,8 +98,8 @@ threshold (`exact_threshold`); pass `estimator=` explicitly to control that your
   which is deterministic given the data and a numeric kernel and has no `kappa`,
   `max_iterations`, or `tolerance` options.
 - `method='twinning'` runs sequential nearest-neighbor twinning (Vakayil & Joseph 2022): energy
-  distance only, no optimizer options, deterministic by default; `start='farthest'`, `'random'`,
-  or a 0-based row index picks the starting row.
+  distance only, no optimizer options, deterministic by default; `start` picks the starting row
+  (`'farthest'` when omitted, `'random'`, or a 0-based row index).
 - `kernel='energy'` (default) or `kernel='gaussian'`; the Gaussian kernel's bandwidth defaults
   to `'median'`, resolved from the data, or accepts a fixed positive number.
 - `kappa` bounds the number of rows the optimizer considers per iteration. Set it below the
