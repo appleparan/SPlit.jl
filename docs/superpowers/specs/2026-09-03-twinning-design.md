@@ -172,9 +172,9 @@ sizes differing by at most one. `2 ≤ k ≤ N`, else `ArgumentError`.
   what is left. Every run re-fits the preprocessing on the remaining rows
   (Algorithm 1 line 2 per run). The splitter's own `ratio` is ignored.
 - `:halving` (paper S2): `k` must be a power of two (else `ArgumentError`).
-  Recursively split every part into its selected half (`n = ⌊N_part/2⌋`)
-  and the complement until `k` parts exist; folds are the leaves in
-  depth-first order.
+  Split every part into its selected half (`n = ⌊N_part/2⌋`) and the
+  complement, level by level, until `k` parts exist; folds are the parts
+  of the last level in order.
 - `:single` (paper S3): `TwinningSplitter` only (`ArgumentError` for other
   splitters). One run of `_twin_groups` with `n = ⌊N/k⌋` groups, so every
   group has at least `k` members (`r = k` exactly when `N mod k < n`).
