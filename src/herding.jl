@@ -224,22 +224,13 @@ function HerdingSplitter(;
   return HerdingSplitter(kernel, ratio, n_threads, rng)
 end
 
-function datasplit(
-  s::HerdingSplitter,
-  data;
-  weights::Union{Nothing,AbstractVector} = nothing,
-)
-  X = preprocess(data, weights)
-  n_total = size(X, 1)
-  n_small = round(Int, min(s.ratio, 1 - s.ratio) * n_total)
-  0 < n_small < n_total ||
-    throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
-  kernel = resolve(s.kernel, X, s.rng, weights)
-  fitted = HerdingSplitter(kernel, s.ratio, s.n_threads, s.rng)
-  small = herd(kernel, X, n_small; weights, n_threads = s.n_threads)
-  rest = setdiff(1:n_total, small)
-  test, train = s.ratio <= 0.5 ? (small, rest) : (rest, small)
-  return SplitResult(collect(train), collect(test), true, n_small, fitted)
+_with_kernel(s::HerdingSplitter, kernel) =
+  HerdingSplitter(kernel, s.ratio, s.n_threads, s.rng)
+
+function _select_rows(s::HerdingSplitter, kernel, X, n; weights, target, target_weights)
+  return herd(kernel, X, n; weights, target, target_weights, n_threads = s.n_threads),
+  true,
+  n
 end
 
 function Base.show(io::IO, s::HerdingSplitter)

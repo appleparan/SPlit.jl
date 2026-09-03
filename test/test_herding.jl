@@ -201,3 +201,13 @@ end
     @test_throws ArgumentError SPlit.herd(k, data, 5; target = randn(10, 3))
   end
 end
+
+@testset "herding datasplit through the generic method" begin
+  data = randn(MersenneTwister(410), 120, 2)
+  s = HerdingSplitter(kernel = GaussianKernel(1.0))
+  r = datasplit(s, data)
+  @test r.iterations == 24
+  @test r.converged
+  @test r.selected === :test
+  @test sort(r.test_indices) == sort(selectrows(s, data, 24))
+end

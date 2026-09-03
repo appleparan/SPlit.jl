@@ -15,6 +15,7 @@ include("comparison.jl")
 export SplitKernel, EnergyKernel, GaussianKernel
 export DiscrepancyEstimator, Exact, Subsample, RandomSlices, RandomFeatures
 export AbstractSplitter, SupportPointSplitter, HerdingSplitter, SplitResult, datasplit
+export selectrows
 export train_indices, test_indices
 export energydistance, mmd, splitquality
 export optimal_split_ratio
