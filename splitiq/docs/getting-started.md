@@ -97,6 +97,9 @@ threshold (`exact_threshold`); pass `estimator=` explicitly to control that your
   majorization-minimization optimizer; `method='herding'` runs greedy kernel herding instead,
   which is deterministic given the data and a numeric kernel and has no `kappa`,
   `max_iterations`, or `tolerance` options.
+- `method='twinning'` runs sequential nearest-neighbor twinning (Vakayil & Joseph 2022): energy
+  distance only, no optimizer options, deterministic by default; `start='farthest'`, `'random'`,
+  or a 0-based row index picks the starting row.
 - `kernel='energy'` (default) or `kernel='gaussian'`; the Gaussian kernel's bandwidth defaults
   to `'median'`, resolved from the data, or accepts a fixed positive number.
 - `kappa` bounds the number of rows the optimizer considers per iteration. Set it below the
@@ -182,3 +185,19 @@ print(result.selected, splitquality(data, result, reference=target))
 
 `reference_weights` weights the reference rows; `weights` cannot be
 combined with `reference`.
+
+## k-fold multiplets
+
+`multiplet` partitions the rows into `k` folds that each resemble the whole data:
+
+```python
+import numpy as np
+from splitiq import multiplet
+
+data = np.random.default_rng(0).standard_normal((10_000, 8))
+folds = multiplet(data, 5)                       # twinning, strategy='sequential'
+folds = multiplet(data, 4, strategy='single')    # one twinning run, folds by neighbor rank
+```
+
+`strategy='halving'` needs `k` to be a power of two. `method='support_points'` and
+`method='herding'` also work with `'sequential'` and `'halving'`.
