@@ -66,6 +66,16 @@ herd = HerdingSplitter(kernel = GaussianKernel())   # deterministic, optimizer-f
 result = datasplit(herd, data)
 ```
 
+`TwinningSplitter` (Vakayil & Joseph, 2022) needs neither a kernel nor an
+optimizer: it chains nearest-neighbor groups through the data and keeps
+one row per group, in `O(pN log N)`. `multiplet` turns any splitter into
+`k` distribution-balanced folds:
+
+```julia
+result = datasplit(TwinningSplitter(), data)          # deterministic, energy distance
+folds = multiplet(TwinningSplitter(), data, 5)        # 5 folds, sizes within one row
+```
+
 See [Benchmarks](@ref benchmarks) for how the two splitters compare across
 kernels and dataset sizes.
 

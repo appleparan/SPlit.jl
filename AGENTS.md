@@ -92,6 +92,15 @@ output-matching tests. The design record is
 - The selection function is named `selectrows`, not `select`, because
   `DataFrames` exports `select`. Docstrings must sit directly above the
   function they document.
+- `TwinningSplitter` has a fixed `kernel = EnergyKernel()` (its objective is
+  the energy distance) and rejects `weights`/`reference` with an
+  `ArgumentError`; `start = :farthest` consumes no rng. Group sizes are
+  `r = N ÷ n` or `r + 1`, spread evenly; the paper's case is `N = r·n`.
+  The search tree is rebuilt once more than half of its rows are masked,
+  and switches to brute force at `TWINNING_BRUTE_FORCE_DIMENSION`
+  (measured, see Design experiments). `multiplet(:single)` is
+  twinning-only; `:sequential`/`:halving` call `selectrows` on any
+  splitter and re-fit preprocessing per run.
 
 ## Workflow
 

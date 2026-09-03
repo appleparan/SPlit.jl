@@ -89,3 +89,19 @@ print(result.selected, splitquality(data, result, reference=target))
 combined with `reference`. This mirrors the Julia `reference` and
 `reference_weights` keywords described in
 [Methods](@ref reference-distribution).
+
+## Twinning and k-fold multiplets
+
+`method='twinning'` selects `TwinningSplitter`; `start` picks the starting row
+(`'farthest'`, `'random'`, or a 0-based index). `multiplet` returns `k` folds:
+
+```python
+import numpy as np
+from splitiq import datasplit, multiplet
+
+data = np.random.default_rng(0).standard_normal((100_000, 10))
+result = datasplit(data, ratio=0.2, method='twinning')
+folds = multiplet(data, 5)                        # method='twinning', strategy='sequential'
+```
+
+See [Methods](@ref twinning) for the algorithm and the three strategies.

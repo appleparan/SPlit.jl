@@ -344,6 +344,7 @@ columns plus one.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 - Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249-1272.
+- Vakayil, A., & Joseph, V. R. (2022). Data Twinning. *Statistical Analysis and Data Mining*, 15(5), 598-610.
 
 ## [Weighted samples](@id weighted-samples)
 
@@ -426,3 +427,64 @@ with `n` set by `ratio` plus the complement, and `result.selected` names the
 side that holds the chosen rows. `splitquality(data, result; reference)`
 then measures the chosen rows against the reference, which is the quantity
 the splitter minimized.
+
+## [Twinning and multiplets](@id twinning)
+
+`TwinningSplitter` (Vakayil & Joseph, 2022) replaces steps 3–5 of the
+procedure: no kernel to resolve, no optimizer, and no separate
+nearest-neighbor assignment. It works directly on the standardized rows,
+and its objective is still the energy distance: Proposition 1 of the paper
+shows that the energy distance between the two twins is ``(1 - \gamma)^2``
+times the energy distance between the smaller twin and the whole data,
+the SPlit objective.
+
+Given ``n`` rows to select, twinning covers the data with ``n`` disjoint
+groups and selects one row per group (Algorithm 1):
+
+1. Start at ``u_1``: with `start = :farthest` (the default) the row farthest
+   from the centroid, with `:random` a row drawn from `rng`, or a given
+   row index.
+2. Group ``i`` is ``u_i`` together with its ``r_i - 1`` nearest ungrouped
+   neighbors, ordered by distance; let ``v_i`` be the farthest of them.
+3. ``u_{i+1}`` is the ungrouped row nearest to ``v_i``.
+
+The selection is ``u_1, \dots, u_n``. Every unselected row sits in a small
+neighborhood of a selected one, and the groups form a chain of adjacent
+neighborhoods, which is what keeps the two sides close in energy distance
+(paper, Section 3.1). Nearest neighbors come from a k-d tree in which
+grouped rows are masked; the tree is rebuilt on the remaining rows
+whenever more than half of its rows are masked, so the average cost stays
+``O(pN \log N)`` (paper, Eq. 12). Above a dimension fixed by measurement
+(see [Design experiments](@ref twinning-trees)) the rows are scanned by
+brute force instead. The procedure is serial and deterministic given the
+data and a non-random `start`; `SplitResult.iterations` is the number of
+groups.
+
+**Differences from the paper.** The paper assumes ``1/\gamma = r`` is an
+integer and takes ``n = \lceil \gamma N \rceil``, letting the last group
+absorb the remainder. SPlit.jl keeps the generic rule (``n`` from `ratio`
+in `datasplit`, or the caller's ``n`` in `selectrows`) and sets
+``r = \lfloor N/n \rfloor``, with the ``N - rn`` leftover rows forming
+groups of ``r + 1`` spread evenly along the chain; when ``N = rn`` the
+two coincide. `weights` and `reference` are not defined for twinning and
+raise an `ArgumentError`.
+
+### Multiplets
+
+`multiplet(splitter, data, k; strategy)` returns ``k`` folds that
+partition the rows, each distributed like the whole data (paper,
+Section 5), with sizes differing by at most one:
+
+- `:sequential` (S1, default): select ``\lfloor N/k \rfloor`` rows with the
+  splitter, then ``\lfloor N'/(k-1) \rfloor`` of the remaining ``N'`` rows,
+  and so on; the last fold is what remains. Works with every splitter and
+  re-fits the preprocessing on the remaining rows each time.
+- `:halving` (S2): split every part in half repeatedly; ``k`` must be a
+  power of two. Works with every splitter.
+- `:single` (S3): one twinning run with groups of ``k`` rows; fold ``j``
+  collects the ``j``-th member of every group. `TwinningSplitter` only,
+  a single pass, and the paper measures it slightly behind S1 and S2.
+
+The paper judges multiplets by the largest energy distance between any
+fold and the whole data; the tests check that it is below the
+random-partition average for all three strategies.

@@ -42,8 +42,9 @@ State of the exported API at v0.5.2.
 | Weighted samples | done | `weights` on `datasplit`, `splitquality`, `compare`; `weights_x`/`weights_y` on `energydistance` and `mmd`; see [Methods](@ref weighted-samples). |
 | Reference (target) distribution | done | `reference`/`reference_weights` on `selectrows`, `datasplit`, `splitquality`, `compare`; see [Methods](@ref reference-distribution). |
 | `selectrows` (selection without a partition) | done | Returns the chosen row indices; `datasplit` builds on it. |
-| k-fold splitting | not supported | Two-way splits only. |
-| High-dimensional data (p in the hundreds) | untested | [Benchmarks](@ref benchmarks) covers p up to 10 (`normal-10d`). `select_nearest` uses a k-d tree, which degrades in high dimension. |
+| `TwinningSplitter` | done | Sequential nearest-neighbor twinning (Vakayil & Joseph, 2022); energy distance objective, no kernel or optimizer options; deterministic with `start = :farthest`. |
+| k-fold splitting (`multiplet`) | done | Strategies S1/S2/S3 of the twinning paper; S1/S2 work with every splitter. |
+| High-dimensional data (p in the hundreds) | untested | Twinning measured at p = 768 (N = 10⁴) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. |
 
 ## Design principles
 
@@ -118,7 +119,7 @@ needs.
 
 ### M3: twinning and k-fold multiplets
 
-Planned, independent of M1/M2 but should adopt their keywords. Add
+Done (2026-09-03). Add
 `TwinningSplitter <: AbstractSplitter` implementing the sequential
 kd-tree assignment of Vakayil & Joseph (2022), and a `multiplet` function
 returning k distribution-balanced folds.
@@ -131,6 +132,9 @@ returning k distribution-balanced folds.
 Why: Twinning is the direct successor to SPlit, orders of magnitude
 faster than the support-point splitters, and gives k-fold splitting for
 free.
+
+Twinning takes no `weights`/`reference` (not defined by the paper);
+`multiplet(:sequential/:halving)` forwards them to the other splitters.
 
 ### M4: kernel thinning backend
 
@@ -176,7 +180,9 @@ a baseline.
 - High-dimensional nearest neighbours (M3). A k-d tree is the wrong
   structure for p around 768. Options: brute-force with BLAS, a
   NearestNeighbors.jl ball tree, or random projection before assignment.
-  Benchmark before choosing.
+  Benchmark before choosing. Resolved 2026-09-03 by the measurement on the
+  [Design experiments](@ref twinning-trees) page: brute force from
+  p = 50 (`TWINNING_BRUTE_FORCE_DIMENSION = 50`).
 - Categorical handling in embedding mode (M5). Helmert contrasts do not
   apply. Should embedding mode bypass preprocessing entirely, or expose a
   separate preprocessing entry point?
@@ -228,3 +234,4 @@ a baseline.
 - 2026-09-03: references corrected against publisher metadata (print
   volumes and pages); kernel herding added.
 - 2026-09-03: M2 (reference distribution) and `selectrows` done.
+- 2026-09-03: M3 (twinning and multiplets) done; high-dimensional nearest-neighbor question resolved.
