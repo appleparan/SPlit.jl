@@ -7,7 +7,7 @@ open questions are resolved in place with a short note.
 ## Vision
 
 SPlit.jl started as a Julia implementation of SPlit (Joseph & Vakayil,
-2021, *Technometrics* 63(4)): an optimal train/test splitting method for
+2022, *Technometrics* 64(2)): an optimal train/test splitting method for
 tabular data based on support points. The literature that followed SPlit
 has largely reframed the problem as distribution compression, choosing a
 subset whose empirical distribution stays close to a reference distribution
@@ -31,7 +31,7 @@ State of the exported API at v0.5.2.
 
 | Component | Status | Notes |
 |---|---|---|
-| `SupportPointSplitter` with `EnergyKernel` | done | MM update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2021); `select_nearest` rounds optimized points to data rows via a k-d tree. |
+| `SupportPointSplitter` with `EnergyKernel` | done | MM update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2022); `select_nearest` rounds optimized points to data rows via a k-d tree. |
 | `SupportPointSplitter` with `GaussianKernel` | done | Minimizes squared MMD by projected gradient descent with Armijo backtracking. Has no `kappa` mode: the `SupportPointSplitter` constructor throws for `GaussianKernel` with `kappa` set. A `:median` bandwidth is resolved at `datasplit` time and the resolved kernel is stored in `result.method.kernel`. |
 | `HerdingSplitter` | done | Greedy kernel herding (Chen, Welling & Smola, 2010); exact `O(N^2)` data term, deterministic given the data and a numeric kernel. |
 | `optimal_split_ratio` | done | γ = 1/(√p + 1) (Joseph, 2022). |
@@ -188,34 +188,43 @@ a baseline.
 
 ## References
 
-1. Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data
-   Splitting. *Technometrics*, 63(4), 492-502.
+1. Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data
+   Splitting. *Technometrics*, 64(2), 166-176.
 2. Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical
-   Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
+   Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 531-538.
 3. Vakayil, A., & Joseph, V. R. (2022). Data Twinning. *Statistical
-   Analysis and Data Mining: The ASA Data Science Journal*.
+   Analysis and Data Mining: The ASA Data Science Journal*, 15(5), 598-610.
 4. Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of
    Statistics*, 46(6A), 2562-2592.
 5. Joseph, V. R., & Mak, S. (2021). Supervised compression of big data.
-   *Statistical Analysis and Data Mining: The ASA Data Science Journal*.
-6. Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine
-   Learning Research*.
-7. Shetty, A., Dwivedi, R., & Mackey, L. (2022). Distribution compression
+   *Statistical Analysis and Data Mining: The ASA Data Science Journal*,
+   14(3), 217-229.
+6. Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel
+   Herding. *UAI*, 109-116.
+7. Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine
+   Learning Research*, 25(152), 1-77.
+8. Shetty, A., Dwivedi, R., & Mackey, L. (2022). Distribution compression
    in near-linear time. *ICLR*.
-8. arXiv:2502.10600 (2025). Weighted quantization via MMD gradient flows.
-9. arXiv:2502.04194 (2025). The best instruction-tuning data are those
-   that fit.
-10. Xie, S. M., et al. (2023). Data selection for language models via
-    importance resampling (DSIR). *NeurIPS*.
-11. Xia, M., et al. (2024). LESS: Selecting influential data for targeted
-    instruction tuning. *ICML*.
-12. Bukharin, A., et al. (2024). Data diversity matters for robust
-    instruction tuning (QDIT). *Findings of EMNLP*.
-13. Liu, W., et al. (2024). What makes good data for alignment? (Deita).
-    *ICLR*.
+9. Belhadji, A., Sharp, D., & Marzouk, Y. (2025). Weighted quantization
+   using MMD: From mean field to mean shift via gradient flows.
+   arXiv:2502.10600.
+10. Zhang, D., Dai, Q., & Peng, H. (2025). The best instruction-tuning data
+    are those that fit. arXiv:2502.04194.
+11. Xie, S. M., Santurkar, S., Ma, T., & Liang, P. (2023). Data selection
+    for language models via importance resampling (DSIR). *NeurIPS*.
+12. Xia, M., Malladi, S., Gururangan, S., Arora, S., & Chen, D. (2024).
+    LESS: Selecting influential data for targeted instruction tuning.
+    *ICML*, PMLR 235, 54104-54132.
+13. Bukharin, A., et al. (2024). Data diversity matters for robust
+    instruction tuning (QDIT). *Findings of EMNLP*, 3411-3425.
+14. Liu, W., Zeng, W., He, K., Jiang, Y., & He, J. (2024). What makes good
+    data for alignment? A comprehensive study of automatic data selection
+    in instruction tuning (Deita). *ICLR*.
 
 ## Changelog
 
 - 2026-09-03: initial roadmap.
 - 2026-09-03: M1 (weighted samples) done; kappa question resolved.
+- 2026-09-03: references corrected against publisher metadata (print
+  volumes and pages); kernel herding added.
 - 2026-09-03: M2 (reference distribution) and `selectrows` done.

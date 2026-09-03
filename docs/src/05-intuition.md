@@ -110,7 +110,7 @@ after `max_iterations` sweeps, whichever comes first.
 
 That full-data sweep looks at every row of the data every time, which gets
 slow once there are millions of rows. For large data, `kappa` switches on a
-stochastic variant (Joseph & Vakayil, 2021): instead of looking at every
+stochastic variant (Joseph & Vakayil, 2022): instead of looking at every
 row, each sweep looks at a fresh random sample of `kappa` rows (an absolute
 row count, not a fraction of the data), and blends the new position with a
 running average of the previous positions so that the noise from sampling
@@ -339,8 +339,8 @@ exported name.
 
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 - Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *Journal of Machine Learning Research*, 13, 723-773.
-- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 537-546.
-- Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502.
+- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining: The ASA Data Science Journal*, 15(4), 531-538.
+- Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 64(2), 166-176.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 - Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249-1272.

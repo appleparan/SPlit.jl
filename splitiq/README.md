@@ -65,7 +65,7 @@ train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[
 | `Exact()`, `Subsample(m, repeats=8)`, `RandomSlices(k)`, `RandomFeatures(D)` | Discrepancy estimators for `energydistance`/`mmd`/`splitquality`. |
 | `optimal_split_ratio(x, y, *, method='simple', degree=2)` | Optimal test-set fraction `gamma = 1 / (sqrt(p) + 1)`. |
 
-`method='support_points'` runs the Mak & Joseph (2018) / Joseph & Vakayil (2021) optimizer;
+`method='support_points'` runs the Mak & Joseph (2018) / Joseph & Vakayil (2022) optimizer;
 `method='herding'` runs greedy kernel herding. Indices are 0-based. A Julia `ArgumentError`
 surfaces as a Python `ValueError`; other Julia errors propagate as `juliacall.JuliaError`.
 See the docstrings under `src/splitiq/` for the full argument reference, or build the API
@@ -117,8 +117,8 @@ Pre-commit hooks are configured at the repository root and run from there
 ## References
 
 - Mak, S. & Joseph, V. R. (2018). Support points. *Annals of Statistics*, 46(6A).
-- Joseph, V. R. & Vakayil, A. (2021). SPlit: An optimal method for data splitting.
-  *Technometrics*, 63(4).
+- Joseph, V. R. & Vakayil, A. (2022). SPlit: An optimal method for data splitting.
+  *Technometrics*, 64(2).
 - Joseph, V. R. (2022). Optimal ratio for data splitting. *Statistical Analysis and Data
   Mining*, 15(4).
 - Chen, Y., Welling, M. & Smola, A. (2010). Super-samples from kernel herding. *UAI*.

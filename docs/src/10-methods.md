@@ -87,7 +87,7 @@ majorization-minimization: at iteration ``t`` every point moves to
 clamped to the data's bounding box. Each sweep decreases the energy distance
 monotonically (`support_points(::EnergyKernel, …)`; the sweep is
 `_mm_sweep!`). With `kappa` ``= \kappa < N`` the stochastic variant of
-Joseph & Vakayil (2021) uses a fresh random subset of ``\kappa`` rows per
+Joseph & Vakayil (2022) uses a fresh random subset of ``\kappa`` rows per
 iteration and blends the update with a running average whose weight
 ``n_0 / (t + n_0)``, ``n_0 = 0.2\,n``, decays with ``t``. Iteration stops when
 the largest squared displacement of any point falls below `tolerance`.
@@ -186,7 +186,7 @@ running sum over selected rows in ``O(N)`` per selection, for a total cost of
 
 The last part of step 4 for `SupportPointSplitter` turns optimized
 locations into rows. Each support point, in order, claims its nearest not-yet-claimed data row
-(Joseph & Vakayil, 2021). `select_nearest` serves the queries from a k-d
+(Joseph & Vakayil, 2022). `select_nearest` serves the queries from a k-d
 tree, doubling the neighbor count and retrying when every returned neighbor
 is already claimed. The claimed rows form the smaller subset.
 
@@ -308,8 +308,8 @@ columns plus one.
 
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 - Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *JMLR*, 13, 723-773.
-- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 537-546.
-- Joseph, V. R., & Vakayil, A. (2021). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 63(4), 492-502.
+- Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 531-538.
+- Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 64(2), 166-176.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 - Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249-1272.

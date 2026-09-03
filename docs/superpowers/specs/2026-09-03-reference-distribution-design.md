@@ -237,6 +237,6 @@ Properties, appended to the existing files (existing tests untouched):
 
 - Mak, S., & Joseph, V. R. (2018). Support points. *Annals of Statistics*,
   46(6A). Support points of an arbitrary target measure.
-- Joseph, V. R., & Vakayil, A. (2021). SPlit. *Technometrics*, 63(4).
+- Joseph, V. R., & Vakayil, A. (2022). SPlit. *Technometrics*, 64(2).
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-samples from kernel
   herding. *UAI*.

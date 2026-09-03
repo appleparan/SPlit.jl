@@ -25,7 +25,7 @@ documentation. Non-breaking, v0.4.0.
   (Corollary 2), herding on an empirical distribution with the argmax taken
   over the data points (Sections 3.1.2 and 3.2).
 - Gretton et al. (2012) for the MMD; Mak & Joseph (2018) / Joseph & Vakayil
-  (2021) for the support-point path, which is untouched.
+  (2022) for the support-point path, which is untouched.
 
 ## The rule and why it is greedy MMD minimization
 
