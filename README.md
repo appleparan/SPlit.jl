@@ -1,16 +1,13 @@
 # SPlit.jl
 
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://appleparan.github.io/SPlit.jl/stable)
-[![In development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://appleparan.github.io/SPlit.jl/dev)
-[![Build Status](https://github.com/appleparan/SPlit.jl/workflows/Test/badge.svg)](https://github.com/appleparan/SPlit.jl/actions)
+[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://liam.kim/SPlit.jl/stable)
+[![In development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://liam.kim/SPlit.jl/dev)
 [![Test workflow status](https://github.com/appleparan/SPlit.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Test.yml?query=branch%3Amain)
 [![Lint workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml?query=branch%3Amain)
 [![Docs workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 
 [![Coverage](https://codecov.io/gh/appleparan/SPlit.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/appleparan/SPlit.jl)
-[![DOI](https://zenodo.org/badge/DOI/FIXME)](https://doi.org/FIXME)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
-[![All Contributors](https://img.shields.io/github/all-contributors/appleparan/SPlit.jl?labelColor=5e1ec7&color=c0ffee&style=flat-square)](#contributors)
 
 A Julia implementation of optimal data splitting via support points, based on
 [Joseph and Vakayil (2021)](https://arxiv.org/abs/2012.10945).

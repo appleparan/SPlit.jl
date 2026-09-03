@@ -34,7 +34,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/appleparan/SPlit.jl"
-Documentation = "https://appleparan.github.io/SPlit.jl"
+Documentation = "https://liam.kim/SPlit.jl"
 Issues = "https://github.com/appleparan/SPlit.jl/issues"
 
 [project.optional-dependencies]
