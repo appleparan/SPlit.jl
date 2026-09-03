@@ -50,6 +50,15 @@ Every random draw in these steps (the initial sample, the stochastic
 draws nothing beyond `:median`, which is why it is deterministic for a
 numeric kernel.
 
+The figure summarizes the five steps. The `Preprocess` box stands for
+steps 1-3. The upper lane is `SupportPointSplitter`, with the two halves
+of step 4 as separate boxes: the highlighted support-point optimization,
+then the nearest-neighbor claim. The dashed lower lane is
+`HerdingSplitter`, which replaces both halves of step 4 by one greedy
+selection. Both lanes end in step 5.
+
+![The five steps: preprocessing, then either support points followed by the nearest-neighbor claim or kernel herding, ending in the two-sided split](assets/intuition/pipeline.png)
+
 `splitquality(data, result)` closes the loop. It repeats step 1 on the
 original data and evaluates the same discrepancy, energy distance or MMD²,
 between the resulting train and test rows; for large data it does so through
@@ -91,6 +100,20 @@ Joseph & Vakayil (2022) uses a fresh random subset of ``\kappa`` rows per
 iteration and blends the update with a running average whose weight
 ``n_0 / (t + n_0)``, ``n_0 = 0.2\,n``, decays with ``t``. Iteration stops when
 the largest squared displacement of any point falls below `tolerance`.
+
+The update is a weighted mean of the data rows, each weighted by the
+inverse of its distance to ``\xi_m``, plus a repulsion term divided by the
+same total weight: ``N/n`` times one unit vector per other support point,
+pointing away from it. The figure draws one step for a
+single point ``\xi_m^{(t)}`` (orange): each grey line joins it to a data
+row and its thickness is that row's weight ``1/\|x_l - \xi_m\|``, so near
+rows are drawn heavy and far rows thin; the two black arrows are the unit
+vectors pointing away from the other support points ``\xi_o``, each scaled
+by ``N/n``; the orange arrow is the resulting move to ``\xi_m^{(t+1)}``,
+and the dashed rectangle is the bounding box to which the result is
+clamped.
+
+![One MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves to the weighted mean inside the data's bounding box](assets/intuition/mm-update.png)
 
 ## Maximum mean discrepancy and the Gaussian kernel
 
@@ -189,6 +212,14 @@ locations into rows. Each support point, in order, claims its nearest not-yet-cl
 (Joseph & Vakayil, 2022). `select_nearest` serves the queries from a k-d
 tree, doubling the neighbor count and retrying when every returned neighbor
 is already claimed. The claimed rows form the smaller subset.
+
+In the figure, the hollow circles are support points numbered in claim
+order, grey circles are unclaimed rows, and filled circles are claimed
+rows. Point 3 (orange) finds its nearest row already claimed by point 1
+(dashed line) and takes its second-nearest row instead (solid orange
+arrow).
+
+![Support points claiming rows in turn; a point whose nearest row is already claimed takes the next nearest](assets/intuition/nearest-neighbor.png)
 
 This rounding step has a limitation: when the optimizer's displacement is
 below the spacing between data rows, as is typical in high dimension on

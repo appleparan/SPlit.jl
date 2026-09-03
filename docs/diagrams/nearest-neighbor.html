@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nearest-neighbor claiming</title>
+<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #f5f5f5; }
+  svg { width: 100%; min-width: 720px; display: block; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nearest-neighbor-title nearest-neighbor-desc">
+  <title id="nearest-neighbor-title">Nearest-neighbor claiming</title>
+  <desc id="nearest-neighbor-desc">Four support points claim the nearest unclaimed data row in turn; a point whose nearest row is already taken moves on to its next-nearest row instead.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+    <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+  <!-- ===================== claim arrows (drawn before points) ===================== -->
+  <!-- Point 1 -> R1 -->
+  <line x1="205" y1="304" x2="235" y2="328" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Point 2 -> R2 -->
+  <line x1="564" y1="176" x2="595" y2="145" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <!-- Point 3 -> R1 (TAKEN attempt, dashed, no arrowhead) -->
+  <line x1="291" y1="307" x2="246" y2="329" stroke="#eb6c36" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <!-- Point 3 -> R3 (actual claim, accent solid) -->
+  <line x1="301" y1="301" x2="366" y2="267" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+  <!-- Point 4 -> R4 -->
+  <line x1="706" y1="402" x2="753" y2="418" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ===================== arrow labels (mask + text) ===================== -->
+  <!-- TAKEN: lower-left of the P3->R1 segment -->
+  <rect x="196" y="344" width="56" height="16" rx="2" fill="#f5f5f5"/>
+  <text x="224" y="356" fill="#7a8399" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">TAKEN</text>
+
+  <!-- NEXT NEAREST: above-left of the P3->R3 segment -->
+  <rect x="236" y="256" width="104" height="16" rx="2" fill="#f5f5f5"/>
+  <text x="288" y="268" fill="#7a8399" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">NEXT NEAREST</text>
+
+  <!-- ===================== unclaimed data rows ===================== -->
+  <circle cx="100" cy="120" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="160" cy="480" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="340" cy="120" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="420" cy="420" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="480" cy="300" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="640" cy="300" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="680" cy="120" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="760" cy="240" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="820" cy="480" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="880" cy="140" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="600" cy="480" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <circle cx="880" cy="340" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+
+  <!-- ===================== claimed rows ===================== -->
+  <circle cx="240" cy="332" r="4" fill="#2d3142"/>
+  <circle cx="600" cy="140" r="4" fill="#2d3142"/>
+  <circle cx="372" cy="264" r="4" fill="#2d3142"/>
+  <circle cx="760" cy="420" r="4" fill="#2d3142"/>
+
+  <!-- ===================== support points ===================== -->
+  <!-- Point 1 -->
+  <circle cx="200" cy="300" r="6" fill="#f5f5f5" stroke="#2d3142" stroke-width="1.2"/>
+  <text x="188" y="288" fill="#2d3142" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">1</text>
+
+  <!-- Point 2 -->
+  <circle cx="560" cy="180" r="6" fill="#f5f5f5" stroke="#2d3142" stroke-width="1.2"/>
+  <text x="548" y="168" fill="#2d3142" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">2</text>
+
+  <!-- Point 3 (focal) -->
+  <circle cx="296" cy="304" r="6" fill="#f5f5f5"/>
+  <circle cx="296" cy="304" r="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+  <text x="284" y="292" fill="#eb6c36" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">3</text>
+
+  <!-- Point 4 -->
+  <circle cx="700" cy="400" r="6" fill="#f5f5f5" stroke="#2d3142" stroke-width="1.2"/>
+  <text x="688" y="388" fill="#2d3142" font-size="9" font-weight="700" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">4</text>
+
+  <!-- ===================== editorial aside ===================== -->
+  <text x="920" y="64" fill="#4f5d75" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">the claimed rows are the smaller side of the split</text>
+  <path d="M 880 80 C 800 60, 700 60, 600 154" fill="none" stroke="rgba(45,49,66,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+  <circle cx="600" cy="154" r="2" fill="#2d3142"/>
+
+  <!-- ===================== legend strip ===================== -->
+  <line x1="40" y1="548" x2="920" y2="548" stroke="rgba(45,49,66,0.12)" stroke-width="0.8"/>
+  <text x="40" y="576" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">LEGEND</text>
+
+  <circle cx="160" cy="572" r="6" fill="#f5f5f5" stroke="#2d3142" stroke-width="1.2"/>
+  <text x="172" y="576" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">SUPPORT POINT</text>
+
+  <circle cx="332" cy="572" r="4" fill="rgba(79,93,117,0.20)" stroke="#4f5d75" stroke-width="1"/>
+  <text x="344" y="576" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">DATA ROW</text>
+
+  <circle cx="484" cy="572" r="4" fill="#2d3142"/>
+  <text x="496" y="576" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">CLAIMED ROW</text>
+
+  <line x1="628" y1="572" x2="652" y2="572" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="664" y="576" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">CLAIM</text>
+
+  <line x1="756" y1="572" x2="780" y2="572" stroke="#eb6c36" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="792" y="576" fill="#4f5d75" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">ALREADY TAKEN</text>
+</svg>
+</body>
+</html>
