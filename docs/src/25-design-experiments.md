@@ -106,20 +106,36 @@ julia -t auto --project=benchmark benchmark/weighted_kappa.jl
 `TwinningSplitter` answers two nearest-neighbor queries per group. A k-d
 tree is the paper's choice, but its pruning weakens as the dimension
 grows, so the rows can also be scanned by brute force. Measured on
-standard-normal data at N = 10,000 and `ratio = 0.2`, minimum of three
-runs, serial (Julia 1.10.12, AMD Ryzen 7 7800X3D):
+standard-normal data at N = 1,000, 10,000, and 100,000 and `ratio = 0.2`,
+serial (Julia 1.10.12, AMD Ryzen 7 7800X3D): minimum of three runs for
+N ≤ 10,000, a single run at N = 100,000.
 
-| p | k-d tree (s) | brute force (s) | brute / k-d |
-|---:|---:|---:|---:|
-| 2 | 0.0051 | 0.113 | 22.1 |
-| 10 | 0.122 | 0.172 | 1.41 |
-| 50 | 0.662 | 0.326 | 0.492 |
-| 200 | 1.5 | 1.16 | 0.776 |
-| 768 | 8.53 | 4.25 | 0.499 |
+| N | p | k-d tree (s) | brute force (s) | brute / k-d |
+|---:|---:|---:|---:|---:|
+| 1000 | 2 | 0.000326 | 0.00127 | 3.9 |
+| 1000 | 10 | 0.00243 | 0.00186 | 0.768 |
+| 1000 | 50 | 0.00719 | 0.00418 | 0.581 |
+| 1000 | 200 | 0.0296 | 0.0166 | 0.561 |
+| 1000 | 768 | 0.236 | 0.0341 | 0.145 |
+| 10000 | 2 | 0.0055 | 0.101 | 18.4 |
+| 10000 | 10 | 0.114 | 0.157 | 1.37 |
+| 10000 | 50 | 0.656 | 0.306 | 0.466 |
+| 10000 | 200 | 1.38 | 1.11 | 0.804 |
+| 10000 | 768 | 7.38 | 3.71 | 0.503 |
+| 100000 | 2 | 0.0693 | 15.2 | 220.0 |
+| 100000 | 10 | 4.15 | 19.7 | 4.75 |
+| 100000 | 50 | 71.6 | 37.7 | 0.527 |
+| 100000 | 200 | 328.0 | 293.0 | 0.893 |
+| 100000 | 768 | 999.0 | 833.0 | 0.834 |
 
-Brute force first reaches the 1.5x-faster bar at p = 50 (2.03x faster; it
-stays faster at p = 200 and p = 768 too, at 1.29x and 2.00x), so
-`TWINNING_BRUTE_FORCE_DIMENSION = 50`. This settles the roadmap's open
+Brute force is faster at every measured p ≥ 50 for every N (1.9-2.1x at
+p = 50; 1.1-1.8x at p = 200; 1.2-6.9x at p = 768), while the k-d tree wins
+at p ≤ 10 once N ≥ 10,000 and by a widening margin as N grows (18x at
+N = 10⁴ and 220x at N = 10⁵ for p = 2; 1.4x and 4.8x for p = 10). At
+N = 1,000 brute force is marginally faster at p = 10 too, but both take
+about 2 ms there, so the threshold is set by the larger sizes. The
+crossover therefore does not move with N in the measured range, so
+`TWINNING_BRUTE_FORCE_DIMENSION` stays 50. This settles the roadmap's open
 question on high-dimensional nearest neighbors for M3. Reproduce with:
 
 ```sh

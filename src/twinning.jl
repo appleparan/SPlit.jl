@@ -11,8 +11,9 @@ using Random
 
 # Dimension at or above which the twinning search structure is a BruteTree
 # instead of a KDTree. Set by `benchmark/twinning_trees.jl`: on
-# standard-normal data at N = 10,000, brute force is 2.03x faster at p = 50
-# (1.29x at p = 200, 2.00x at p = 768); see the Design experiments page.
+# standard-normal data at N = 10³-10⁵, brute force is 1.9-2.1x faster at
+# p = 50 and stays faster above, while the k-d tree wins at p ≤ 10 for
+# N ≥ 10⁴; see the Design experiments page.
 # `typemax(Int)` would mean the k-d tree is always used.
 const TWINNING_BRUTE_FORCE_DIMENSION = 50
 
