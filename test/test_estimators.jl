@@ -144,3 +144,45 @@ end
     atol = 1e-12,
   )
 end
+
+@testset "_weighted_cross_abs and _weighted_within_abs boundaries" begin
+  # (i) all of b below a[1]: r == 0 for every element of b
+  a = [1.0, 2.0, 4.0]
+  w = [0.2, 0.3, 0.5]
+  b = [0.0, 0.5]
+  v = [0.6, 0.4]
+  brute_cross(a, w, b, v) =
+    sum(w[i] * v[j] * abs(a[i] - b[j]) for i in eachindex(a), j in eachindex(b))
+  @test isapprox(
+    SPlit._weighted_cross_abs(a, w, b, v),
+    brute_cross(a, w, b, v);
+    atol = 1e-12,
+  )
+
+  # (ii) all of b above a[end]: r == n for every element of b
+  b_above = [5.0, 9.0]
+  @test isapprox(
+    SPlit._weighted_cross_abs(a, w, b_above, v),
+    brute_cross(a, w, b_above, v);
+    atol = 1e-12,
+  )
+
+  # (iii) ties in a (searchsortedlast lands mid-run)
+  a_ties = [1.0, 1.0, 2.0, 2.0]
+  w_ties = fill(0.25, 4)
+  b_ties = [1.0, 2.0]
+  v_ties = [0.5, 0.5]
+  @test isapprox(
+    SPlit._weighted_cross_abs(a_ties, w_ties, b_ties, v_ties),
+    brute_cross(a_ties, w_ties, b_ties, v_ties);
+    atol = 1e-12,
+  )
+
+  brute_within(a, w) =
+    sum(w[i] * w[k] * abs(a[i] - a[k]) for i in eachindex(a), k in eachindex(a))
+  @test isapprox(
+    SPlit._weighted_within_abs(a_ties, w_ties),
+    brute_within(a_ties, w_ties);
+    atol = 1e-12,
+  )
+end

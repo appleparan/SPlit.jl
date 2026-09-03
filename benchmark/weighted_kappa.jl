@@ -98,8 +98,11 @@ for rule in RULES
   )
 end
 gap = score("uniform") - score("proportional")
-if gap > se("uniform") + se("proportional")
+combined_se = se("uniform") + se("proportional")
+if gap > combined_se
   println("decision: :proportional (lower by $(gap), beyond one standard error)")
+elseif -gap > combined_se
+  println("decision: :uniform (lower by $(-gap), beyond one standard error)")
 else
   println(
     "decision: :uniform (difference $(gap) within one standard error, simpler rule wins)",

@@ -28,7 +28,9 @@ function _data_term(kernel::SplitKernel, X::Matrix{Float64}, n_threads::Int)
   return d
 end
 
-# Weighted data term d_i = Σ_l w̄_l k(x_i, x_l), w̄ scaled to sum one.
+# d_i = Σ_l w̄_l k(x_i, x_l), for every row i (including the self-term
+# k(x_i, x_i), matching Eq. (8) exactly), w̄ scaled to sum one; chunked over
+# threads. Computed on the transpose so each row is a contiguous column view.
 function _data_term(
   kernel::SplitKernel,
   X::Matrix{Float64},
