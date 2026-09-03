@@ -25,8 +25,9 @@ output-matching tests. The design record is
 ## Gotchas
 
 - `kappa` is an absolute row count; stochastic mode runs only when it is
-  below the number of data rows. Full-data mode is the pure MM step and must
-  stay monotone; the descent test enforces it.
+  below the number of rows of the target (the data, or the reference when
+  one is given). Full-data mode is the pure MM step and must stay monotone;
+  the descent test enforces it.
 - `tolerance` compares the largest *squared* per-point displacement.
 - The MM sweep in `optimizer.jl` is the hot loop and is written as explicit
   coordinate loops on purpose: keep it allocation-free. `n0 = 0.2n` there is
@@ -90,8 +91,7 @@ output-matching tests. The design record is
   rows.
 - The selection function is named `selectrows`, not `select`, because
   `DataFrames` exports `select`. Docstrings must sit directly above the
-  function they document; two got detached onto helper functions during
-  this branch and were fixed in review.
+  function they document.
 
 ## Workflow
 

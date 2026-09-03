@@ -79,7 +79,12 @@ tolerance limits, and the `rng` that drives every random choice. `datasplit`
 runs it on a `Matrix`, `DataFrame`, or `Vector` and returns a `SplitResult`,
 whose `train_indices` and `test_indices` (also reachable via `data[result,
 :train]`/`data[result, :test]` indexing or `train, test = result`
-destructuring) partition the input rows.
+destructuring) partition the input rows; `result.selected` names the side
+(`:test` or `:train`) holding the chosen rows. `selectrows(splitter, data,
+n; reference = ...)` returns just the `n` chosen row indices, without
+building a train/test partition. `datasplit`'s `reference` keyword (and
+`selectrows`'s) makes the chosen side approximate a second dataset instead
+of `data`'s own distribution, with candidates still drawn from `data`.
 
 - `GaussianKernel(bandwidth = :median)`: support points minimize the squared
   maximum mean discrepancy (Gretton et al., 2012) via projected gradient

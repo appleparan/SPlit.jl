@@ -29,7 +29,9 @@ points and mapped to data rows by sequential nearest-neighbor selection.
   kernel is stored in `result.method`.
 - `ratio`: fraction of rows assigned to the test set, in (0, 1).
 - `kappa`: absolute per-iteration subsample size for stochastic optimization;
-  `nothing` uses all rows every iteration.
+  `nothing` uses all rows every iteration. Stochastic mode runs only when
+  `kappa` is below the number of rows of the target (the data, or the
+  reference when one is given).
 - `tolerance`: convergence when the largest squared displacement of any
   support point in one iteration is below this value. In stochastic mode
   the running-average weight decays with the iteration count, so
