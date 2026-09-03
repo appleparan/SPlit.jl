@@ -2,7 +2,10 @@ exclude = [
   "@ref",
   # Medium-backed blog rejects requests from GitHub-hosted runners (connection reset)
   "^https://blog.esciencecenter.nl/",
-  "^https://github.com/.*/releases/tag/v.*$"
+  "^https://github.com/.*/releases/tag/v.*$",
+  # Taylor & Francis (Technometrics DOI target) returns 403 to non-browser clients
+  "^https://doi.org/10.1080/",
+  "^https://www.tandfonline.com/"
 ]
 
 exclude_path = [
