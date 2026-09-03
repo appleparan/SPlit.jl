@@ -50,11 +50,12 @@ Every random draw in these steps (the initial sample, the stochastic
 draws nothing beyond `:median`, which is why it is deterministic for a
 numeric kernel.
 
-The figure summarizes the five steps. The upper lane is
-`SupportPointSplitter` (steps 1-3, then the two halves of step 4: the
-highlighted support-point optimization followed by the nearest-neighbor
-claim); the dashed lower lane is `HerdingSplitter`, which replaces both
-halves of step 4 by one greedy selection; both lanes end in step 5.
+The figure summarizes the five steps. The `Preprocess` box stands for
+steps 1-3. The upper lane is `SupportPointSplitter`, with the two halves
+of step 4 as separate boxes: the highlighted support-point optimization,
+then the nearest-neighbor claim. The dashed lower lane is
+`HerdingSplitter`, which replaces both halves of step 4 by one greedy
+selection. Both lanes end in step 5.
 
 ![The five steps: preprocessing, then either support points followed by the nearest-neighbor claim or kernel herding, ending in the two-sided split](assets/intuition/pipeline.png)
 
@@ -101,8 +102,9 @@ iteration and blends the update with a running average whose weight
 the largest squared displacement of any point falls below `tolerance`.
 
 The update is a weighted mean of the data rows, each weighted by the
-inverse of its distance to ``\xi_m``, plus one unit vector per other
-support point pointing away from it. The figure draws one step for a
+inverse of its distance to ``\xi_m``, plus a repulsion term divided by the
+same total weight: ``N/n`` times one unit vector per other support point,
+pointing away from it. The figure draws one step for a
 single point ``\xi_m^{(t)}`` (orange): each grey line joins it to a data
 row and its thickness is that row's weight ``1/\|x_l - \xi_m\|``, so near
 rows are drawn heavy and far rows thin; the two black arrows are the unit

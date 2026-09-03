@@ -10,10 +10,7 @@
     :root {
       --color-paper:   #f5f5f5;
       --color-ink:     #2d3142;
-      --color-muted:   #4f5d75;
-      --color-accent:  #eb6c36;
       --font-sans:     Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif;
-      --font-math:     'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif;
     }
     body {
       font-family: var(--font-sans);
@@ -36,7 +33,6 @@
       <desc id="pipeline-desc">Flowchart of datasplit: rows are preprocessed, then either support points are placed and nearby rows are claimed, or kernel herding picks rows directly, and both routes produce the final two-sided split.</desc>
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
-        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
         <marker id="arrow-soft" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7a8399"/></marker>
       </defs>
 
@@ -81,8 +77,8 @@
       <rect x="364" y="112" width="180" height="96" rx="6" fill="#f5f5f5"/>
       <rect x="364" y="112" width="180" height="96" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
       <text x="454" y="144" fill="#2d3142" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Support points</text>
-      <text x="454" y="160" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">n</tspan><tspan> = ratio · </tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">N</tspan><tspan> ideal locations,</tspan></text>
-      <text x="454" y="174" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">moved by MM sweeps</text>
+      <text x="454" y="160" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">n</tspan><tspan> = min(ratio, 1 − ratio) · </tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">N</tspan><tspan> ideal locations,</tspan></text>
+      <text x="454" y="174" fill="#4f5d75" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">optimized to match the data</text>
 
       <!-- 4. Nearest-neighbor claim (backend/step style) -->
       <rect x="576" y="112" width="200" height="96" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
