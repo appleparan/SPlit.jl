@@ -133,3 +133,22 @@ end
     atol = 1e-12,
   )
 end
+
+@testset "compare with a reference" begin
+  data = randn(MersenneTwister(610), 150, 2)
+  R = data[data[:, 1].>0, :]
+  methods = [
+    SupportPointSplitter(max_iterations = 30, rng = MersenneTwister(1)),
+    HerdingSplitter(kernel = GaussianKernel(1.0)),
+  ]
+  c = compare(methods, data; reference = R)
+  @test length(c.qualities) == 2
+  @test all(isfinite, c.qualities)
+  @test isapprox(
+    c.qualities[2],
+    splitquality(data, c.results[2]; reference = R);
+    atol = 1e-12,
+  )
+  cg = compare(methods, data; reference = R, kernel = GaussianKernel())
+  @test cg.kernel isa GaussianKernel{Float64}
+end

@@ -89,4 +89,24 @@ using Statistics
     end
     @test q_sp < mean(random_qs)
   end
+
+  @testset "reference-targeted splits beat random subsets against the reference" begin
+    rng = MersenneTwister(620)
+    data = randn(rng, 300, 3)
+    R = data[data[:, 1].>0.3, :]
+    for s in (
+      SupportPointSplitter(max_iterations = 200, rng = MersenneTwister(621)),
+      HerdingSplitter(kernel = GaussianKernel(1.0)),
+    )
+      r = datasplit(s, data; reference = R)
+      q = splitquality(data, r; reference = R)
+      n_test = length(test_indices(r))
+      random_qs = map(1:25) do i
+        perm = randperm(MersenneTwister(6_000 + i), 300)
+        fake = SPlit.SplitResult(perm[(n_test+1):end], perm[1:n_test], true, 0, r.method)
+        splitquality(data, fake; reference = R)
+      end
+      @test q < mean(random_qs)
+    end
+  end
 end

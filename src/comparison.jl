@@ -32,6 +32,10 @@ comparison. Remaining keyword arguments are forwarded to `splitquality`.
 
 `weights` is forwarded to `datasplit`, to the `:median` resolution of the
 scoring kernel, and to `splitquality`.
+
+`reference` and `reference_weights` are forwarded to `datasplit` and
+`splitquality`, and a `:median` scoring kernel is then resolved on the
+encoded reference.
 """
 function compare(
   methods::Vector{<:AbstractSplitter},
@@ -39,11 +43,38 @@ function compare(
   kernel::SplitKernel = EnergyKernel(),
   rng::AbstractRNG = Random.default_rng(),
   weights::Union{Nothing,AbstractVector} = nothing,
+  reference = nothing,
+  reference_weights::Union{Nothing,AbstractVector} = nothing,
   kwargs...,
 )
-  results = [datasplit(m, data; weights) for m in methods]
-  k = isresolved(kernel) ? kernel : resolve(kernel, preprocess(data, weights), rng, weights)
-  qualities = [splitquality(data, r; kernel = k, rng, weights, kwargs...) for r in results]
+  results = [datasplit(m, data; weights, reference, reference_weights) for m in methods]
+  k = if isresolved(kernel)
+    kernel
+  elseif reference !== nothing
+    resolve(
+      kernel,
+      apply_preprocessor(
+        fit_preprocessor(reference; weights = reference_weights, extra = data),
+        reference,
+      ),
+      rng,
+      reference_weights,
+    )
+  else
+    resolve(kernel, preprocess(data, weights), rng, weights)
+  end
+  qualities = [
+    splitquality(
+      data,
+      r;
+      kernel = k,
+      rng,
+      weights,
+      reference,
+      reference_weights,
+      kwargs...,
+    ) for r in results
+  ]
   return SplitComparison([r.method for r in results], results, qualities, k)
 end
 
