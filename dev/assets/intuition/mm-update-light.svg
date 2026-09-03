@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mm-update-title mm-update-desc" width="960" height="600">
+    <title id="mm-update-title">One MM step for a single support point</title>
+    <desc id="mm-update-desc">Schematic of the Mak &amp; Joseph MM update for one support point ξm: thin lines to each data row weighted by inverse distance, two unit repulsion arrows away from the other support points, and an accent arrow to the new position, all inside the bounding box of the data.</desc>
+<style>
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'STIX Two Text';font-style:italic;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'STIX Two Text';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAATcABAAAAAACYgAAASAAAIhSAAAAAAAAAAAAAAAAAAAAAAAAAAAGhwbeByBVgZgP1NUQVRIAHQRCAqFNIQLATYCJAM4CyAABCAFhDoHIAwHG6sHKB6HsdtkQaWJq0cV84Pn6Z3rz51MS0mKWbBg7qsGvmp/+8RcS/Bxr+37SddQMCEOYKVS+ngs4CEoR3J4wjX/C7cmjiX/t0ZpJfoLZlNUAUeBvdCLdFmCRC7SdgPZTUfEe9NtDBaDBEPExExEOoKes3+uCPACAEUBRWiBhABToXq61t47ij3cvWUGe7pl/TT2avW2OWwa4PMRIMv1W+bwAAFC8+chPIQCHko4DWwJhAIghIsCwk0IAaZSK9KBxjspxmhufpbwHyEMxN5sn91CKhAGjD8NAly8bPkGrSNAeIhuSkK4+cWE4t4JBhH69VogQBOKP8sLMoo9CkimMekkWU7EBXVXi4AeVl06FEcuyH0IDLsaqXct4kGcaqj6W6i/dZTcBQhAPtVJgEPJPykKhFMglbpu3LRNgMnT6hlxIbRwBlAhciKoD8AgVLgBEAAKGHAoZaC0Vb81mEFzZMlRoEidO5zI5FAf4MjUXP9f3iPf+Io3vGTwg+/f+weBtYT8EwSAVRJAMLge+AiIBOEAtEsrh0TaF5X26jStAwO9ETrcq7WeDfQL2nX01XL4BuuY6zh05ZQ7wG+ZKYdveeSRN+Twy+bRd3LorLM4dKV5tBx+wzrmtdc49OqDGGSsuNdaKX7W6ujXX9fxEzGvvup6bcx+47Ll9fFYs33i6OvvX+raAK8c84wYh882j7711nCZsPShp6xRc9paa54jrxFRXKqOpg5dZa02Da8EGJYKwLsNlKCtBKDudfjKrru7QtfGxD8fE/1xnP1KVPQH5mfDHw+/X5JpZywNc0e05tfsKMw9Pyr4pIvDoi4NLWmvW97bWzSSUNJUmut0/fC3lcTSdmXwSEIFF71TdX4VFY9/dtWd+OVll574+a7av2Y6l7xw2hlLXiT/+c9sx+IXzzht8QuznX8Bz6K79DLrSXHMY/EPxsR8Ehf/akzUR1y9JK7jvLQr7NfDzJIdvyY9VB7vpN3XxnCp9KonSon+/jK27NS4n8JvCvZ+/nLCvpSkgbhHSzgms9Pf3er2p3Sc9MFo6yhg7PkUjbaMQjoD+DFcCCqHCZ/2BAOT/6nRrB4mB1KWcxCgKp2Xb7hHVgbV/uZRxpcA7/geD+DdJ4fO/Lf3/2NcIToKcFMABF9F56of8P/erYDAUQKS5Zi+AbmRGhaTcc1CTJDQPjFshuMHuj3n2y2t5DRP8iL18/MEBDmC16W4w2fTBFiOxiBpf+BGECjCdiNFCfQ0xdDqTYqWHXEUl+RoJ7ulxyYOAW8cbxDC9OJSIWfvwo0Zl9Ni3oLdtpi00SbbOIoVKlQkjwOKTY5RA2C9fKQjuiyatN28Odts5Ri0xbwp662NMTXZziKbzNtiUmbGt91mwVbVChTYaBJMtt0a+daaN6vAVttMWtAkkmOXDXmGLCX4DLXTPON6u2wzvNpG281YbYti+YqUcKxRpEKRmgApiIKks0RezzSxlLNZxq1/rnKybhmnQi5yHRPWv8Yf1GWb1WZMWmvYvFmrzTEA4LuZEph+p/i+UR8HAAA=) format('woff2');}
+</style>
+    <defs>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(235, 108, 54)"></polygon></marker>
+      <marker id="arrow-ink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(45, 49, 66)"></polygon></marker>
+    </defs>
+
+    <rect width="100%" height="100%" fill="rgb(245, 245, 245)"></rect>
+
+    <!-- Clamp box: bounding box of the data -->
+    <rect x="296" y="140" width="316" height="372" rx="4" fill="none" stroke="rgba(45, 49, 66, 0.3)" stroke-width="1" stroke-dasharray="4,4"></rect>
+    <text x="308" y="156" fill="rgb(122, 131, 153)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">CLAMP BOX = bounding box of the data</text>
+
+    <!-- Data-term lines: F to each data row, width encodes weight 1/distance -->
+    <line x1="477.1" y1="314.7" x2="437.9" y2="243.5" stroke="rgb(79, 93, 117)" stroke-width="2.4"></line>
+    <line x1="474.2" y1="318.5" x2="407.9" y2="301.0" stroke="rgb(79, 93, 117)" stroke-width="2.4"></line>
+    <line x1="485.1" y1="316.9" x2="536.6" y2="286.1" stroke="rgb(79, 93, 117)" stroke-width="2.4"></line>
+    <line x1="475.1" y1="323.4" x2="335.3" y2="421.7" stroke="rgb(79, 93, 117)" stroke-width="1.4"></line>
+    <line x1="483.0" y1="314.8" x2="562.0" y2="175.5" stroke="rgb(79, 93, 117)" stroke-width="1.4"></line>
+    <line x1="483.0" y1="325.2" x2="570.0" y2="472.6" stroke="rgb(79, 93, 117)" stroke-width="0.8"></line>
+
+    <!-- Weight label, beside the G line (most open canvas) -->
+    <path d="M 555 254 L 530 254" fill="none" stroke="rgba(45, 49, 66, 0.35)" stroke-width="0.8" stroke-dasharray="2,2"></path>
+    <rect x="522" y="247" width="100" height="14" rx="2" fill="rgb(245, 245, 245)"></rect>
+    <text x="572" y="257" fill="rgb(79, 93, 117)" font-size="8" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan font-style="italic">w</tspan><tspan font-style="italic" font-size="5.6" dy="3">l</tspan><tspan font-size="8" dy="-3"> = 1/‖</tspan><tspan font-style="italic">x</tspan><tspan font-style="italic" font-size="5.6" dy="3">l</tspan><tspan font-size="8" dy="-3"> − </tspan><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="5.6" dy="3">m</tspan><tspan font-size="8" dy="-3">‖</tspan></text>
+
+    <!-- Repulsion arrows: away from each other support point, start at F's edge -->
+    <line x1="474.10" y1="321.07" x2="436" y2="328" stroke="rgb(45, 49, 66)" stroke-width="1.4" marker-end="url(#arrow-ink)"></line>
+    <line x1="478.93" y1="314.10" x2="472" y2="276" stroke="rgb(45, 49, 66)" stroke-width="1.4" marker-end="url(#arrow-ink)"></line>
+
+    <!-- Repulsion label, below the left-pointing repulsion arrow -->
+    <path d="M 400 333 L 410 322" fill="none" stroke="rgba(45, 49, 66, 0.35)" stroke-width="0.8" stroke-dasharray="2,2"></path>
+    <rect x="325" y="333" width="120" height="14" rx="2" fill="rgb(245, 245, 245)"></rect>
+    <text x="385" y="343" fill="rgb(79, 93, 117)" font-size="8" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan>(</tspan><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="5.6" dy="3">m</tspan><tspan font-size="8" dy="-3"> − </tspan><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="5.6" dy="3">o</tspan><tspan font-size="8" dy="-3">)/‖</tspan><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="5.6" dy="3">m</tspan><tspan font-size="8" dy="-3"> − </tspan><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="5.6" dy="3">o</tspan><tspan font-size="8" dy="-3">‖·</tspan><tspan font-style="italic">N</tspan><tspan font-size="8">/</tspan><tspan font-style="italic">n</tspan></text>
+
+    <!-- Result arrow: F to new position P -->
+    <line x1="475.3" y1="316.3" x2="444.7" y2="291.7" stroke="rgb(235, 108, 54)" stroke-width="1.8" marker-end="url(#arrow-accent)"></line>
+
+    <!-- Data rows -->
+    <circle cx="436" cy="240" r="4" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="436" cy="240" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="429" y="227" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">A</text>
+
+    <circle cx="404" cy="300" r="4" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="404" cy="300" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="388" y="299" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">B</text>
+
+    <circle cx="540" cy="284" r="4" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="540" cy="284" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="556" y="277" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">C</text>
+
+    <circle cx="332" cy="424" r="4" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="332" cy="424" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="317" y="438" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">D</text>
+
+    <circle cx="564" cy="172" r="4" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="564" cy="172" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="571" y="162" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">G</text>
+
+    <circle cx="572" cy="476" r="4" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="572" cy="476" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="580" y="493" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">E</text>
+
+    <!-- Other support points -->
+    <circle cx="608" cy="296" r="6" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="608" cy="296" r="6" fill="none" stroke="rgb(45, 49, 66)" stroke-width="1.2"></circle>
+    <rect x="592" y="270" width="32" height="13" rx="2" fill="rgb(245, 245, 245)"></rect>
+    <text x="608" y="280" fill="rgb(45, 49, 66)" font-size="9" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="6.3" dy="3">o</tspan></text>
+
+    <circle cx="504" cy="448" r="6" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="504" cy="448" r="6" fill="none" stroke="rgb(45, 49, 66)" stroke-width="1.2"></circle>
+    <rect x="488" y="461" width="32" height="13" rx="2" fill="rgb(245, 245, 245)"></rect>
+    <text x="504" y="471" fill="rgb(45, 49, 66)" font-size="9" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="middle"><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="6.3" dy="3">o</tspan></text>
+
+    <!-- Focal point ξ_m -->
+    <circle cx="480" cy="320" r="6" fill="rgb(245, 245, 245)"></circle>
+    <circle cx="480" cy="320" r="6" fill="rgba(235, 108, 54, 0.08)" stroke="rgb(235, 108, 54)" stroke-width="1.2"></circle>
+    <rect x="503" y="329" width="60" height="18" rx="2" fill="rgb(245, 245, 245)"></rect>
+    <text x="507" y="343" fill="rgb(235, 108, 54)" font-size="9" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="start"><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="6.3" dy="3">m</tspan><tspan font-size="6.3" dy="-9">(</tspan><tspan font-style="italic" font-size="6.3">t</tspan><tspan font-size="6.3">)</tspan></text>
+
+    <!-- Result: new position ξ_m^(t+1) -->
+    <circle cx="440" cy="288" r="6" fill="none" stroke="rgb(235, 108, 54)" stroke-width="1.2" stroke-dasharray="3,3"></circle>
+    <rect x="387.5" y="264.4" width="64" height="18" rx="2" fill="rgb(245, 245, 245)"></rect>
+    <text x="391.5" y="278.4" fill="rgb(235, 108, 54)" font-size="9" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" text-anchor="start"><tspan font-style="italic">ξ</tspan><tspan font-style="italic" font-size="6.3" dy="3">m</tspan><tspan font-size="6.3" dy="-9">(</tspan><tspan font-style="italic" font-size="6.3">t</tspan><tspan font-size="6.3">+1)</tspan></text>
+
+    <!-- Editorial aside 1: left margin, outside the box, leader enters through the left edge -->
+    <text x="280" y="204" fill="rgb(79, 93, 117)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">near rows pull harder:</text>
+    <text x="280" y="220" fill="rgb(79, 93, 117)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">weight 1/distance</text>
+    <path d="M 288 214 Q 373 235 458 280" fill="none" stroke="rgba(45, 49, 66, 0.4)" stroke-width="1" stroke-dasharray="4,3"></path>
+    <circle cx="458" cy="280" r="2" fill="rgb(45, 49, 66)"></circle>
+
+    <!-- Editorial aside 2: just outside the box's right edge, short horizontal leader beside ξ_o1 -->
+    <text x="648" y="300" fill="rgb(79, 93, 117)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start">each other point pushes</text>
+    <text x="648" y="316" fill="rgb(79, 93, 117)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="start">with a unit vector</text>
+    <path d="M 644 296 L 624 296" fill="none" stroke="rgba(45, 49, 66, 0.4)" stroke-width="1" stroke-dasharray="4,3"></path>
+    <circle cx="624" cy="296" r="2" fill="rgb(45, 49, 66)"></circle>
+
+    <!-- Legend -->
+    <line x1="40" y1="544" x2="920" y2="544" stroke="rgba(45, 49, 66, 0.12)" stroke-width="0.8"></line>
+    <text x="40" y="558" fill="rgb(79, 93, 117)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">LEGEND</text>
+
+    <circle cx="48" cy="574" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
+    <text x="60" y="578" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">data row</text>
+
+    <circle cx="132" cy="574" r="6" fill="none" stroke="rgb(45, 49, 66)" stroke-width="1.2"></circle>
+    <text x="148" y="578" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">support point</text>
+
+    <circle cx="244" cy="574" r="6" fill="rgba(235, 108, 54, 0.08)" stroke="rgb(235, 108, 54)" stroke-width="1.2"></circle>
+    <text x="260" y="578" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">ξ</tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic" font-size="6.3" dy="3">m</tspan><tspan dy="-3"> (focal)</tspan></text>
+
+    <line x1="340" y1="574" x2="364" y2="574" stroke="rgb(79, 93, 117)" stroke-width="2"></line>
+    <text x="372" y="578" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">data pull (line weight = 1/distance)</text>
+
+    <line x1="580" y1="574" x2="604" y2="574" stroke="rgb(45, 49, 66)" stroke-width="1.4" marker-end="url(#arrow-ink)"></line>
+    <text x="612" y="578" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">repulsion (unit vector)</text>
+
+    <line x1="756" y1="574" x2="780" y2="574" stroke="rgb(235, 108, 54)" stroke-width="1.8" marker-end="url(#arrow-accent)"></line>
+    <text x="788" y="578" fill="rgb(79, 93, 117)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">MM step (accent)</text>
+  </svg>
