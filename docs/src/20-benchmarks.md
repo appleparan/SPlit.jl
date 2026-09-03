@@ -5,7 +5,8 @@ N = 1,000 and 10,000 it has the lowest energy distance in 6 of 8 cases and
 is never far from the best. It also runs 30-100x faster than the
 support-point optimizer. Sections 1 and 2 are the evidence; section 3 is
 why support points fall behind. The setup is under
-[How it was run](@ref benchmarks-environment).
+[How it was run](@ref benchmarks-environment). Section 4 shows where
+`twinning` fits at N up to 10⁶.
 
 ## 1. Quality: `herding · energy` is best or close to best
 
@@ -86,6 +87,24 @@ proportion; the random split leaves gaps and clumps. `support points · energy`
 wins this cell, so the picture shows what a good selection looks like, not
 a difference between the families.
 
+## 4. Twinning at scale
+
+![Twinning against the other splitters on normal-10d](assets/benchmarks/twinning.png)
+
+Twinning finishes in 0.15 s at N = 10,000, 4.4 s at N = 100,000, and
+120 s at N = 1,000,000 — 4x faster than herding at 10⁵ and 16x faster
+at 10⁶, and 22x faster than support points at 10⁵. Its energy distance
+is 3.0x, 4.4x, and 4.1x below the random split at those three sizes,
+though herding's is lower still, by a steady 1.6x at every N. Use
+twinning once N reaches 10⁵ or whenever wall time matters; keep herding
+for the best quality while its `O(N²)` pass stays affordable. Support
+points stop at N = 10⁵ because the MM repulsion term is quadratic in
+the selected count; herding runs a single `O(N²)` pass. Twinning is
+serial. Numbers: [`assets/benchmarks/twinning.md`](assets/benchmarks/twinning.md);
+the nearest-neighbor structure was chosen on the
+[Design experiments](@ref twinning-trees) page, which also reports
+twinning's time at p = 768.
+
 ## [How it was run](@id benchmarks-environment)
 
 | dataset | distribution | dimensions |
@@ -102,6 +121,7 @@ a difference between the families.
 | herding · energy | `HerdingSplitter(EnergyKernel())` | exact data term | exact data term |
 | herding · gaussian | `HerdingSplitter(GaussianKernel())` | exact data term | exact data term |
 | random | uniform random split | mean of 5 seeds | mean of 5 seeds |
+| twinning | `TwinningSplitter()` | `start = :farthest` | `start = :farthest` |
 
 - Every dataset is seeded and split with `ratio = 0.2`. Scores are the
   energy distance and Gaussian MMD between the train and test rows. The
@@ -111,6 +131,10 @@ a difference between the families.
   so compilation never consumes the timed splitter's random draws.
 - Command: `julia -t auto --project=benchmark benchmark/run.jl`. Recorded
   on Julia 1.10.12, 16 threads (`-t auto`), AMD Ryzen 7 7800X3D.
+- Section 4 uses `normal-10d` at N = 10⁴, 10⁵, 10⁶ with
+  `julia -t auto --project=benchmark benchmark/twinning.jl`; scores above
+  20,000 rows use `splitquality`'s automatic estimator with a fixed rng,
+  the same for every method.
 
 The measurements that fixed `splitquality`'s automatic estimator and
 herding's exact data term are on the
