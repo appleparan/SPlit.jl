@@ -739,24 +739,43 @@ end
     @test size(pts_g) == (10, 2)
     @test all(isfinite, pts_g)
 
-    # Duplicating the target 3x is the same measure as weighting it 3x, so the
-    # two runs should be equivalent up to the jitter (which perturbs the
-    # duplicated target by up to 1e-3 of its range) and the different rng
-    # consumption (the jitter draw) between the two code paths. The point
-    # sets themselves land in different local configurations of comparable
-    # quality (observed max abs diff ~2.7, well past 1e-2), so `isapprox` on
-    # the raw points is not robust; comparing the energy distance to the
-    # underlying target is (observed diff ~3e-3), so use that instead.
-    weighted, _, _ = SPlit.support_points(
-      EnergyKernel(),
-      data,
-      10;
-      max_iterations = 20,
-      rng = MersenneTwister(1),
-      target = Rsmall,
-      target_weights = fill(3.0, 10),
+    # Duplicating the target 3x is the same measure as weighting it 3x. Two
+    # full optimizer runs are not comparable: the duplicated target consumes
+    # an extra rng draw for its jitter, so the initial points differ and the
+    # runs land in different local configurations (observed energy-distance
+    # gaps of 0.03 after 20 iterations on Julia 1.12). The equivalence holds
+    # exactly at the level of one MM sweep from the same starting points,
+    # up to the jitter (1e-3 of the column range), so test it there.
+    jittered = copy(Rdup)
+    SPlit._jitter!(MersenneTwister(2), jittered, SPlit._data_bounds(Rdup))
+    points = data[1:10, :] .+ 0.05
+    bounds = SPlit._data_bounds(data)
+    new_j = similar(points)
+    new_w = similar(points)
+    SPlit._mm_sweep!(
+      new_j,
+      zeros(10),
+      copy(points),
+      jittered,
+      ones(30),
+      zeros(10),
+      1.0,
+      bounds,
+      1,
     )
-    @test abs(energydistance(pts, Rsmall) - energydistance(weighted, Rsmall)) < 1e-2
+    SPlit._mm_sweep!(
+      new_w,
+      zeros(10),
+      copy(points),
+      Rsmall,
+      SPlit._mean_one_weights(fill(3.0, 10)),
+      zeros(10),
+      1.0,
+      bounds,
+      1,
+    )
+    @test isapprox(new_j, new_w; atol = 1e-2)
+    @test !isapprox(new_j, new_w; atol = 0.0)   # the jitter does move the target
   end
 
   @testset "validation" begin
