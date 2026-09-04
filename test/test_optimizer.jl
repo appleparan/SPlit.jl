@@ -902,20 +902,24 @@ end
     @test all(0 .<= new_points .<= 1)
   end
 
-  @testset "a fixed point of the sweep is a stationary point of the objective" begin
+  @testset "a sweep is a preconditioned gradient step: ξ⁺ = ξ − n/(2(A+B)) ∇f" begin
     rng = MersenneTwister(550)
     data = randn(rng, 60, 2)
-    points = data[1:4, :] .+ 0.1 .* randn(rng, 4, 2)
-    G0 = similar(points)
-    SPlit._mmd_gradient!(G0, k, points, data, ones(60), 1)
-    for _ = 1:500
-      points, _ = sweep(k, points, data, ones(60))
-    end
-    again, _ = sweep(k, points, data, ones(60))
-    @test maximum(abs, again .- points) < 1e-9
+    n = 5
+    points = 0.5 .* randn(rng, n, 2)      # well inside the bounding box: no clamping
+    new_points, A = sweep(k, points, data, ones(60))
     G = similar(points)
     SPlit._mmd_gradient!(G, k, points, data, ones(60), 1)
-    @test maximum(abs, G) < 1e-6 * maximum(abs, G0)
+    B = 4 * (n - 1) * exp(-1.5) / (n * k.bandwidth^2)
+    for m = 1:n
+      step = n / (2 * (A[m] + B))
+      @test isapprox(
+        new_points[m, :],
+        points[m, :] .- step .* G[m, :];
+        rtol = 1e-10,
+        atol = 1e-12,
+      )
+    end
   end
 
   @testset "energy wrapper forwards to the energy sweep" begin
