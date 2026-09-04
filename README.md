@@ -6,6 +6,9 @@
 [![Lint workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml?query=branch%3Amain)
 [![Docs workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 
+[![Python CI](https://github.com/appleparan/SPlit.jl/actions/workflows/PythonCI.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/PythonCI.yml?query=branch%3Amain)
+[![PyPI](https://img.shields.io/pypi/v/splitiq.svg)](https://pypi.org/project/splitiq/)
+
 [![Coverage](https://codecov.io/gh/appleparan/SPlit.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/appleparan/SPlit.jl)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
@@ -14,6 +17,21 @@ grown from SPlit ([Joseph and Vakayil, 2022](https://arxiv.org/abs/2012.10945)):
 optimal train/test splits, k-fold multiplets, and training-data selection by
 support points, kernel herding, twinning, and kernel thinning.
 
+The repository ships two packages with the same features and the same
+version number: `SPlit.jl` for Julia, registered in the General registry as
+`SPlit`, and [`splitiq`](splitiq/README.md) for Python, a thin `juliacall`
+wrapper in which every computation still runs in Julia.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/intuition/split-overview-dark.svg">
+  <img alt="The same 240 rows split three ways: all rows, a random 20% test draw that lands unevenly across the clusters, and the SPlit test rows spread through every cluster in proportion" src="docs/src/assets/intuition/split-overview-light.svg">
+</picture>
+
+The figure is a real run on 240 two-dimensional rows: a random 20% test draw
+lands unevenly across the three clusters, while the rows `datasplit` holds out
+follow the shape of the data, and the energy distance between the two sides
+drops by more than an order of magnitude.
+
 ## Overview
 
 SPlit.jl chooses rows whose empirical distribution stays as close as possible
@@ -21,13 +39,14 @@ to a target measure, under the energy distance or the maximum mean
 discrepancy. Three choices make up a call:
 
 - **What you get.** `datasplit` returns a train/test partition, `multiplet`
-  returns `k` distribution-balanced folds, and `selectrows` returns just the
-  `n` chosen row indices.
+  returns `k` distribution-balanced folds, and `selectrows` (Python:
+  `select_rows`) returns just the `n` chosen row indices.
 - **What you match.** The data's own distribution by default; `weights`
   matches a quality-weighted version of it, `reference` matches a separate
   target sample while still drawing rows from the data.
 - **How rows are chosen.** `SupportPointSplitter`, `HerdingSplitter`,
-  `TwinningSplitter`, or `KernelThinningSplitter`.
+  `TwinningSplitter`, or `KernelThinningSplitter` (Python:
+  `method='support_points'`, `'herding'`, `'twinning'`, `'kernel_thinning'`).
 
 The original method is SPlit: it computes *support points*, the sample of a
 given size that minimizes the energy distance to the full data (Mak & Joseph,
@@ -48,6 +67,8 @@ the variance of the fitted model is `γ = 1 / (√p + 1)`.
 
 ## Installation
 
+### Julia
+
 ```julia
 using Pkg
 Pkg.add("SPlit")
@@ -59,7 +80,23 @@ Or from the Julia REPL:
 ] add SPlit
 ```
 
+### Python
+
+```bash
+uv add splitiq                 # or: uv add "splitiq[pandas]" for DataFrame input
+```
+
+`pip install splitiq` works too; Python 3.12+ is required. Julia itself is
+installed automatically by `juliapkg` on the first call to a `splitiq`
+function if none is found on the system (one-time, a few minutes); see
+[`splitiq/README.md`](splitiq/README.md) for details. Julia runs
+single-threaded inside Python unless `PYTHON_JULIACALL_THREADS` (and
+`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`) are set before the first call; the
+[Python guide](docs/src/30-python.md) covers threads and multiprocessing.
+
 ## Quick start
+
+### Julia
 
 ```julia
 using SPlit, Random
@@ -77,19 +114,51 @@ idx = selectrows(HerdingSplitter(), data, 100)          # 100 rows, no partition
 folds = multiplet(TwinningSplitter(), data, 5)          # 5 balanced folds
 ```
 
-## Python
-
-The same implementation is available from Python as
-[`splitiq`](splitiq/README.md), a `juliacall` wrapper that keeps Julia as the
-only implementation:
+### Python
 
 ```python
+import numpy as np
 import splitiq
+
+X = np.random.default_rng(1).standard_normal((1_000, 3))
 result = splitiq.datasplit(X, ratio=0.2, seed=2)
-train, test = result.apply(X)
+
+train, test = result.apply(X)          # or X[result.train_indices], X[result.test_indices]
+splitiq.splitquality(X, result)        # energy distance, lower is better
+splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
+
+idx = splitiq.select_rows(X, 100, method='herding')       # 100 rows, no partition
+folds = splitiq.multiplet(X, 5, method='twinning')        # 5 balanced folds
 ```
 
+pandas DataFrames are accepted; `category` and string columns are
+Helmert-encoded exactly as a Julia `DataFrame` would be; indices are 0-based.
+
 ## API reference
+
+The `splitiq` Python package exposes the same operations under the names in
+this table; the remaining subsections document the Julia API in prose.
+
+### Julia and Python names
+
+| Operation | Julia | Python |
+|---|---|---|
+| Train/test split | `datasplit(splitter, data)` | `datasplit(data, ratio, method=...)` |
+| Row selection | `selectrows(splitter, data, n)` | `select_rows(data, n, method=...)` |
+| k-fold multiplets | `multiplet(splitter, data, k; strategy)` | `multiplet(data, k, strategy=..., method=...)` |
+| Split quality | `splitquality(data, result; kernel)` | `splitquality(data, result, kernel=...)` |
+| Compare splitters | `compare(methods, data)`, `best` | `compare(data, methods)`, `SplitComparison.best()` |
+| Discrepancies | `energydistance`, `mmd` | `energydistance`, `mmd` |
+| Estimators | `Exact`, `Subsample`, `RandomSlices`, `RandomFeatures` | same names |
+| Optimal ratio | `optimal_split_ratio(x, y)` | `optimal_split_ratio(x, y)` |
+| Method | `SupportPointSplitter`, `HerdingSplitter`, `TwinningSplitter`, `KernelThinningSplitter` | `method='support_points'`, `'herding'`, `'twinning'`, `'kernel_thinning'` |
+| Kernel | `EnergyKernel()`, `GaussianKernel(bandwidth)` | `kernel='energy'`, `kernel='gaussian'`, `bandwidth=...` |
+| Randomness | `rng = Xoshiro(seed)` on the splitter | `seed=<int>` |
+| Indices | 1-based `Vector{Int}` | 0-based numpy arrays |
+
+The keyword arguments `weights`, `reference`, `reference_weights`,
+`standardize`, `kappa`, `delta`, `compress`, `start`, and `n_threads` keep
+their names in both languages.
 
 ### Splitting, selection, and folds
 
@@ -231,7 +300,24 @@ decision table on embedding matrices.
 
 ## How to cite
 
-If you use SPlit.jl in your work, please cite using the reference given in [CITATION.cff](https://github.com/appleparan/SPlit.jl/blob/main/CITATION.cff).
+If you use SPlit.jl or splitiq in your work, please cite the software. The
+same metadata lives in [CITATION.cff](CITATION.cff), which GitHub renders
+under "Cite this repository":
+
+```bibtex
+@software{kim2026splitjl,
+  author  = {Kim, Jongsu Liam},
+  title   = {SPlit.jl: Distribution-preserving subset selection for tabular data and embeddings},
+  year    = {2026},
+  version = {0.5.2},
+  url     = {https://github.com/appleparan/SPlit.jl},
+  license = {Apache-2.0}
+}
+```
+
+Please also cite the papers behind the method you used, listed under
+[References](#references); the original splitting method is Joseph &
+Vakayil (2022).
 
 ## Contributing
 

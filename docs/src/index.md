@@ -9,6 +9,14 @@ grown from SPlit ([Joseph and Vakayil, 2022](https://arxiv.org/abs/2012.10945)):
 optimal train/test splits, k-fold multiplets, and training-data selection by
 support points, kernel herding, twinning, and kernel thinning.
 
+![The same 240 rows split three ways: all rows, a random 20% test draw that lands unevenly across the clusters, and the SPlit test rows spread through every cluster in proportion](assets/intuition/split-overview-light.svg)
+![The same 240 rows split three ways: all rows, a random 20% test draw that lands unevenly across the clusters, and the SPlit test rows spread through every cluster in proportion](assets/intuition/split-overview-dark.svg)
+
+The figure is a real run on 240 two-dimensional rows: a random 20% test draw
+lands unevenly across the three clusters, while the rows `datasplit` holds out
+follow the shape of the data, and the energy distance between the two sides
+drops by more than an order of magnitude.
+
 ## Overview
 
 SPlit.jl chooses rows whose empirical distribution stays as close as
