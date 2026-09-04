@@ -27,8 +27,12 @@ Energy distance, A vs B, point level: 0.00175
 
 Energy distance, A vs B, window level (flattened, standardized): 0.529
 
+Null scale (two random halves of regime A): point level 0.000271, window level 0.0724
+
 The temporal dependence that distinguishes the regimes is invisible at the
-point level and only shows up once each window is kept as one sample.
+point level, where the A-vs-B distance stays within an order of magnitude of the null, and only shows up
+once each window is kept as one sample, where A-vs-B separates well above the
+null.
 
 ## Selectors vs random
 
@@ -82,22 +86,24 @@ full L = 32 space (dependence length ≈ 1/(1-stay_a) ≈ 16), averaged over
 M = 2000, n = 200, L ∈ [8, 64, 512, 1024]. Support points: 3
 seeds (min time, mean energy distance); random: 10 draws.
 The cached energy distance at L = 8 was checked to agree with
-`energydistance` directly. "compile seconds" is the first call at that
-width, on a throwaway 60-row matrix of the same width, paying the width-specific
-compilation of the static-vector nearest-neighbor structures; "seconds" is the
-timed run that follows it.
+`energydistance` directly. "compile seconds" is the first call of that splitter
+at that width in this process, on a throwaway 60-row matrix; twinning is warmed
+up first, and the support-point warm-up that follows at the same width reuses
+whatever the static-vector code already compiled, so the two columns are not
+independent measurements. This ladder runs before Contrast 1 so no ladder width
+has been compiled earlier in the process.
 
 | L | L·p | method | compile seconds | seconds | energy distance | ratio to random |
 |---:|---:|---|---:|---:|---:|---:|
 | 8 | 24 | random | – | – | 0.0297 | 1 |
-| 8 | 24 | twinning | 0.00014 | 0.017 | 0.0112 | 0.378 |
-| 8 | 24 | support points · energy | 0.16 | 0.16 | 0.0273 | 0.918 |
+| 8 | 24 | twinning | 0.51 | 0.032 | 0.0112 | 0.378 |
+| 8 | 24 | support points · energy | 0.16 | 0.15 | 0.0273 | 0.918 |
 | 64 | 192 | random | – | – | 0.0927 | 1 |
-| 64 | 192 | twinning | 0.6 | 0.066 | 0.0551 | 0.595 |
-| 64 | 192 | support points · energy | 0.97 | 0.84 | 0.08 | 0.863 |
+| 64 | 192 | twinning | 0.63 | 0.03 | 0.0551 | 0.595 |
+| 64 | 192 | support points · energy | 0.92 | 0.92 | 0.08 | 0.863 |
 | 512 | 1536 | random | – | – | 0.245 | 1 |
-| 512 | 1536 | twinning | 22 | 0.2 | 0.2 | 0.817 |
-| 512 | 1536 | support points · energy | 33 | 12 | 0.257 | 1.05 |
+| 512 | 1536 | twinning | 21 | 0.22 | 0.2 | 0.817 |
+| 512 | 1536 | support points · energy | 34 | 13 | 0.257 | 1.05 |
 | 1024 | 3072 | random | – | – | 0.355 | 1 |
-| 1024 | 3072 | twinning | 1.1e+02 | 0.76 | 0.317 | 0.893 |
-| 1024 | 3072 | support points · energy | 44 | 63 | 0.343 | 0.966 |
+| 1024 | 3072 | twinning | 1.1e+02 | 0.58 | 0.317 | 0.893 |
+| 1024 | 3072 | support points · energy | 44 | 48 | 0.343 | 0.966 |

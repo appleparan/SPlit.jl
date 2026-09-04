@@ -163,7 +163,7 @@ let
   )
   println(
     io,
-    "point level, where the A-vs-B distance sits at the null scale, and only shows up",
+    "point level, where the A-vs-B distance stays within an order of magnitude of the null, and only shows up",
   )
   println(
     io,
