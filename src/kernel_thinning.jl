@@ -287,7 +287,7 @@ for KT-SWAP, all threaded. Deterministic given `rng` and independent of
 runs it; `:always` always runs it and requires `weights === target ===
 nothing`, since Compress++ is defined for the data's own distribution, not
 a weighted or reference target; `:auto` runs it exactly when `weights ===
-target === nothing` and [`_compress_pays_off`](@ref) judges it cheaper than
+target === nothing` and `_compress_pays_off` judges it cheaper than
 plain kernel thinning at this `N` and `n` (in practice only when
 `n` is far below `N`).
 
@@ -310,7 +310,7 @@ generic halving primitive, `δ` is split evenly across the halvings and the
 final THIN rather than following the paper's per-call schedule, the four-way
 splits of Compress are of possibly-uneven sizes rather than exactly `ℓ/4`,
 and the oversampling `g` is tied to the requested `n` (via
-[`_compress_g`](@ref)) rather than fixed across a run.
+`_compress_g`) rather than fixed across a run.
 """
 function kernel_thinning(
   kernel::SplitKernel,
