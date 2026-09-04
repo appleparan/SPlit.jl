@@ -1,13 +1,22 @@
-# Armijo projected gradient (the Gaussian optimizer before M6, carried here
-# verbatim) versus the Gaussian MM sweep (`support_points`), on the four
-# benchmark datasets at N = 1,000 and 10,000, n = 0.2N, `:median`
-# bandwidth, three seeds. Both optimizers start from the same initial
-# points and stop by their own rules (Armijo: displacement 1e-10 or
-# relative decrease 1e-8, at least 2 iterations; MM: displacement 1e-10),
-# both capped at 200 iterations at N = 1,000 and 100 at N = 10,000 as in
-# `run.jl`. Per cell: wall time (min over seeds), iterations (mean), exact
-# Gaussian MMD between the selected rows and the data (mean), and the same
-# MMD for a uniform random subset. Writes
+# Three arms, on the four benchmark datasets at N = 1,000 and 10,000,
+# n = 0.2N, `:median` bandwidth, three seeds:
+#   - `armijo`: the package's full-data Gaussian path
+#     (`SPlit.support_points(::GaussianKernel, …)` with `kappa = nothing`) —
+#     projected gradient descent with Armijo backtracking, stopped by its
+#     own rules (displacement 1e-10 or relative decrease 1e-8, at least 2
+#     iterations).
+#   - `mm`: the full-data MM sweep (mean-shift data term, majorized
+#     repulsion), run here as a private loop over `SPlit._mm_sweep!` for a
+#     fixed number of iterations — it is not reachable through the public
+#     API on full data any more (see the Design experiments page for why).
+#   - `mm kappa=1000`: the package's stochastic path
+#     (`SPlit.support_points(::GaussianKernel, …; kappa = 1_000)`), MM sweep
+#     with running-average blending, at N = 10,000 only.
+# All arms start from the same initial points (drawn from the same rng
+# seed) and are capped at 200 iterations at N = 1,000, 100 at N = 10,000,
+# as in `run.jl`. Per cell: wall time (min over seeds), iterations (mean),
+# exact Gaussian MMD between the selected rows and the data (mean), and the
+# same MMD for a uniform random subset. Writes
 # `docs/src/assets/benchmarks/gaussian_update.md`. Run:
 # `julia -t auto --project=benchmark benchmark/gaussian_update.jl [--quick]`.
 
@@ -22,66 +31,34 @@ const SIZES = QUICK ? [1_000] : [1_000, 10_000]
 const SEEDS = QUICK ? [0] : [0, 1, 2]
 const OUTFILE = QUICK ? "gaussian_update_quick.md" : "gaussian_update.md"
 
-# --- the pre-M6 Armijo optimizer -------------------------------------------
-function armijo_step!(new_points, points, G, f0, t0, k, data, bounds)
-  t = t0
-  for _ = 1:30
-    @inbounds for m in axes(points, 1), j in axes(points, 2)
-      new_points[m, j] = clamp(points[m, j] - t * G[m, j], bounds[j, 1], bounds[j, 2])
-    end
-    decrease = 0.0
-    @inbounds for m in axes(points, 1), j in axes(points, 2)
-      decrease += G[m, j] * (points[m, j] - new_points[m, j])
-    end
-    f_new = SPlit._mmd_objective(k, new_points, data)
-    f_new <= f0 - 1e-4 * decrease && return t, f_new
-    t /= 2
-  end
-  return 0.0, f0
-end
-
-function first_step(G, bounds)
-  n = size(G, 1)
-  scale = median(view(bounds, :, 2) .- view(bounds, :, 1))
-  return 0.1 * scale / max(maximum(norm(view(G, m, :)) for m = 1:n), eps())
-end
-
-function armijo_support_points(
-  k,
-  data,
-  points0;
-  max_iterations,
-  tolerance = 1e-10,
-  rtol = 1e-8,
-)
-  bounds = SPlit._data_bounds(data)
+# Full-data MM sweep run for a fixed number of iterations: not an API path
+# (the public `support_points(::GaussianKernel, …)` runs Armijo on full
+# data), kept here only to measure the sweep's own cost and quality.
+function mm_support_points(k, Z, points0; max_iterations)
   n = size(points0, 1)
   points = copy(points0)
   new_points = similar(points)
-  G = similar(points)
-  w_hat = ones(size(data, 1))
-  f = SPlit._mmd_objective(k, points, data)
-  t = 1.0
-  iteration = 0
-  converged = false
-  while !converged && iteration < max_iterations
-    iteration += 1
-    SPlit._mmd_gradient!(G, k, points, data, w_hat, Threads.nthreads())
-    t0 = iteration == 1 ? first_step(G, bounds) : 2t
-    f_prev = f
-    t, f = armijo_step!(new_points, points, G, f, t0, k, data, bounds)
-    t == 0.0 && break
-    max_move = 0.0
-    @views for m = 1:n
-      max_move = max(max_move, sum(abs2, new_points[m, :] .- points[m, :]))
-    end
+  current_const = zeros(n)
+  running_const = zeros(n)
+  w_hat = ones(size(Z, 1))
+  bounds = SPlit._data_bounds(Z)
+  for _ = 1:max_iterations
+    SPlit._mm_sweep!(
+      k,
+      new_points,
+      current_const,
+      points,
+      Z,
+      w_hat,
+      running_const,
+      1.0,
+      bounds,
+      Threads.nthreads(),
+    )
     points, new_points = new_points, points
-    rel = abs(f_prev - f) / max(abs(f), 1e-12)
-    converged = iteration >= 2 && (max_move < tolerance || rel < rtol)
   end
-  return points, converged, iteration
+  return points, false, max_iterations
 end
-# ---------------------------------------------------------------------------
 
 function cell(name, X, n, max_iter)
   N = size(X, 1)
@@ -93,10 +70,8 @@ function cell(name, X, n, max_iter)
     bounds = SPlit._data_bounds(Z)
     init = SPlit._initial_points(MersenneTwister(200 + seed), copy(Z), n, bounds)
     quality(sel) = mmd(Z[sel, :], Z, k; estimator = Exact())
-    # Armijo
-    t = @elapsed (pts, _, it) = armijo_support_points(k, Z, init; max_iterations = max_iter)
-    push!(get!(rows, "armijo", []), (t, it, quality(SPlit.select_nearest(Z, pts))))
-    # MM, full data (same initial points: same rng draw)
+    # Armijo (public full-data path; draws its own initial points from the
+    # same rng seed as `init`, so the two arms share initial points)
     t = @elapsed (pts, _, it) = SPlit.support_points(
       k,
       Z,
@@ -105,6 +80,9 @@ function cell(name, X, n, max_iter)
       rng = MersenneTwister(200 + seed),
       n_threads = Threads.nthreads(),
     )
+    push!(get!(rows, "armijo", []), (t, it, quality(SPlit.select_nearest(Z, pts))))
+    # MM, full data (private loop; same initial points: same rng draw)
+    t = @elapsed (pts, _, it) = mm_support_points(k, Z, init; max_iterations = max_iter)
     push!(get!(rows, "mm", []), (t, it, quality(SPlit.select_nearest(Z, pts))))
     # MM, kappa = 1,000 at N = 10,000
     if N >= 10_000
