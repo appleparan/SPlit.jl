@@ -537,12 +537,12 @@ end
     w = vcat(fill(9.0, 200), fill(1.0, 200))
     in_A(pts) = count(<(0.0), pts[:, 1])
     unweighted, _, _ =
-      SPlit.support_points(k, data, 40; max_iterations = 100, rng = MersenneTwister(4))
+      SPlit.support_points(k, data, 40; max_iterations = 500, rng = MersenneTwister(4))
     weighted, _, _ = SPlit.support_points(
       k,
       data,
       40;
-      max_iterations = 100,
+      max_iterations = 500,
       rng = MersenneTwister(4),
       weights = w,
     )
