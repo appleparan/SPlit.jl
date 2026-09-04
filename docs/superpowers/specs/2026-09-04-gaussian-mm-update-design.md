@@ -142,10 +142,11 @@ updated simultaneously (Jacobi order, like `_mm_sweep!`). Fixed points of
 the sweep are stationary points of `f`: at a fixed point `∇Q_m = 0` and
 `∇Q_m(ξ⁰) = ∇_m f(ξ⁰)` because the majorizer is tangent.
 
-The attraction weight `A/(A + B)` is at most about `0.53` (since
-`A ≤ 1/σ²` and `B ≈ 0.89/σ²`), so each sweep moves at most about halfway
-to the mean-shift target — the same damping the paper picks empirically.
-Per-iteration decrease is therefore smaller than Armijo's, but an
+For large `n` (`B` approaches `4e^{-3/2}/σ² ≈ 0.89/σ²` and `A ≤ 1/σ²`) the
+attraction weight `A/(A + B)` is at most about `0.53`, so each sweep moves
+at most about halfway to the mean-shift target — the same damping the
+paper picks empirically. Per-iteration decrease is therefore smaller than
+Armijo's, but an
 iteration is a single pass. Measured in the design spike at N = 10,000,
 n = 2,000, 60 iterations: an MM sweep costs 0.11-0.14 s versus 0.61-0.91 s
 for an Armijo iteration (the line search evaluates the objective up to 30

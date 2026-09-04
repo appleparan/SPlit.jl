@@ -189,12 +189,15 @@ semantics, running-average blend, and displacement rule of `EnergyKernel`.
 Benchmarked against the existing Armijo path (`benchmark/gaussian_update.jl`),
 the sweep was kept only for stochastic mode: on full data it never reaches
 the displacement rule within the iteration cap and is worse on one of four
-benchmark datasets, while `kappa` mode — where only the sweep is affordable
-— matches Armijo's quality within a few percent at 3.4-3.8x lower wall
-time at N = 10,000 (see [Design experiments](@ref gaussian-update)). The
-weighted mean-shift map of Belhadji, Sharp & Marzouk (2025) was not adopted
-as written because it re-solves the subset's weights every iteration and
-the package's selected subset is uniform.
+benchmark datasets. In `kappa` mode, where only the sweep is affordable,
+the selected-row MMD at N = 10,000 is within about 3% of Armijo's on
+`normal-10d` and `t3-3d`, about 29% higher on `uniform-5d` (0.000393 vs
+0.000305), and about 10x higher on `mixture-2d` (5.47e-6 vs 5.6e-7, still
+about 2x below the random subset's 1.23e-5), at 3.4-3.8x lower wall time
+than the full-data sweep (see [Design experiments](@ref gaussian-update)).
+The weighted mean-shift map of Belhadji, Sharp & Marzouk (2025) was not
+adopted as written because it re-solves the subset's weights every
+iteration and the package's selected subset is uniform.
 
 ## Open questions
 

@@ -197,11 +197,13 @@ B = \frac{4(n-1)e^{-3/2}}{n\sigma^2}, \qquad
 
 ``A + B > 0`` always, the sweep is one pass over the data and the point
 set, and on full data the objective never increases (the majorizer is
-tangent at the current points, so its minimizer cannot be worse). The
-attraction weight ``A/(A+B)`` is at most about ``0.53``, so a sweep moves a
-point at most about halfway to its mean-shift target; per iteration this
-descends less than a line search would, but an iteration costs a single
-pass, which is what makes the stochastic mode affordable. With
+tangent at the current points, so its minimizer cannot be worse). For
+large ``n`` (``B`` approaches ``4e^{-3/2}/\sigma^2 \approx 0.89/\sigma^2``
+and ``A \le 1/\sigma^2``) the attraction weight ``A/(A+B)`` is at most
+about ``0.53``, so a sweep moves a point at most about halfway to its
+mean-shift target; per iteration this descends less than a line search
+would, but an iteration costs a single pass, which is what makes the
+stochastic mode affordable. With
 ``\kappa < N`` the sweep runs on a fresh subsample each iteration with the
 running-average blend of the energy path (``n_0 = 0.2n``); `weights` enter
 the data sums as ``\hat w``, and a reference replaces the data rows, exactly
@@ -210,8 +212,12 @@ as for `EnergyKernel`. Convergence is the displacement rule.
 Full data keeps the Armijo path instead of this sweep because it measures
 better there: the sweep never reaches the displacement rule within the
 iteration cap and its selected rows are worse on one of four benchmark
-datasets, while `kappa` mode — where only the sweep is affordable — comes
-within a few percent of Armijo's quality at a fraction of the cost (see
+datasets. In `kappa` mode, where only the sweep is affordable, the
+selected-row MMD at N = 10,000 is within about 3% of Armijo's on
+`normal-10d` and `t3-3d`, about 29% higher on `uniform-5d` (0.000393 vs
+0.000305), and about 10x higher on `mixture-2d` (5.47e-6 vs 5.6e-7, still
+about 2x below the random subset's 1.23e-5) — while running 3.4-3.8x
+faster than the full-data sweep (see
 [Design experiments](@ref gaussian-update)). The design record
 (`docs/superpowers/specs/2026-09-04-gaussian-mm-update-design.md`) explains
 why the weighted mean-shift map of Belhadji, Sharp & Marzouk (2025) is not
@@ -398,6 +404,7 @@ columns plus one.
 
 ## References
 
+- Belhadji, A., Sharp, D., & Marzouk, Y. (2025). Weighted quantization using MMD: From mean field to mean shift via gradient flows. arXiv:2502.10600.
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 - Dwivedi, R., & Mackey, L. (2022). Generalized Kernel Thinning. *ICLR*.
 - Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine Learning Research*, 25(152), 1-77.
