@@ -797,6 +797,24 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:** `docs/src/40-llm-data-selection.md` (new), `docs/src/10-methods.md`, `docs/src/85-roadmap.md`, `docs/src/index.md`, `docs/src/30-python.md`, `README.md`, `AGENTS.md`
 
+- [ ] **Step 0: Framing refresh (user request, 2026-09-04).** The package started as a train/test
+  splitter and is now a distribution-preserving subset-selection library (splitting, k-fold
+  multiplets, row selection toward the data, a weighted measure, or a reference, with four selection
+  methods). Reframe the top-level texts accordingly, keeping every existing sentence that is still
+  true and rewriting only the framing: `README.md` (title line/intro paragraph, the "what it does"
+  bullets, the API section's grouping — splitting, selection, folds, quality), `docs/src/index.md`
+  (the opening paragraph and "Overview" section; keep "Quick start" but lead with a selection
+  example beside the split example), the module docstring at the top of `src/SPlit.jl` (if any) and
+  the one-line `description` fields in `Project.toml` (if present), `CITATION.cff`
+  (`title`/`abstract` if present), `splitiq/pyproject.toml` `description`, `splitiq/README.md` and
+  `splitiq/docs/index.md`/`overview.md` intros, and the roadmap page's "Vision" paragraph (state
+  that the reframing has happened: "SPlit.jl is now a distribution-preserving subset selection
+  library …" while keeping the history). Do not rename the package or any API. Keep "SPlit" and the
+  Joseph & Vakayil origin in the first sentence. One consistent one-line description to reuse
+  everywhere: "Distribution-preserving subset selection for tabular data and embeddings: optimal
+  train/test splits, k-fold multiplets, and training-data selection by support points, kernel
+  herding, twinning, and kernel thinning."
+
 - [ ] **Step 1: Methods page** — append two sections:
 
 ```markdown
