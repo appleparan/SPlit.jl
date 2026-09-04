@@ -398,3 +398,90 @@ end
     @test maximum(length.(folds)) - minimum(length.(folds)) <= 1
   end
 end
+
+@testset "Compress and Compress++" begin
+  @testset "g and the cost rule" begin
+    @test SPlit._compress_g(10_000, 500) == 4
+    @test SPlit._compress_g(10_000, 2_000) == 6
+    @test SPlit._compress_g(1_000_000, 10_000) == 5
+    @test SPlit._compress_pays_off(10_000, 500)
+    @test !SPlit._compress_pays_off(10_000, 2_000)
+    @test !SPlit._compress_pays_off(1_000, 50)
+    @test !SPlit._compress_pays_off(10_000, 2_000) &&
+          !SPlit._compress_pays_off(100_000, 20_000)  # split ratios never
+  end
+
+  @testset "four parts and the halving count" begin
+    @test SPlit._four_parts(collect(1:10)) == [[1, 2], [3, 4, 5], [6, 7], [8, 9, 10]]
+    @test SPlit._compress_halvings(256, 4) == 0
+    @test SPlit._compress_halvings(1024, 4) == 1
+    @test SPlit._compress_halvings(4096, 4) == 5
+  end
+
+  @testset "symmetrized halving returns half of the block in its order" begin
+    X = SPlit.preprocess(randn(MersenneTwister(80), 400, 2))
+    S = randperm(MersenneTwister(81), 400)[1:201]
+    outs = [
+      SPlit._symmetrized_halve(
+        EnergyKernel(),
+        X,
+        S,
+        0.1,
+        MersenneTwister(s);
+        n_threads = 2,
+      ) for s = 1:8
+    ]
+    @test all(o -> length(o) == 100 && allunique(o) && all(in(S), o), outs)
+    @test all(o -> issorted(indexin(o, S)), outs)                    # block order preserved
+    @test length(unique(outs)) > 1                                    # both halves occur across seeds
+  end
+
+  @testset "Compress returns about 2^g √N rows of the input, deterministically" begin
+    X = SPlit.preprocess(randn(MersenneTwister(82), 4096, 3))
+    seq = randperm(MersenneTwister(83), 4096)
+    S = SPlit._compress(EnergyKernel(), X, seq, 4, 1e-3, MersenneTwister(84); n_threads = 2)
+    @test allunique(S) && all(in(seq), S)
+    @test 512 <= length(S) <= 2048                                    # 2^4 √4096 = 1024
+    @test S == SPlit._compress(
+      EnergyKernel(),
+      X,
+      seq,
+      4,
+      1e-3,
+      MersenneTwister(84);
+      n_threads = 1,
+    )
+    @test SPlit._compress(EnergyKernel(), X, seq[1:200], 4, 1e-3, MersenneTwister(0)) ==
+          seq[1:200]   # base case
+  end
+
+  @testset "Compress++ selects n distinct rows and beats random" begin
+    mixture = let rng = MersenneTwister(85), N = 8_000
+      c = rand(rng, 1:4, N)
+      centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+      SPlit.preprocess(centers[c, :] .+ randn(rng, N, 2))
+    end
+    rows, swaps = SPlit._compress_plus_plus(
+      EnergyKernel(),
+      mixture,
+      200;
+      delta = 0.5,
+      rng = MersenneTwister(86),
+      n_threads = 2,
+    )
+    @test length(rows) == 200 && allunique(rows) && swaps >= 0
+    q = energydistance(mixture[rows, :], mixture)
+    random_q = mean(
+      energydistance(mixture[randperm(MersenneTwister(300 + i), 8_000)[1:200], :], mixture) for i = 1:10
+    )
+    @test q < random_q
+    @test rows == SPlit._compress_plus_plus(
+      EnergyKernel(),
+      mixture,
+      200;
+      delta = 0.5,
+      rng = MersenneTwister(86),
+      n_threads = 1,
+    )[1]
+  end
+end

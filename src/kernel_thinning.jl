@@ -339,6 +339,120 @@ function kernel_thinning(
   return _kt_swap(kernel, Xt, candidates, baseline, d, n_threads)
 end
 
+# ---- Compress++ (Shetty, Dwivedi & Mackey 2022) -----------------------------
+
+# The paper's experiments use g = 4 throughout; `_compress_g` raises it so
+# the compressed set has about 2n rows or more.
+const _COMPRESS_G_MIN = 4
+
+_compress_g(N::Int, n::Int) = max(_COMPRESS_G_MIN, ceil(Int, log2(2n / sqrt(N))))
+
+# Estimated kernel evaluations: plain kernel thinning ≈ 1.5N² (halvings,
+# data term, swap pass) against Compress++ ≈ 4^g N (4 log₄ N + 1) (paper
+# Remark 1 with a quadratic HALVE, plus THIN on 2^g √N rows).
+_compress_pays_off(N::Int, n::Int) = 4.0^_compress_g(N, n) * (4 * log(4, N) + 1) < 1.5 * N
+
+# Four consecutive parts of sizes ⌊ℓ/4⌋ or ⌈ℓ/4⌉ (the paper's "arbitrary
+# subsequences"; the input is already a random permutation).
+function _four_parts(seq::Vector{Int})
+  ℓ = length(seq)
+  bounds = floor.(Int, (0:4) .* (ℓ / 4))
+  return [seq[(bounds[i]+1):bounds[i+1]] for i = 1:4]
+end
+
+# Number of HALVE calls Compress makes on an input of length ℓ.
+function _compress_halvings(ℓ::Int, g::Int)
+  ℓ <= 4^g && return 0
+  bounds = floor.(Int, (0:4) .* (ℓ / 4))
+  return 1 + sum(_compress_halvings(bounds[i+1] - bounds[i], g) for i = 1:4)
+end
+
+# HALVE (paper Ex. 2 and Remark 3): kernel thinning of the block's own rows
+# to ⌊ℓ/2⌋, then the selected half or its complement with equal
+# probability, so each halving is unbiased. Rows keep the block's order.
+function _symmetrized_halve(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  S::Vector{Int},
+  δ::Float64,
+  rng::AbstractRNG;
+  n_threads::Int = Threads.nthreads(),
+)
+  ℓ = length(S)
+  ℓ >= 2 || return S
+  half = ℓ ÷ 2
+  local_rows, _ = kernel_thinning(kernel, X[S, :], half; delta = δ, n_threads, rng)
+  keep = if rand(rng) < 0.5
+    local_rows
+  else
+    other = setdiff(1:ℓ, local_rows)
+    length(other) > half ? other[1:half] : other
+  end
+  return S[sort(keep)]
+end
+
+"""
+    _compress(kernel, X, seq, g, δ_halve, rng; n_threads) -> Vector{Int}
+
+Compress (Shetty, Dwivedi & Mackey 2022, Alg. 1) of the row sequence `seq`
+with oversampling `g`: sequences of at most `4^g` rows are returned as they
+are; longer ones are split into four consecutive parts, compressed
+recursively, concatenated, and halved by `_symmetrized_halve`. Returns about
+`2^g √(length(seq))` rows.
+"""
+function _compress(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  seq::Vector{Int},
+  g::Int,
+  δ_halve::Float64,
+  rng::AbstractRNG;
+  n_threads::Int = Threads.nthreads(),
+)
+  length(seq) <= 4^g && return seq
+  merged = reduce(
+    vcat,
+    (_compress(kernel, X, part, g, δ_halve, rng; n_threads) for part in _four_parts(seq)),
+  )
+  return _symmetrized_halve(kernel, X, merged, δ_halve, rng; n_threads)
+end
+
+"""
+    _compress_plus_plus(kernel, X, n; delta, rng, n_threads) -> (rows, swaps)
+
+Compress++ (Shetty, Dwivedi & Mackey 2022, Alg. 2): Compress a random
+permutation of the rows with `g = max(4, ⌈log₂(2n/√N)⌉)`, then THIN the
+compressed set to `n` rows with [`kernel_thinning`](@ref) (whose data term
+and swap candidates are the compressed rows, as in the paper). `delta` is
+split evenly between the halvings (each gets `delta / 2K`, `K` the number
+of HALVE calls) and THIN (`delta / 2`), a union bound in place of the
+paper's per-call schedule. If a compressed set has no more than `n` rows,
+`g` is increased by one and Compress is rerun.
+"""
+function _compress_plus_plus(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  n::Int;
+  delta::Float64,
+  rng::AbstractRNG,
+  n_threads::Int = Threads.nthreads(),
+)
+  N = size(X, 1)
+  g = _compress_g(N, n)
+  seq = randperm(rng, N)
+  while true
+    K = _compress_halvings(N, g)
+    δ_halve = K == 0 ? delta / 2 : delta / (2K)
+    S_C = _compress(kernel, X, seq, g, δ_halve, rng; n_threads)
+    if length(S_C) > n
+      local_rows, swaps =
+        kernel_thinning(kernel, X[S_C, :], n; delta = delta / 2, n_threads, rng)
+      return S_C[local_rows], swaps
+    end
+    g += 1
+  end
+end
+
 """
     KernelThinningSplitter(; kernel = EnergyKernel(), ratio = 0.2, delta = 0.5,
                              n_threads = Threads.nthreads(), rng = Random.default_rng())
