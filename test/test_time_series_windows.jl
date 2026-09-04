@@ -80,6 +80,21 @@ include(joinpath(@__DIR__, "..", "examples", "time_series_windows_helpers.jl"))
     @test Zs2 ≈ expected
   end
 
+  @testset "standardize_by_variable: constant variable standardizes to zeros, not NaN" begin
+    L, p = 4, 2
+    M = 20
+    rng = MersenneTwister(9)
+    Z = hcat(randn(rng, M, L), fill(3.0, M, L))   # variable 2 is constant across every window
+    Zs = standardize_by_variable(Z, L, p)
+    cols2 = (L+1):(2*L)
+    @test all(iszero, view(Zs, :, cols2))
+    @test !any(isnan, Zs)
+    n = 5
+    sel = selectrows(TwinningSplitter(), Zs, n; standardize = false)
+    @test length(sel) == n
+    @test length(unique(sel)) == n
+  end
+
   @testset "lag1_autocorrelation on hand-computable sequences" begin
     # single variable, arbitrary short sequence: hand-computed ratio
     z = [2.0, 4.0, 1.0, 8.0]
@@ -120,6 +135,23 @@ include(joinpath(@__DIR__, "..", "examples", "time_series_windows_helpers.jl"))
 
     X3, labels3 = two_regime_series(MersenneTwister(7); M = M, L = L, p = p)
     @test X != X3 || labels != labels3
+  end
+
+  @testset "two_regime_series: invalid arguments throw ArgumentError" begin
+    rng = MersenneTwister(10)
+    @test_throws ArgumentError two_regime_series(rng; M = 0, L = 8, p = 3)
+    @test_throws ArgumentError two_regime_series(rng; M = -1, L = 8, p = 3)
+    @test_throws ArgumentError two_regime_series(rng; M = 10, L = 0, p = 3)
+    @test_throws ArgumentError two_regime_series(rng; M = 10, L = -2, p = 3)
+    @test_throws ArgumentError two_regime_series(rng; M = 10, L = 8, p = 0)
+    @test_throws ArgumentError two_regime_series(rng; M = 10, L = 8, p = -1)
+    @test_throws ArgumentError two_regime_series(
+      rng;
+      M = 10,
+      L = 8,
+      p = 4,
+      mu = (1.0, 0.7, 1.3),
+    )
   end
 
   @testset "selectrows(TwinningSplitter()) on flattened windows" begin

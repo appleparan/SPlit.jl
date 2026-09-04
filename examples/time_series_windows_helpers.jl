@@ -65,7 +65,9 @@ deviation computed over every offset and every window of `fit` — so all
 `L` offsets of a variable share one scale, since they are the same
 physical quantity at different lags. `fit` defaults to `Z` itself; pass the
 training block's windows to fit on a chronological split and apply the
-same shift and scale to held-out windows.
+same shift and scale to held-out windows. A variable constant on `fit`
+(zero standard deviation) uses scale `1.0` instead of dividing by zero:
+the block becomes all zeros after centering, not `NaN`.
 """
 function standardize_by_variable(
   Z::AbstractMatrix,
@@ -81,6 +83,7 @@ function standardize_by_variable(
     block = view(fit, :, cols)
     m = mean(block)
     s = std(block)
+    s = s == 0.0 ? 1.0 : s
     Zs[:, cols] = (view(Z, :, cols) .- m) ./ s
   end
   return Zs
@@ -124,7 +127,8 @@ starting at `±1` with equal probability, with stay probability `stay_a`
 `s_t * a * mu[v] + sigma * eps_t`, `eps_t ~ N(0,1)` drawn independently per
 variable, and `a ~ Uniform(0.8, 1.2)` a per-window amplitude factor shared
 across variables and offsets. `labels` names the regime of each window
-(never seen by a selector). All randomness is drawn from `rng`.
+(never seen by a selector). All randomness is drawn from `rng`. `M`, `L`,
+and `p` must be positive, and `mu` must have at least `p` entries.
 """
 function two_regime_series(
   rng::AbstractRNG;
@@ -137,6 +141,11 @@ function two_regime_series(
   mu::NTuple = (1.0, 0.7, 1.3),
   sigma::Real = 0.4,
 )
+  M > 0 || throw(ArgumentError("M must be positive, got $M"))
+  L > 0 || throw(ArgumentError("L must be positive, got $L"))
+  p > 0 || throw(ArgumentError("p must be positive, got $p"))
+  length(mu) >= p ||
+    throw(ArgumentError("mu must have at least p = $p entries, got $(length(mu))"))
   N = M * L
   X = Matrix{Float64}(undef, N, p)
   labels = Vector{Symbol}(undef, M)

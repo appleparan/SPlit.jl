@@ -40,7 +40,7 @@ const OUT = argvalue(
 
 const M_MAIN = QUICK ? 200 : 1000              # windows in the main demo and contrast 1
 const N_MAIN = QUICK ? 20 : 100                # selected windows (10%)
-const L_MAIN = 32                              # dependence length of the "persistent" regime
+const L_MAIN = 32                              # about twice the persistent regime's dependence length (1/(1-0.94) ≈ 16.7)
 const P_MAIN = 3
 const SHARE_A = 0.7
 const SEEDS_STOCHASTIC = QUICK ? 1 : 3
@@ -129,11 +129,47 @@ let
     "Energy distance, A vs B, window level (flattened, standardized): %.3g\n",
     ed_window,
   )
+
+  # Null scale: the energy distance between two random halves of regime A
+  # alone, at each level, so the A-vs-B numbers above have a reference point
+  # for "no real difference" rather than being read against zero.
+  rng_null_point = MersenneTwister(11)
+  perm_point = randperm(rng_null_point, size(points_a, 1))
+  half_point = length(perm_point) ÷ 2
+  ed_null_point = energydistance(
+    view(points_a, perm_point[1:half_point], :),
+    view(points_a, perm_point[(half_point+1):end], :),
+  )
+
+  rng_null_window = MersenneTwister(11)
+  perm_window = randperm(rng_null_window, length(idx_a))
+  half_window = length(perm_window) ÷ 2
+  idx_a_shuffled = idx_a[perm_window]
+  ed_null_window = energydistance(
+    view(Zs, idx_a_shuffled[1:half_window], :),
+    view(Zs, idx_a_shuffled[(half_window+1):end], :),
+  )
+
+  @printf(
+    io,
+    "\nNull scale (two random halves of regime A): point level %.3g, window level %.3g\n",
+    ed_null_point,
+    ed_null_window,
+  )
+
   println(
     io,
     "\nThe temporal dependence that distinguishes the regimes is invisible at the",
   )
-  println(io, "point level and only shows up once each window is kept as one sample.")
+  println(
+    io,
+    "point level, where the A-vs-B distance sits at the null scale, and only shows up",
+  )
+  println(
+    io,
+    "once each window is kept as one sample, where A-vs-B separates well above the",
+  )
+  println(io, "null.")
   emit(String(take!(io)))
 end
 
@@ -261,75 +297,16 @@ let
   emit(String(take!(io)))
 end
 
-# ---- Contrast 1: L below the dependence length
-let
-  # Twinning is deterministic, so run-to-run noise in the ratio to random
-  # comes from the dataset, not the selector: average over
-  # DATA_SEEDS_CONTRAST1 independently generated datasets rather than
-  # judging L_short on the main demo's single series.
-  ratios = [Float64[] for _ in LADDER1]
-  prop_errs = [Float64[] for _ in LADDER1]
-  for d = 1:DATA_SEEDS_CONTRAST1
-    Xd, labels_d = two_regime_series(
-      MersenneTwister(500 + d);
-      M = M_MAIN,
-      L = L_MAIN,
-      p = P_MAIN,
-      share_a = SHARE_A,
-    )
-    Zd, _ = windows(Xd, L_MAIN; stride = L_MAIN)
-    Zsd = standardize_by_variable(Zd, L_MAIN, P_MAIN)
-
-    random_draws_d = [
-      random_rows(N_MAIN, M_MAIN, MersenneTwister(1000 + d * 100 + k)) for
-      k = 1:RANDOM_DRAWS_MAIN
-    ]
-    ed_random_d = mean(energydistance(view(Zsd, sel, :), Zsd) for sel in random_draws_d)
-
-    for (i, L_short) in enumerate(LADDER1)
-      Zshort, _ = windows(Xd, L_short; stride = L_MAIN)   # same segment starts as the L = 32 windowing
-      Zshorts = standardize_by_variable(Zshort, L_short, P_MAIN)
-      sel = selectrows(TwinningSplitter(), Zshorts, N_MAIN; standardize = false)
-      ed = energydistance(view(Zsd, sel, :), Zsd)         # evaluated in this dataset's full-L space
-      push!(ratios[i], ed / ed_random_d)
-      push!(prop_errs[i], abs(mean(view(labels_d, sel) .== :A) - SHARE_A))
-    end
-  end
-
-  rows = DataFrame(
-    L_short = LADDER1,
-    ratio_to_random = fmt_stat.(ratios),
-    regime_prop_error = fmt_stat.(prop_errs),
-  )
-
-  io = IOBuffer()
-  println(io, "## Contrast 1: representation below the dependence length\n")
-  println(
-    io,
-    "TwinningSplitter, n = $N_MAIN of M = $M_MAIN windows, representation built from",
-  )
-  println(
-    io,
-    "only the first `L_short` rows of each length-$L_MAIN segment, evaluated in the",
-  )
-  println(
-    io,
-    "full L = $L_MAIN space (dependence length ≈ 1/(1-stay_a) ≈ 16), averaged over",
-  )
-  println(
-    io,
-    "$DATA_SEEDS_CONTRAST1 independently generated datasets (mean ± sd over data seeds).\n",
-  )
-  println(io, "| L_short | ratio to random | regime-proportion error |")
-  println(io, "|---:|---:|---:|")
-  for r in eachrow(rows)
-    @printf(io, "| %d | %s | %s |\n", r.L_short, r.ratio_to_random, r.regime_prop_error)
-  end
-  emit(String(take!(io)))
-end
-
 # ---- Contrast 2: the L*p dimension ladder
-let
+#
+# Computed before Contrast 1 (below) so that no ladder width has already been
+# compiled by Contrast 1's TwinningSplitter calls at 24 columns (L_short = 8,
+# P_MAIN = 3) before this section's own L = 8 rung gets to time its warm-up.
+# The two sections' report text is still emitted in the order they appear in
+# the written report (Contrast 1 first, then Contrast 2): each section's text
+# is built into its own string below and both are `emit`ted, in that order,
+# after both have run.
+contrast2_text = let
   rows = DataFrame(
     L = Int[],
     Lp = Int[],
@@ -348,7 +325,8 @@ let
     # small throwaway matrix of the same width as this L (separate rng seeds
     # from the timed runs) and record the elapsed time as `compile_seconds`.
     warmup = randn(MersenneTwister(0), 60, L * P_MAIN)
-    t_compile_twin = @elapsed selectrows(TwinningSplitter(), warmup, 6; standardize = false)
+    t_compile_twin =
+      @elapsed selectrows(TwinningSplitter(), warmup, 6; standardize = false)
     t_compile_sp = @elapsed selectrows(
       SupportPointSplitter(kappa = 30, max_iterations = 3, rng = MersenneTwister(0)),
       warmup,
@@ -428,16 +406,27 @@ let
     io,
     "The cached energy distance at L = $(first(LADDER2)) was checked to agree with",
   )
-  println(io, "`energydistance` directly. \"compile seconds\" is the first call at that")
   println(
     io,
-    "width, on a throwaway 60-row matrix of the same width, paying the width-specific",
+    "`energydistance` directly. \"compile seconds\" is the first call of that splitter",
   )
   println(
     io,
-    "compilation of the static-vector nearest-neighbor structures; \"seconds\" is the",
+    "at that width in this process, on a throwaway 60-row matrix; twinning is warmed",
   )
-  println(io, "timed run that follows it.\n")
+  println(
+    io,
+    "up first, and the support-point warm-up that follows at the same width reuses",
+  )
+  println(
+    io,
+    "whatever the static-vector code already compiled, so the two columns are not",
+  )
+  println(
+    io,
+    "independent measurements. This ladder runs before Contrast 1 so no ladder width",
+  )
+  println(io, "has been compiled earlier in the process.\n")
   println(
     io,
     "| L | L·p | method | compile seconds | seconds | energy distance | ratio to random |",
@@ -456,8 +445,78 @@ let
       r.ratio_to_random,
     )
   end
-  emit(String(take!(io)))
+  String(take!(io))
 end
+
+# ---- Contrast 1: L below the dependence length
+contrast1_text = let
+  # Twinning is deterministic, so run-to-run noise in the ratio to random
+  # comes from the dataset, not the selector: average over
+  # DATA_SEEDS_CONTRAST1 independently generated datasets rather than
+  # judging L_short on the main demo's single series.
+  ratios = [Float64[] for _ in LADDER1]
+  prop_errs = [Float64[] for _ in LADDER1]
+  for d = 1:DATA_SEEDS_CONTRAST1
+    Xd, labels_d = two_regime_series(
+      MersenneTwister(500 + d);
+      M = M_MAIN,
+      L = L_MAIN,
+      p = P_MAIN,
+      share_a = SHARE_A,
+    )
+    Zd, _ = windows(Xd, L_MAIN; stride = L_MAIN)
+    Zsd = standardize_by_variable(Zd, L_MAIN, P_MAIN)
+
+    random_draws_d = [
+      random_rows(N_MAIN, M_MAIN, MersenneTwister(1000 + d * 100 + k)) for
+      k = 1:RANDOM_DRAWS_MAIN
+    ]
+    ed_random_d = mean(energydistance(view(Zsd, sel, :), Zsd) for sel in random_draws_d)
+
+    for (i, L_short) in enumerate(LADDER1)
+      Zshort, _ = windows(Xd, L_short; stride = L_MAIN)   # same segment starts as the L = 32 windowing
+      Zshorts = standardize_by_variable(Zshort, L_short, P_MAIN)
+      sel = selectrows(TwinningSplitter(), Zshorts, N_MAIN; standardize = false)
+      ed = energydistance(view(Zsd, sel, :), Zsd)         # evaluated in this dataset's full-L space
+      push!(ratios[i], ed / ed_random_d)
+      push!(prop_errs[i], abs(mean(view(labels_d, sel) .== :A) - SHARE_A))
+    end
+  end
+
+  rows = DataFrame(
+    L_short = LADDER1,
+    ratio_to_random = fmt_stat.(ratios),
+    regime_prop_error = fmt_stat.(prop_errs),
+  )
+
+  io = IOBuffer()
+  println(io, "## Contrast 1: representation below the dependence length\n")
+  println(
+    io,
+    "TwinningSplitter, n = $N_MAIN of M = $M_MAIN windows, representation built from",
+  )
+  println(
+    io,
+    "only the first `L_short` rows of each length-$L_MAIN segment, evaluated in the",
+  )
+  println(
+    io,
+    "full L = $L_MAIN space (dependence length ≈ 1/(1-stay_a) ≈ 16), averaged over",
+  )
+  println(
+    io,
+    "$DATA_SEEDS_CONTRAST1 independently generated datasets (mean ± sd over data seeds).\n",
+  )
+  println(io, "| L_short | ratio to random | regime-proportion error |")
+  println(io, "|---:|---:|---:|")
+  for r in eachrow(rows)
+    @printf(io, "| %d | %s | %s |\n", r.L_short, r.ratio_to_random, r.regime_prop_error)
+  end
+  String(take!(io))
+end
+
+emit(contrast1_text)
+emit(contrast2_text)
 
 # ---- write
 mkpath(dirname(OUT))
