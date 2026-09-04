@@ -190,6 +190,35 @@ print(result.selected, splitquality(data, result, reference=target))
 `reference_weights` weights the reference rows; `weights` cannot be
 combined with `reference`.
 
+## Comparing splitters
+
+`compare` runs `datasplit` with each of several method configurations on the same data and
+scores every split under one scoring kernel, returning a `SplitComparison`:
+
+```python
+from splitiq import compare
+
+comparison = compare(data, ['support_points', 'herding', 'twinning'], ratio=0.2, seed=42)
+index, best_result = comparison.best()      # the result with the lowest quality
+```
+
+A `methods` entry can also be a mapping with a `'method'` key and per-method options
+(`kernel`, `bandwidth`, `kappa`, `max_iterations`, `tolerance`, `start`, `delta`, `compress`);
+`ratio`, `seed`, and `n_threads` are shared by every splitter, and the top-level `kernel`/
+`bandwidth` set the *scoring* kernel passed to `splitquality`, independent of any per-method
+`kernel`:
+
+```python
+comparison = compare(
+    data,
+    ['herding', {'method': 'kernel_thinning', 'compress': 'never'}],
+    kernel='gaussian',
+    seed=42,
+)
+```
+
+`comparison.results` and `comparison.qualities` are index-aligned with `methods`.
+
 ## k-fold multiplets
 
 `multiplet` partitions the rows into `k` folds that each resemble the whole data:

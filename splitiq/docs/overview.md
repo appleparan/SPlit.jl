@@ -43,6 +43,15 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 `.iloc` for a pandas DataFrame/Series), and `train_idx, test_idx = result` unpacks the two
 index arrays directly.
 
+## `SplitComparison`
+
+`compare` returns a frozen `SplitComparison` dataclass: `results` (one `SplitResult` per
+entry of the `methods` argument) and `qualities` (one discrepancy score per result, under
+`kernel`; lower is better), both index-aligned with `methods`, plus the scoring `kernel`
+itself (`'energy'` or `'gaussian'`) — distinct from any per-method `kernel` a `methods`
+mapping entry sets for its own splitter. `comparison.best()` returns the `(index, result)`
+pair with the lowest quality.
+
 ## Versioning
 
 The `splitiq` version tracks the SPlit.jl version; `src/splitiq/juliapkg.json` pins SPlit.jl at

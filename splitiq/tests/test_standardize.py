@@ -27,8 +27,6 @@ def test_standardize_false_changes_the_selection_and_keeps_a_partition() -> None
 
 
 def test_splitquality_scores_raw_rows() -> None:
-    # splitiq does not expose SPlit.jl's `compare`; this covers `splitquality`
-    # scoring the raw (unstandardized) rows the brief's `compare` case intended.
     data = _embeddings(2)
     result = datasplit(data, ratio=0.2, method='herding', kernel='energy', standardize=False)
     q = splitquality(data, result, standardize=False)
