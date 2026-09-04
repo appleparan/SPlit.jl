@@ -176,4 +176,24 @@ using Statistics
       end
     end
   end
+
+  @testset "Compress++ selections beat random subsets at n ≪ N" begin
+    data = let rng = MersenneTwister(500), N = 8_000
+      c = rand(rng, 1:4, N)
+      centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+      centers[c, :] .+ randn(rng, N, 2)
+    end
+    X = SPlit.preprocess(data)
+    rows = selectrows(
+      KernelThinningSplitter(compress = :always, rng = MersenneTwister(501)),
+      data,
+      200,
+    )
+    q = energydistance(X[rows, :], X)
+    random_q = mean(
+      energydistance(X[randperm(MersenneTwister(5_000 + i), 8_000)[1:200], :], X) for
+      i = 1:20
+    )
+    @test q < random_q
+  end
 end

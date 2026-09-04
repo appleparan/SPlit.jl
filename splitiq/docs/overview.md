@@ -1,10 +1,11 @@
 # Overview
 
-`splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl). It
+`splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl), the
+Julia library for distribution-preserving subset selection on tabular data and embeddings. It
 carries no algorithm code of its own: every call converts its arguments to Julia values, invokes
 the corresponding SPlit.jl function through [juliacall](https://github.com/JuliaPy/PythonCall.jl),
-and converts the result back. The optimizer, the energy-distance and MMD computations, and the
-kernel-herding selection all run inside the embedded Julia process, not in Python.
+and converts the result back. The optimizer, the energy-distance and MMD computations, and every
+selection method all run inside the embedded Julia process, not in Python.
 
 ## Type mapping
 
@@ -22,6 +23,8 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 | any other Julia exception | `juliacall.JuliaError` |
 | 0-based numpy index array | 1-based Julia row index vector |
 | `'farthest'` / `'random'` / 0-based `start` | `:farthest` / `:random` / 1-based row index |
+| `'auto'` / `'always'` / `'never'` `compress` | `:auto` / `:always` / `:never` |
+| `standardize: bool` | `standardize::Bool` (`False` skips preprocessing entirely) |
 
 ## `SplitResult`
 
@@ -40,6 +43,15 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 `result.apply(data)` returns `(train, test)` subsets of `data` (numpy fancy indexing, or
 `.iloc` for a pandas DataFrame/Series), and `train_idx, test_idx = result` unpacks the two
 index arrays directly.
+
+## `SplitComparison`
+
+`compare` returns a frozen `SplitComparison` dataclass: `results` (one `SplitResult` per
+entry of the `methods` argument) and `qualities` (one discrepancy score per result, under
+`kernel`; lower is better), both index-aligned with `methods`, plus the scoring `kernel`
+itself (`'energy'` or `'gaussian'`) — distinct from any per-method `kernel` a `methods`
+mapping entry sets for its own splitter. `comparison.best()` returns the `(index, result)`
+pair with the lowest quality.
 
 ## Versioning
 

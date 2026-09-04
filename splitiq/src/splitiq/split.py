@@ -26,11 +26,14 @@ _DEFAULT_KAPPA = None
 _DEFAULT_MAX_ITERATIONS = 500
 _DEFAULT_TOLERANCE = 1e-10
 _DEFAULT_DELTA = 0.5
+_DEFAULT_COMPRESS = 'auto'
 
 SplitMethod = Literal['support_points', 'herding', 'twinning', 'kernel_thinning']
 SplitKernelName = Literal['energy', 'gaussian']
 StartRule = Literal['farthest', 'random'] | int
+CompressMode = Literal['auto', 'always', 'never']
 _METHODS = ('support_points', 'herding', 'twinning', 'kernel_thinning')
+_COMPRESS_MODES = ('auto', 'always', 'never')
 
 
 @dataclass(frozen=True)
@@ -107,9 +110,11 @@ def datasplit(
     seed: int | None = None,
     start: StartRule | None = None,
     delta: float = 0.5,
+    compress: CompressMode = 'auto',
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
+    standardize: bool = True,
 ) -> SplitResult:
     """Split `data` into train and test sets whose distributions match closely.
 
@@ -146,6 +151,12 @@ def datasplit(
         delta: Failure probability of the kernel-thinning guarantees
             (``method='kernel_thinning'`` only; the papers use ``0.5``).
             Any other value with another method raises ``ValueError``.
+        compress: ``'auto'`` (default), ``'always'``, or ``'never'``:
+            whether ``method='kernel_thinning'`` runs Compress++ in place of
+            plain kernel thinning (``'auto'`` runs it when cheaper at this
+            data size; ``'always'`` requires `weights` and `reference` to
+            stay unset). A non-default value with another `method` raises
+            ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Makes the split target the weighted empirical
             distribution of the rows; the selected subset itself is
@@ -158,6 +169,9 @@ def datasplit(
             rows of `data`.
         reference_weights: One non-negative entry per row of `reference`,
             or ``None`` for uniform reference weights. Requires `reference`.
+        standardize: ``False`` uses a numeric array as it is (no centering,
+            scaling, or constant-column removal) — for cosine-normalized
+            embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:
         The resulting `SplitResult`.
@@ -173,11 +187,15 @@ def datasplit(
             is set away from its default for a `method` other than
             ``'kernel_thinning'``, if `method` is ``'kernel_thinning'`` and
             `kappa`/`max_iterations`/`tolerance` are set away from their
-            defaults (kernel thinning has no such options), if Julia
+            defaults (kernel thinning has no such options), if `compress`
+            is set away from its default for a `method` other than
+            ``'kernel_thinning'``, if `compress` is not one of ``'auto'``,
+            ``'always'``, ``'never'``, if Julia
             rejects the arguments (e.g. `ratio`
             outside (0, 1), `delta` outside (0, 1), `reference` with a
             different number of columns than `data`, `weights` combined
-            with `reference`, or `reference_weights` without `reference`),
+            with `reference`, `reference_weights` without `reference`, or
+            `compress='always'` combined with `weights` or `reference`),
             or if `weights` has the wrong length, a negative or non-finite
             entry, or sums to zero.
     """
@@ -205,6 +223,7 @@ def datasplit(
         rng,
         start,
         delta,
+        compress,
     )
     with _translate_error():
         result = jl.datasplit(
@@ -212,6 +231,7 @@ def datasplit(
             julia_data,
             **_weights_kwarg(julia_weights),
             **_reference_kwargs(julia_reference, julia_reference_weights),
+            standardize=standardize,
         )
 
     return _to_split_result(jl, result, method, kernel, ratio)
@@ -231,9 +251,11 @@ def select_rows(
     seed: int | None = None,
     start: StartRule | None = None,
     delta: float = 0.5,
+    compress: CompressMode = 'auto',
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
+    standardize: bool = True,
 ) -> np.ndarray:
     """Indices of the `n` rows of `data` the splitter chooses, without a partition.
 
@@ -274,6 +296,12 @@ def select_rows(
         delta: Failure probability of the kernel-thinning guarantees
             (``method='kernel_thinning'`` only; the papers use ``0.5``).
             Any other value with another method raises ``ValueError``.
+        compress: ``'auto'`` (default), ``'always'``, or ``'never'``:
+            whether ``method='kernel_thinning'`` runs Compress++ in place of
+            plain kernel thinning (``'auto'`` runs it when cheaper at this
+            data size; ``'always'`` requires `weights` and `reference` to
+            stay unset). A non-default value with another `method` raises
+            ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or
@@ -282,6 +310,9 @@ def select_rows(
             rows of `data`.
         reference_weights: One non-negative entry per row of `reference`,
             or ``None`` for uniform reference weights. Requires `reference`.
+        standardize: ``False`` uses a numeric array as it is (no centering,
+            scaling, or constant-column removal) — for cosine-normalized
+            embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:
         A 0-based numpy array of `n` row indices, in selection order
@@ -301,11 +332,15 @@ def select_rows(
             is set away from its default for a `method` other than
             ``'kernel_thinning'``, if `method` is ``'kernel_thinning'`` and
             `kappa`/`max_iterations`/`tolerance` are set away from their
-            defaults (kernel thinning has no such options), or if
+            defaults (kernel thinning has no such options), if `compress`
+            is set away from its default for a `method` other than
+            ``'kernel_thinning'``, if `compress` is not one of ``'auto'``,
+            ``'always'``, ``'never'``, or if
             Julia rejects the arguments (e.g. `n` out of range, `delta`
             outside (0, 1), `reference` with a different number of columns
-            than `data`, `weights` combined with `reference`, or
-            `reference_weights` without `reference`).
+            than `data`, `weights` combined with `reference`,
+            `reference_weights` without `reference`, or `compress='always'`
+            combined with `weights` or `reference`).
     """
     if method not in _METHODS:
         msg = f'method must be one of {_METHODS}, got {method!r}'
@@ -333,6 +368,7 @@ def select_rows(
         rng,
         start,
         delta,
+        compress,
     )
     with _translate_error():
         indices = jl.selectrows(
@@ -341,6 +377,7 @@ def select_rows(
             int(n),
             **_weights_kwarg(julia_weights),
             **_reference_kwargs(julia_reference, julia_reference_weights),
+            standardize=standardize,
         )
     return to_python_indices(indices)
 
@@ -358,6 +395,7 @@ def _build_splitter(
     rng: JuliaValue | None,
     start: StartRule | None,
     delta: float,
+    compress: CompressMode,
 ) -> JuliaValue:
     """Build the Julia splitter for `method`.
 
@@ -388,6 +426,9 @@ def _build_splitter(
         delta: Kernel thinning's failure probability (``method=
             'kernel_thinning'`` only); must stay at its default for every
             other `method`.
+        compress: Kernel thinning's Compress++ mode (``method=
+            'kernel_thinning'`` only); must stay at its default (``'auto'``)
+            for every other `method`.
 
     Returns:
         A Julia ``SupportPointSplitter``, ``HerdingSplitter``,
@@ -402,14 +443,19 @@ def _build_splitter(
             `delta` is not at its default for a `method` other than
             ``'kernel_thinning'``, if `method` is ``'kernel_thinning'`` and
             `kappa`/`max_iterations`/`tolerance` are set away from their
-            defaults, or if Julia rejects the arguments (e.g. `ratio`
-            outside (0, 1)).
+            defaults, if `compress` is not at its default for a `method`
+            other than ``'kernel_thinning'``, if `compress` is not one of
+            ``'auto'``, ``'always'``, ``'never'``, or if Julia rejects the
+            arguments (e.g. `ratio` outside (0, 1)).
     """
     if start is not None and method != 'twinning':
         msg = "'start' is a twinning option; use method='twinning'"
         raise ValueError(msg)
     if delta != _DEFAULT_DELTA and method != 'kernel_thinning':
         msg = "'delta' is a kernel-thinning option; use method='kernel_thinning'"
+        raise ValueError(msg)
+    if compress != _DEFAULT_COMPRESS and method != 'kernel_thinning':
+        msg = "'compress' is a kernel-thinning option; use method='kernel_thinning'"
         raise ValueError(msg)
     if method == 'twinning':
         return _build_twinning_splitter(
@@ -425,7 +471,16 @@ def _build_splitter(
         )
     if method == 'kernel_thinning':
         return _build_kernel_thinning_splitter(
-            jl, kernel_obj, ratio, kappa, max_iterations, tolerance, n_threads, rng, delta
+            jl,
+            kernel_obj,
+            ratio,
+            kappa,
+            max_iterations,
+            tolerance,
+            n_threads,
+            rng,
+            delta,
+            compress,
         )
     splitter_kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
     if method == 'herding':
@@ -513,6 +568,7 @@ def _build_kernel_thinning_splitter(
     n_threads: int | None,
     rng: JuliaValue | None,
     delta: float,
+    compress: CompressMode,
 ) -> JuliaValue:
     """Build a Julia ``KernelThinningSplitter``; it has no optimizer options.
 
@@ -526,13 +582,16 @@ def _build_kernel_thinning_splitter(
         n_threads: Number of threads, or ``None`` to omit the keyword.
         rng: A Julia RNG value, or ``None`` to omit the keyword.
         delta: Failure probability of the kernel-thinning guarantees, in (0, 1).
+        compress: ``'auto'``, ``'always'``, or ``'never'``, forwarded to
+            Julia as ``jl.Symbol(compress)``.
 
     Returns:
         A Julia ``KernelThinningSplitter`` value.
 
     Raises:
-        ValueError: If an optimizer option is set, or if Julia rejects the
-            arguments (e.g. `delta` outside (0, 1)).
+        ValueError: If an optimizer option is set, if `compress` is not one
+            of ``'auto'``, ``'always'``, ``'never'``, or if Julia rejects
+            the arguments (e.g. `delta` outside (0, 1)).
     """
     if (
         kappa != _DEFAULT_KAPPA
@@ -544,8 +603,12 @@ def _build_kernel_thinning_splitter(
             'leave them at their defaults'
         )
         raise ValueError(msg)
+    if compress not in _COMPRESS_MODES:
+        msg = f'compress must be one of {_COMPRESS_MODES}, got {compress!r}'
+        raise ValueError(msg)
     kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
     kwargs['delta'] = float(delta)
+    kwargs['compress'] = jl.Symbol(compress)
     with _translate_error():
         return jl.KernelThinningSplitter(**kwargs)
 

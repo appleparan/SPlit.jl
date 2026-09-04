@@ -13,9 +13,8 @@ has largely reframed the problem as distribution compression, choosing a
 subset whose empirical distribution stays close to a reference distribution
 under energy distance or MMD.
 
-The roadmap moves SPlit.jl from a data-splitting package toward a
-distribution-preserving subset selection library that serves two
-audiences with one interface:
+SPlit.jl is now a distribution-preserving subset selection library, and
+one interface serves both audiences the roadmap set out to reach:
 
 1. Tabular data science: optimal train/test and k-fold splits, the
    original use case.
@@ -45,6 +44,9 @@ State of the exported API at v0.5.2.
 | `TwinningSplitter` | done | Sequential nearest-neighbor twinning (Vakayil & Joseph, 2022); energy distance objective, no kernel or optimizer options; deterministic with `start = :farthest`. |
 | `KernelThinningSplitter` | done | Target-kernel KT (Dwivedi & Mackey, 2022, 2024): kernel halving, KT-SPLIT, KT-SWAP; energy or Gaussian kernel; `O(N²)` like herding. |
 | k-fold splitting (`multiplet`) | done | Strategies S1/S2/S3 of the twinning paper; S1/S2 work with every splitter. |
+| Skipping preprocessing (`standardize = false`) | done | `datasplit`, `selectrows`, `multiplet`, `splitquality`, `compare`: the numeric matrix is used unchanged, with no encoding, constant-column removal, or standardization; `DataFrame` input is rejected. See [Methods](@ref methods). |
+| Compress++ | done | `KernelThinningSplitter(compress = :auto)` (Shetty, Dwivedi & Mackey, 2022): near-linear kernel thinning for `n ≪ N` against the data's own measure; see [Methods](@ref compress). |
+| LLM data-selection workflow | done | Embedding matrices end to end: the example under `examples/` and the [decision table](@ref llm-data-selection). |
 | High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. |
 
 ## Design principles
@@ -153,21 +155,29 @@ Why: selects directly from the data, with no continuous optimization and
 no nearest-neighbor assignment step, and comes with an MMD rate of
 O(sqrt(log n / n)) that neither the support-point splitters nor Twinning
 provide. Near-linear time (Compress++) applies to `n ≈ √N` root-thinning and
-moves to M5; at split ratios the cost is `O(N²)`, the herding class.
+was delivered in M5 as `compress = :auto`; at the default split ratio the
+cost is `O(N²)`, the herding class.
 
 ### M5: embedding workflow, docs, and comparison
 
-Planned, depends on M1-M4.
+Done (2026-09-04). Four deliverables:
 
-- An example script under `examples/`: load an embedding matrix,
-  cosine-normalize, select with the M1-M4 combinations, compare energy
-  distance against uniform random and K-center greedy.
-- A new docs page for selecting LLM training data: a decision table (by
-  N, p, weighted?, target?) for which method to use.
-- Extend [Methods](@ref methods) with the new methods in the existing
-  format.
-- Compress++ (Shetty, Dwivedi & Mackey, 2022) for `selectrows` with
-  `n ≪ N`, on top of `kernel_thinning`.
+- `standardize = false` on `datasplit`, `selectrows`, `multiplet`,
+  `splitquality`, and `compare`, so an embedding matrix goes through
+  unchanged; see [Methods](@ref methods).
+- Compress++ (Shetty, Dwivedi & Mackey, 2022) as
+  `KernelThinningSplitter(compress = :auto | :always | :never)`; see
+  [Methods](@ref compress).
+- `examples/llm_data_selection.jl`, comparing every splitter against
+  uniform random and K-center greedy on 5,000 arXiv-abstract embeddings
+  under the plain, weighted, and targeted measures. It is not run in CI;
+  its table is committed under `docs/src/assets/examples/`.
+- The [Selecting LLM training data](@ref llm-data-selection) page: the
+  workflow and the decision table.
+
+Why last: it needs all of M1-M4 at once. It is also where the reframing
+of the package landed — the top-level docs now describe subset selection,
+with train/test splitting as one of its entry points.
 
 ### M6: MMD gradient-flow update (exploratory)
 
@@ -175,8 +185,8 @@ Idea. Replace the Armijo projected gradient in the Gaussian-kernel path
 with the mean-shift-style update from MMD gradient-flow quantization
 (arXiv 2502.10600). Structurally similar to the current MM step. The
 Gaussian path has no `kappa` stochastic mode today, unlike `EnergyKernel`,
-so a cheaper update rule matters more there. Evaluate only after M4 gives
-a baseline.
+so a cheaper update rule matters more there. M4 and M5 provide the
+baseline to evaluate it against.
 
 ## Open questions
 
@@ -189,13 +199,18 @@ a baseline.
   [Design experiments](@ref twinning-trees) page: brute force from
   p = 50 (`TWINNING_BRUTE_FORCE_DIMENSION = 50`).
 - Categorical handling in embedding mode (M5). Helmert contrasts do not
-  apply. Should embedding mode bypass preprocessing entirely, or expose a
-  separate preprocessing entry point?
+  apply. Resolved 2026-09-04 by `standardize = false`, which bypasses
+  preprocessing entirely: embedding matrices carry no categorical columns,
+  so no separate entry point is needed, and a `DataFrame` is rejected
+  rather than silently encoded.
 - Is weighted energy distance the right combination rule? Combining a
   quality score with distribution matching via a weighted empirical
-  distribution is natural but not validated in the literature. M5's
-  comparison is the first test; if it underperforms, alternatives include
-  stratified selection by quality quantile.
+  distribution is natural but not validated in the literature. First
+  measured 2026-09-04 in `examples/llm_data_selection.jl` (see the
+  [LLM data-selection page](@ref llm-data-selection)): the weighted
+  selections track the weighted corpus better than the unweighted ones do.
+  Left open pending downstream results; if it underperforms, alternatives
+  include stratified selection by quality quantile.
 
 ## References
 
@@ -241,3 +256,5 @@ a baseline.
 - 2026-09-03: M2 (reference distribution) and `selectrows` done.
 - 2026-09-03: M3 (twinning and multiplets) done; high-dimensional nearest-neighbor question resolved.
 - 2026-09-04: M4 (kernel thinning) done; Compress++ moved to M5.
+- 2026-09-04: M5 (embedding workflow, Compress++, data-selection guide)
+  done; both remaining open questions resolved.

@@ -1,8 +1,11 @@
 # SPlit.jl
 
-Julia package for optimal train/test splitting via support points. The
-public API is the `export` list in `src/SPlit.jl`; every exported name has a
-docstring, and `test/` is the executable spec.
+Julia package for distribution-preserving subset selection on tabular data
+and embeddings, grown from SPlit (Joseph & Vakayil, 2022): train/test splits
+(`datasplit`), k-fold multiplets (`multiplet`), and row selection
+(`selectrows`) toward the data, a weighted measure, or a reference sample.
+The public API is the `export` list in `src/SPlit.jl`; every exported name
+has a docstring, and `test/` is the executable spec.
 
 ## Source of truth
 
@@ -108,6 +111,20 @@ output-matching tests. The design record is
   a kernel-thinning selection of `N − n` rows; cost is the herding class
   `O(N²)`; threaded sums use fixed 1,024-row chunks so results do not
   depend on `n_threads`.
+- `standardize = false` (on `datasplit`, `selectrows`, `multiplet`,
+  `splitquality`, `compare`) skips preprocessing entirely — including
+  constant-column removal, not just the scaling — and rejects `DataFrame`
+  input. It is the embedding mode; see the LLM data-selection docs page.
+- Compress++ (`compress` on `KernelThinningSplitter`) is defined only for
+  the data's own measure: `:always` errors with `weights`/`reference` and
+  `:auto` falls back to plain kernel thinning there. `:auto` does not fire
+  at the default 20% ratio (so `datasplit` with the default splitter is
+  unchanged) but can below roughly 10% for N ≥ 10⁴ — up to n = 800 at
+  N = 10⁴, 10,100 at N = 10⁵, 64,000 at N = 10⁶; pass `compress = :never`
+  to keep the plain path there. `g = max(4, ⌈log₂(2n/√N)⌉)`.
+- The example under `examples/` is not run in CI, and its table under
+  `docs/src/assets/examples/` is committed output — regenerate it only when
+  asked, like the benchmark tables.
 
 ## Workflow
 

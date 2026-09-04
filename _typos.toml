@@ -1,6 +1,8 @@
 [default.extend-words]
 # "Mak" is a surname (Simon Mak, co-author of the SPlit paper), not a typo.
 Mak = "Mak"
+# `indexin` is the Julia Base function used in the Compress++ tests.
+indexin = "indexin"
 
 [files]
 # Exported figures carry base64 woff2 font blobs.

@@ -42,6 +42,10 @@ on a `TwinningSplitter` is interpreted within each run's remaining rows for
 `:sequential` and `:halving` (and must be a valid position there), so
 prefer `:farthest` or `:random` with those strategies.
 
+`standardize = false` uses a numeric matrix or vector as it is (no
+centering, scaling, or constant-column removal) — for cosine-normalized
+embeddings; a `DataFrame` then raises an `ArgumentError`.
+
 # Examples
 
 ```julia
@@ -59,16 +63,17 @@ function multiplet(
   weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
   reference_weights::Union{Nothing,AbstractVector} = nothing,
+  standardize::Bool = true,
 )
   N = _nrows(data)
   2 <= k <= N || throw(ArgumentError("k must be in 2:$N, got $k"))
   k = Int(k)
   folds = if strategy === :sequential
-    _multiplet_sequential(s, data, k; weights, reference, reference_weights)
+    _multiplet_sequential(s, data, k; weights, reference, reference_weights, standardize)
   elseif strategy === :halving
-    _multiplet_halving(s, data, k; weights, reference, reference_weights)
+    _multiplet_halving(s, data, k; weights, reference, reference_weights, standardize)
   elseif strategy === :single
-    _multiplet_single(s, data, k; weights, reference, reference_weights)
+    _multiplet_single(s, data, k; weights, reference, reference_weights, standardize)
   else
     throw(ArgumentError("strategy must be :sequential, :halving, or :single, got :$strategy"))
   end
@@ -79,7 +84,15 @@ end
 
 _complement(part::Vector{Int}, sel::Vector{Int}) = part[setdiff(1:length(part), sel)]
 
-function _multiplet_sequential(s, data, k; weights, reference, reference_weights)
+function _multiplet_sequential(
+  s,
+  data,
+  k;
+  weights,
+  reference,
+  reference_weights,
+  standardize,
+)
   remaining = collect(1:_nrows(data))
   folds = Vector{Vector{Int}}(undef, k)
   for i = 1:(k-1)
@@ -91,6 +104,7 @@ function _multiplet_sequential(s, data, k; weights, reference, reference_weights
       weights = _subweights(weights, remaining),
       reference,
       reference_weights,
+      standardize,
     )
     folds[i] = remaining[sel]
     remaining = _complement(remaining, sel)
@@ -99,7 +113,7 @@ function _multiplet_sequential(s, data, k; weights, reference, reference_weights
   return folds
 end
 
-function _multiplet_halving(s, data, k; weights, reference, reference_weights)
+function _multiplet_halving(s, data, k; weights, reference, reference_weights, standardize)
   ispow2(k) ||
     throw(ArgumentError("strategy :halving needs k to be a power of two, got $k"))
   parts = [collect(1:_nrows(data))]
@@ -113,6 +127,7 @@ function _multiplet_halving(s, data, k; weights, reference, reference_weights)
         weights = _subweights(weights, part),
         reference,
         reference_weights,
+        standardize,
       )
       push!(next, part[sel])
       push!(next, _complement(part, sel))
@@ -129,8 +144,9 @@ function _multiplet_single(
   weights,
   reference,
   reference_weights,
+  standardize,
 )
-  X, _, target, _ = _prepare(s, data, weights, reference, reference_weights)
+  X, _, target, _ = _prepare(s, data, weights, reference, reference_weights; standardize)
   _check_twinning_plain(weights, target)
   N = size(X, 1)
   groups = _twin_groups(X, N ÷ k, s.start, s.rng)

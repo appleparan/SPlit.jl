@@ -1,7 +1,9 @@
 # splitiq
 
 `splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl), a
-Julia package for optimal train/test splitting via support points. All computation runs in
+Julia package for distribution-preserving subset selection on tabular data and embeddings:
+optimal train/test splits, k-fold multiplets, and training-data selection by support points,
+kernel herding, twinning, and kernel thinning. All computation runs in
 Julia through [juliacall](https://github.com/JuliaPy/PythonCall.jl); `splitiq` only converts
 data in and out and translates errors, so its results and guarantees are those of SPlit.jl.
 
@@ -56,11 +58,13 @@ train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[
 
 | Function | Description |
 | --- | --- |
-| `datasplit(data, ratio=0.2, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, weights, reference, reference_weights)` | Split `data` into train/test sets whose distributions match closely; returns a `SplitResult`. |
-| `select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, weights, reference, reference_weights)` | The indices of the `n` rows of `data` the splitter chose, without building a train/test partition. |
+| `datasplit(data, ratio=0.2, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, compress='auto', weights, reference, reference_weights, standardize=True)` | Split `data` into train/test sets whose distributions match closely; returns a `SplitResult`. |
+| `select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, compress='auto', weights, reference, reference_weights, standardize=True)` | The indices of the `n` rows of `data` the splitter chose, without building a train/test partition. |
 | `SplitResult` | `train_indices`, `test_indices` (0-based numpy arrays), `converged`, `iterations`, `method`, `kernel`, `bandwidth`, `ratio`, `selected` (`'test'`/`'train'`, the side holding the chosen rows); `.apply(data)` returns `(train, test)`; supports `train_idx, test_idx = result`. |
-| `multiplet(data, k, *, strategy='sequential', method='twinning', kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, weights, reference, reference_weights)` | Split `data` into `k` distribution-balanced folds under `strategy` (`'sequential'`, `'halving'`, or `'single'`); returns a list of index arrays. |
-| `splitquality(data, result, *, kernel, bandwidth, estimator, exact_threshold, seed, n_threads)` | Discrepancy between the train and test rows of `data`; lower is better. |
+| `multiplet(data, k, *, strategy='sequential', method='twinning', kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, compress='auto', weights, reference, reference_weights, standardize=True)` | Split `data` into `k` distribution-balanced folds under `strategy` (`'sequential'`, `'halving'`, or `'single'`); returns a list of index arrays. |
+| `splitquality(data, result, *, kernel, bandwidth, estimator, exact_threshold, seed, n_threads, standardize=True)` | Discrepancy between the train and test rows of `data`; lower is better. |
+| `compare(data, methods, *, ratio=0.2, kernel='energy', bandwidth, seed, n_threads, weights, reference, reference_weights, standardize=True)` | Run `datasplit` with each method spec in `methods` (a name or a `{'method': ..., ...}` mapping) and score every split under the scoring `kernel`; returns a `SplitComparison`. |
+| `SplitComparison` | `results`, `qualities` (index-aligned with `methods`), scoring `kernel`; `.best()` returns the `(index, result)` pair with the lowest quality. |
 | `energydistance(x, y, *, estimator, seed, n_threads)` | Energy distance between two samples. |
 | `mmd(x, y, kernel='gaussian', *, bandwidth, estimator, seed, n_threads)` | Squared maximum mean discrepancy between two samples. |
 | `Exact()`, `Subsample(m, repeats=8)`, `RandomSlices(k)`, `RandomFeatures(D)` | Discrepancy estimators for `energydistance`/`mmd`/`splitquality`. |

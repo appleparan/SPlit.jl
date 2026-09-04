@@ -294,7 +294,7 @@ end
     @test_throws ArgumentError KernelThinningSplitter(delta = 1.0)
     @test_throws ArgumentError KernelThinningSplitter(n_threads = 0)
     @test occursin(
-      "KernelThinningSplitter(kernel=EnergyKernel(), ratio=0.2, delta=0.5)",
+      "KernelThinningSplitter(kernel=EnergyKernel(), ratio=0.2, delta=0.5, compress=:auto)",
       sprint(show, s),
     )
   end
@@ -397,4 +397,326 @@ end
     @test sort(reduce(vcat, folds)) == 1:301
     @test maximum(length.(folds)) - minimum(length.(folds)) <= 1
   end
+end
+
+@testset "Compress and Compress++" begin
+  @testset "g and the cost rule" begin
+    @test SPlit._compress_g(10_000, 500) == 4
+    @test SPlit._compress_g(10_000, 2_000) == 6
+    @test SPlit._compress_g(1_000_000, 10_000) == 5
+    @test SPlit._compress_pays_off(10_000, 500)
+    @test !SPlit._compress_pays_off(10_000, 2_000)
+    @test !SPlit._compress_pays_off(1_000, 50)
+    # the default 20% ratio never pays off, a 5% one does once N is large enough
+    @test all(!SPlit._compress_pays_off(N, round(Int, 0.2N)) for N in (10^4, 10^5, 10^6))
+    @test SPlit._compress_pays_off(6_000, 300)
+  end
+
+  @testset "four parts and the halving count" begin
+    @test SPlit._four_parts(collect(1:10)) == [[1, 2], [3, 4, 5], [6, 7], [8, 9, 10]]
+    @test SPlit._compress_halvings(256, 4) == 0
+    @test SPlit._compress_halvings(1024, 4) == 1
+    @test SPlit._compress_halvings(4096, 4) == 5
+  end
+
+  @testset "symmetrized halving returns half of the block in its order" begin
+    X = SPlit.preprocess(randn(MersenneTwister(80), 400, 2))
+    S = randperm(MersenneTwister(81), 400)[1:201]
+    outs = [
+      SPlit._symmetrized_halve(
+        EnergyKernel(),
+        X,
+        S,
+        0.1,
+        MersenneTwister(s);
+        n_threads = 2,
+      ) for s = 1:8
+    ]
+    @test all(o -> length(o) == 100 && allunique(o) && all(in(S), o), outs)
+    @test all(o -> issorted(indexin(o, S)), outs)                    # block order preserved
+    @test length(unique(outs)) > 1                                    # both halves occur across seeds
+  end
+
+  @testset "Compress returns about 2^g √N rows of the input, deterministically" begin
+    X = SPlit.preprocess(randn(MersenneTwister(82), 4096, 3))
+    seq = randperm(MersenneTwister(83), 4096)
+    S = SPlit._compress(EnergyKernel(), X, seq, 4, 1e-3, MersenneTwister(84); n_threads = 2)
+    @test allunique(S) && all(in(seq), S)
+    @test 512 <= length(S) <= 2048                                    # 2^4 √4096 = 1024
+    @test S == SPlit._compress(
+      EnergyKernel(),
+      X,
+      seq,
+      4,
+      1e-3,
+      MersenneTwister(84);
+      n_threads = 1,
+    )
+    @test SPlit._compress(EnergyKernel(), X, seq[1:200], 4, 1e-3, MersenneTwister(0)) ==
+          seq[1:200]   # base case
+  end
+
+  @testset "Compress++ selects n distinct rows and beats random" begin
+    mixture = let rng = MersenneTwister(85), N = 8_000
+      c = rand(rng, 1:4, N)
+      centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+      SPlit.preprocess(centers[c, :] .+ randn(rng, N, 2))
+    end
+    rows, swaps = SPlit._compress_plus_plus(
+      EnergyKernel(),
+      mixture,
+      200;
+      delta = 0.5,
+      rng = MersenneTwister(86),
+      n_threads = 2,
+    )
+    @test length(rows) == 200 && allunique(rows) && swaps >= 0
+    q = energydistance(mixture[rows, :], mixture)
+    random_q = mean(
+      energydistance(mixture[randperm(MersenneTwister(300 + i), 8_000)[1:200], :], mixture) for i = 1:10
+    )
+    @test q < random_q
+    @test rows == SPlit._compress_plus_plus(
+      EnergyKernel(),
+      mixture,
+      200;
+      delta = 0.5,
+      rng = MersenneTwister(86),
+      n_threads = 1,
+    )[1]
+  end
+
+  @testset "the g guard reruns Compress when the compressed set is not larger than n" begin
+    # N = 257 with n = 128 gives |S_C| = 128 = n at g = 4, forcing the bump
+    X257 = SPlit.preprocess(randn(MersenneTwister(7), 257, 2))
+    rows257, _ = SPlit._compress_plus_plus(
+      EnergyKernel(),
+      X257,
+      128;
+      delta = 0.5,
+      rng = MersenneTwister(9),
+      n_threads = 1,
+    )
+    @test length(rows257) == 128 && allunique(rows257)
+  end
+end
+
+@testset "compress keyword" begin
+  mixture = let rng = MersenneTwister(90), N = 8_000
+    c = rand(rng, 1:4, N)
+    centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+    centers[c, :] .+ randn(rng, N, 2)
+  end
+  X = SPlit.preprocess(mixture)
+
+  @testset "kernel_thinning: :auto follows the cost rule, :always and :never are explicit" begin
+    a = SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :auto,
+      rng = MersenneTwister(1),
+    )
+    @test a == SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :always,
+      rng = MersenneTwister(1),
+    )
+    @test a != SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :never,
+      rng = MersenneTwister(1),
+    )
+    b = SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      1_600;
+      compress = :auto,
+      rng = MersenneTwister(2),
+    )
+    @test b == SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      1_600;
+      compress = :never,
+      rng = MersenneTwister(2),
+    )
+    @test b == SPlit.kernel_thinning(EnergyKernel(), X, 1_600; rng = MersenneTwister(2))   # default :never
+    @test_throws ArgumentError SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :sometimes,
+    )
+    w = rand(MersenneTwister(3), 8_000)
+    @test_throws ArgumentError SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :always,
+      weights = w,
+    )
+    @test_throws ArgumentError SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :always,
+      target = X[1:100, :],
+    )
+    @test SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :auto,
+      weights = w,
+      rng = MersenneTwister(4),
+    ) == SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :never,
+      weights = w,
+      rng = MersenneTwister(4),
+    )
+    # the complement rule composes with compress
+    hi, _ = SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      7_800;
+      compress = :always,
+      rng = MersenneTwister(5),
+    )
+    lo, _ = SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      200;
+      compress = :always,
+      rng = MersenneTwister(5),
+    )
+    @test hi == sort(setdiff(1:8_000, lo))
+  end
+
+  @testset "KernelThinningSplitter: field, show, selectrows, datasplit unchanged" begin
+    s = KernelThinningSplitter()
+    @test s.compress === :auto
+    @test KernelThinningSplitter(compress = :never).compress === :never
+    @test_throws ArgumentError KernelThinningSplitter(compress = :maybe)
+    @test occursin("compress=:auto", sprint(show, s))
+    sel = selectrows(KernelThinningSplitter(rng = MersenneTwister(6)), mixture, 200)
+    @test sel == selectrows(
+      KernelThinningSplitter(compress = :always, rng = MersenneTwister(6)),
+      mixture,
+      200,
+    )
+    @test sel != selectrows(
+      KernelThinningSplitter(compress = :never, rng = MersenneTwister(6)),
+      mixture,
+      200,
+    )
+    small = mixture[1:600, :]
+    @test test_indices(
+      datasplit(KernelThinningSplitter(rng = MersenneTwister(7)), small),
+    ) == test_indices(
+      datasplit(KernelThinningSplitter(compress = :never, rng = MersenneTwister(7)), small),
+    )
+    @test_throws ArgumentError selectrows(
+      KernelThinningSplitter(compress = :always),
+      mixture,
+      200;
+      weights = rand(8_000),
+    )
+    folds = multiplet(KernelThinningSplitter(rng = MersenneTwister(8)), small, 3)
+    @test sort(reduce(vcat, folds)) == 1:600
+  end
+
+  @testset ":auto fires at a small split ratio, not at the default one" begin
+    data = randn(MersenneTwister(11), 6_000, 2)
+    auto5 = test_indices(
+      datasplit(KernelThinningSplitter(ratio = 0.05, rng = MersenneTwister(1)), data),
+    )
+    @test auto5 == test_indices(
+      datasplit(
+        KernelThinningSplitter(ratio = 0.05, compress = :always, rng = MersenneTwister(1)),
+        data,
+      ),
+    )
+    @test auto5 != test_indices(
+      datasplit(
+        KernelThinningSplitter(ratio = 0.05, compress = :never, rng = MersenneTwister(1)),
+        data,
+      ),
+    )
+    @test test_indices(
+      datasplit(KernelThinningSplitter(ratio = 0.2, rng = MersenneTwister(1)), data),
+    ) == test_indices(
+      datasplit(
+        KernelThinningSplitter(ratio = 0.2, compress = :never, rng = MersenneTwister(1)),
+        data,
+      ),
+    )
+  end
+end
+
+@testset "review fixes: symmetric odd halving, uniform weights, target validation" begin
+  X = SPlit.preprocess(randn(MersenneTwister(95), 400, 2))
+  # odd block: the KT half is taken with probability half/ℓ and the trimmed complement with
+  # (half + 1)/ℓ, so every row is kept with probability exactly 100/201
+  S = collect(1:201)
+  outs = [
+    SPlit._symmetrized_halve(EnergyKernel(), X, S, 0.1, MersenneTwister(s); n_threads = 2) for s = 1:400
+  ]
+  @test all(o -> length(o) == 100, outs)
+  counts = zeros(Int, 201)
+  for o in outs, r in o
+    counts[r] += 1
+  end
+  @test all(140 .<= counts .<= 260)          # 400·100/201 ≈ 199, sd ≈ 10
+  @test 190 <= mean(counts) <= 208
+  # uniform weights reproduce the unweighted path, including the Compress++ decision
+  mixture = let rng = MersenneTwister(96), N = 6_000
+    c = rand(rng, 1:4, N)
+    centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+    SPlit.preprocess(centers[c, :] .+ randn(rng, N, 2))
+  end
+  @test SPlit._compress_pays_off(6_000, 100)
+  @test SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :auto,
+    weights = ones(6_000),
+    rng = MersenneTwister(1),
+  ) == SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :auto,
+    rng = MersenneTwister(1),
+  )
+  # target arguments are validated before the compress branch
+  @test_throws ArgumentError SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :always,
+    target_weights = ones(10),
+  )
+  @test_throws ArgumentError SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :always,
+    weights = rand(6_000),
+    target = mixture[1:50, :],
+  )
+  @test_throws ArgumentError SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    weights = rand(10),
+  )   # wrong length, plain path
 end

@@ -261,7 +261,8 @@ end
 
 """
     kernel_thinning(kernel, X, n; delta = 0.5, weights = nothing, target = nothing,
-                    target_weights = nothing, n_threads = Threads.nthreads(),
+                    target_weights = nothing, compress = :never,
+                    n_threads = Threads.nthreads(),
                     rng = Random.default_rng()) -> (rows, swaps)
 
 Select `n` rows of `X` by generalized kernel thinning with the target kernel
@@ -272,13 +273,23 @@ keeps the candidate (or a uniform random baseline) with the smallest MMD²
 to the target measure and refines it by one pass of best single-row swaps
 over all `N` rows. For `n > N/2`, the result is the complement of a
 kernel-thinning selection of the `N - n` rows not chosen (same `rng` order,
-`delta`, and target measure; see "Differences from the paper" for why this
-is a reasonable rule). `delta` is the failure probability `δ` of the
-kernel-thinning guarantees: the papers' `δ_i = δ/L`, applied as `δ_i/m` at
-every halving step; `weights`, `target`, `target_weights` define the target
-measure as in [`herd`](@ref) and act on KT-SWAP only. Cost: `O(L²)` kernel
-evaluations for KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP,
-all threaded. Deterministic given `rng` and independent of `n_threads`.
+`delta`, `compress`, and target measure; see "Differences from the paper"
+for why this is a reasonable rule). `delta` is the failure probability `δ`
+of the kernel-thinning guarantees: the papers' `δ_i = δ/L`, applied as
+`δ_i/m` at every halving step; `weights`, `target`, `target_weights` define
+the target measure as in [`herd`](@ref) and act on KT-SWAP only. Rough
+kernel-evaluation estimates, used only to choose the path: `O(L²)` for
+KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP, all threaded.
+Deterministic given `rng` and independent of `n_threads`.
+
+`compress` selects [`Compress++`](@ref _compress_plus_plus) (Shetty, Dwivedi
+& Mackey 2022) in place of plain kernel thinning: `:never` (default) never
+runs it; `:always` always runs it and requires `weights === target ===
+nothing`, since Compress++ is defined for the data's own distribution, not
+a weighted or reference target; `:auto` runs it exactly when `weights ===
+target === nothing` and `_compress_pays_off` judges it cheaper than
+plain kernel thinning at this `N` and `n`, which needs `n` far below `N`:
+not at a 20% split ratio, but below roughly 10% for `N ≥ 10⁴`.
 
 # Differences from the paper
 
@@ -293,8 +304,13 @@ mean-embedding identity `μ_N = (n_c/N) μ_S + ((N - n_c)/N) μ_C` gives
 `MMD(C, P_N) = (n_c/(N - n_c)) · MMD(S, P_N) ≤ MMD(S, P_N)` when
 `n_c ≤ N/2`, so the complement is at least as close to the data as the
 thinned set; for a weighted or reference target this identity does not
-hold exactly, and the rule is applied the same way regardless. Compress++
-is not implemented.
+hold exactly, and the rule is applied the same way regardless. Compress++'s
+HALVE is kernel thinning of the block's own rows rather than the paper's
+generic halving primitive, `δ` is split evenly across the halvings and the
+final THIN rather than following the paper's per-call schedule, the four-way
+splits of Compress are of possibly-uneven sizes rather than exactly `ℓ/4`,
+and the oversampling `g` is tied to the requested `n` (via
+`_compress_g`) rather than fixed across a run.
 """
 function kernel_thinning(
   kernel::SplitKernel,
@@ -304,14 +320,28 @@ function kernel_thinning(
   weights::Union{Nothing,AbstractVector} = nothing,
   target::Union{Nothing,AbstractMatrix} = nothing,
   target_weights::Union{Nothing,AbstractVector} = nothing,
+  compress::Symbol = :never,
   n_threads::Int = Threads.nthreads(),
   rng::AbstractRNG = Random.default_rng(),
 )
   isresolved(kernel) ||
     throw(ArgumentError("kernel parameters must be resolved; call resolve first"))
+  compress in (:auto, :always, :never) ||
+    throw(ArgumentError("compress must be :auto, :always, or :never, got :$compress"))
   N = size(X, 1)
   0 < n < N || throw(ArgumentError("n must be in 1:$(N - 1), got $n"))
   0 < delta < 1 || throw(ArgumentError("delta must be in (0, 1), got $delta"))
+  if target === nothing
+    target_weights === nothing || throw(ArgumentError("target_weights needs a target"))
+    weights === nothing || _check_weights(weights, N)
+    weights = _uniform_as_nothing(weights)
+  else
+    weights === nothing || throw(
+      ArgumentError("with a target, weight the target (target_weights), not the data"),
+    )
+    target_weights === nothing || _check_weights(target_weights, size(target, 1))
+    target_weights = _uniform_as_nothing(target_weights)
+  end
   if n > N ÷ 2
     rows_c, swaps = kernel_thinning(
       kernel,
@@ -321,11 +351,28 @@ function kernel_thinning(
       weights,
       target,
       target_weights,
+      compress,
       n_threads,
       rng,
     )
     return setdiff(1:N, rows_c), swaps
   end
+  if compress === :always && (weights !== nothing || target !== nothing)
+    throw(
+      ArgumentError(
+        "Compress++ is defined for the data's own distribution; pass compress = :never with weights or a reference",
+      ),
+    )
+  end
+  use_compress =
+    compress === :always || (
+      compress === :auto &&
+      weights === nothing &&
+      target === nothing &&
+      _compress_pays_off(N, n)
+    )
+  use_compress &&
+    return _compress_plus_plus(kernel, X, n; delta = Float64(delta), rng, n_threads)
   d = _target_data_term(kernel, X, weights, target, target_weights, n_threads)
   m = 0
   while n * 2^(m + 1) <= N
@@ -339,18 +386,150 @@ function kernel_thinning(
   return _kt_swap(kernel, Xt, candidates, baseline, d, n_threads)
 end
 
+# ---- Compress++ (Shetty, Dwivedi & Mackey 2022) -----------------------------
+
+# The paper's experiments use g = 4 throughout; `_compress_g` raises it so
+# the compressed set has about 2n rows or more.
+const _COMPRESS_G_MIN = 4
+
+_compress_g(N::Int, n::Int) = max(_COMPRESS_G_MIN, ceil(Int, log2(2n / sqrt(N))))
+
+# Rough kernel-evaluation estimates, used only to choose the path: plain
+# kernel thinning ≈ 1.5N² (halvings, data term, swap pass) against
+# Compress++ ≈ 4^g N (4 log₄ N + 1) (paper Remark 1 with a quadratic HALVE,
+# plus THIN on 2^g √N rows).
+_compress_pays_off(N::Int, n::Int) = 4.0^_compress_g(N, n) * (4 * log(4, N) + 1) < 1.5 * N
+
+# Four consecutive parts of sizes ⌊ℓ/4⌋ or ⌈ℓ/4⌉ (the paper's "arbitrary
+# subsequences"; the input is already a random permutation).
+function _four_parts(seq::Vector{Int})
+  ℓ = length(seq)
+  bounds = floor.(Int, (0:4) .* (ℓ / 4))
+  return [seq[(bounds[i]+1):bounds[i+1]] for i = 1:4]
+end
+
+# Number of HALVE calls Compress makes on an input of length ℓ.
+function _compress_halvings(ℓ::Int, g::Int)
+  ℓ <= 4^g && return 0
+  bounds = floor.(Int, (0:4) .* (ℓ / 4))
+  return 1 + sum(_compress_halvings(bounds[i+1] - bounds[i], g) for i = 1:4)
+end
+
+# HALVE (paper Ex. 2 and Remark 3): kernel thinning of the block's own rows
+# to `half = ⌊ℓ/2⌋`, then either that half or its complement, so each
+# halving is unbiased. The KT half is taken with probability `half/ℓ` and
+# the complement with probability `(ℓ - half)/ℓ`; when ℓ is odd the
+# complement has `half + 1` rows and one of them is dropped at random with
+# `rng`. Conditionally on the KT partition a row of the KT half is then kept
+# with probability `half/ℓ` and a row of the complement with
+# `((half + 1)/ℓ)·(half/(half + 1)) = half/ℓ`, so every row of the block is
+# kept with probability exactly `half/ℓ`. For even ℓ the two branches have
+# probability ½ each. Rows keep the block's order.
+function _symmetrized_halve(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  S::Vector{Int},
+  δ::Float64,
+  rng::AbstractRNG;
+  n_threads::Int = Threads.nthreads(),
+)
+  ℓ = length(S)
+  ℓ >= 2 || return S
+  half = ℓ ÷ 2
+  local_rows, _ =
+    kernel_thinning(kernel, X[S, :], half; delta = δ, compress = :never, n_threads, rng)
+  keep = if rand(rng) < half / ℓ
+    local_rows
+  else
+    other = setdiff(1:ℓ, local_rows)
+    length(other) > half && deleteat!(other, rand(rng, 1:length(other)))
+    other
+  end
+  return S[sort(keep)]
+end
+
+"""
+    _compress(kernel, X, seq, g, δ_halve, rng; n_threads) -> Vector{Int}
+
+Compress (Shetty, Dwivedi & Mackey 2022, Alg. 1) of the row sequence `seq`
+with oversampling `g`: sequences of at most `4^g` rows are returned as they
+are; longer ones are split into four consecutive parts, compressed
+recursively, concatenated, and halved by `_symmetrized_halve`. Returns about
+`2^g √(length(seq))` rows.
+"""
+function _compress(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  seq::Vector{Int},
+  g::Int,
+  δ_halve::Float64,
+  rng::AbstractRNG;
+  n_threads::Int = Threads.nthreads(),
+)
+  length(seq) <= 4^g && return seq
+  merged = reduce(
+    vcat,
+    (_compress(kernel, X, part, g, δ_halve, rng; n_threads) for part in _four_parts(seq)),
+  )
+  return _symmetrized_halve(kernel, X, merged, δ_halve, rng; n_threads)
+end
+
+"""
+    _compress_plus_plus(kernel, X, n; delta, rng, n_threads) -> (rows, swaps)
+
+Compress++ (Shetty, Dwivedi & Mackey 2022, Alg. 2): Compress a random
+permutation of the rows with `g = max(4, ⌈log₂(2n/√N)⌉)`, then THIN the
+compressed set to `n` rows with [`kernel_thinning`](@ref) (whose data term
+and swap candidates are the compressed rows, as in the paper). `delta` is
+split evenly between the halvings (each gets `delta / 2K`, `K` the number
+of HALVE calls) and THIN (`delta / 2`), a union bound in place of the
+paper's per-call schedule. If a compressed set has no more than `n` rows,
+`g` is increased by one and Compress is rerun.
+"""
+function _compress_plus_plus(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  n::Int;
+  delta::Float64,
+  rng::AbstractRNG,
+  n_threads::Int = Threads.nthreads(),
+)
+  N = size(X, 1)
+  g = _compress_g(N, n)
+  seq = randperm(rng, N)
+  while true
+    K = _compress_halvings(N, g)
+    δ_halve = K == 0 ? delta / 2 : delta / (2K)
+    S_C = _compress(kernel, X, seq, g, δ_halve, rng; n_threads)
+    if length(S_C) > n
+      local_rows, swaps = kernel_thinning(
+        kernel,
+        X[S_C, :],
+        n;
+        delta = delta / 2,
+        compress = :never,
+        n_threads,
+        rng,
+      )
+      return S_C[local_rows], swaps
+    end
+    g += 1
+  end
+end
+
 """
     KernelThinningSplitter(; kernel = EnergyKernel(), ratio = 0.2, delta = 0.5,
-                             n_threads = Threads.nthreads(), rng = Random.default_rng())
+                             compress = :auto, n_threads = Threads.nthreads(),
+                             rng = Random.default_rng())
 
 Split by generalized kernel thinning with the target kernel (Dwivedi & Mackey
 2022; kernel halving from Dwivedi & Mackey 2024): the smaller side is chosen by
 [`kernel_thinning`](@ref), so it minimizes the MMD² (energy distance for
 `EnergyKernel`) to the data without continuous optimization or a
 nearest-neighbor step, with the papers' high-probability MMD guarantee of
-order `√(log n / n)` for the KT-SPLIT candidates and a KT-SWAP result never worse than a uniform
-random subset. Cost is `O(N²)` kernel evaluations like `HerdingSplitter`;
-near-linear time needs Compress++, which is not implemented.
+order `√(log n / n)` for the KT-SPLIT candidates and a KT-SWAP result never
+worse than a uniform random subset. Cost is `O(N²)` kernel evaluations like
+`HerdingSplitter`, unless `compress` selects Compress++ for near-linear time.
 
 - `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`
   bandwidth is resolved at `datasplit` time and stored in `result.method`.
@@ -360,6 +539,13 @@ near-linear time needs Compress++, which is not implemented.
 - `delta`: the failure probability `δ` of the kernel-thinning guarantees:
   the papers' `δ_i = δ/L`, applied as `δ_i/m` at every halving step (the
   experiments use `δ = 0.5`).
+- `compress`: `:auto` (default) runs Compress++ when `n ≪ N` makes it
+  cheaper than plain kernel thinning and the target is the data itself. It
+  does not fire at the default 20% ratio, so `datasplit` with the default
+  splitter is unchanged; it can fire below roughly a 10% ratio for
+  `N ≥ 10⁴`, where `n` is small enough for Compress++ to be cheaper. Pass
+  `compress = :never` to keep the plain path there; `:always` forces
+  Compress++.
 - `rng`: the input shuffle, the halving coin flips, and the baseline draw.
 
 `SplitResult.converged` is always `true`; `iterations` is the number of
@@ -377,6 +563,7 @@ struct KernelThinningSplitter{K<:SplitKernel,R<:AbstractRNG} <: AbstractSplitter
   kernel::K
   ratio::Float64
   delta::Float64
+  compress::Symbol
   n_threads::Int
   rng::R
 end
@@ -385,6 +572,7 @@ function KernelThinningSplitter(;
   kernel::SplitKernel = EnergyKernel(),
   ratio::Real = 0.2,
   delta::Real = 0.5,
+  compress::Symbol = :auto,
   n_threads::Int = Threads.nthreads(),
   rng::AbstractRNG = Random.default_rng(),
 )
@@ -392,12 +580,14 @@ function KernelThinningSplitter(;
   delta = Float64(delta)
   0 < ratio < 1 || throw(ArgumentError("ratio must be in (0, 1), got $ratio"))
   0 < delta < 1 || throw(ArgumentError("delta must be in (0, 1), got $delta"))
+  compress in (:auto, :always, :never) ||
+    throw(ArgumentError("compress must be :auto, :always, or :never, got :$compress"))
   n_threads > 0 || throw(ArgumentError("n_threads must be positive, got $n_threads"))
-  return KernelThinningSplitter(kernel, ratio, delta, n_threads, rng)
+  return KernelThinningSplitter(kernel, ratio, delta, compress, n_threads, rng)
 end
 
 _with_kernel(s::KernelThinningSplitter, kernel) =
-  KernelThinningSplitter(kernel, s.ratio, s.delta, s.n_threads, s.rng)
+  KernelThinningSplitter(kernel, s.ratio, s.delta, s.compress, s.n_threads, s.rng)
 
 function _select_rows(
   s::KernelThinningSplitter,
@@ -416,6 +606,7 @@ function _select_rows(
     weights,
     target,
     target_weights,
+    compress = s.compress,
     n_threads = s.n_threads,
     rng = s.rng,
   )
@@ -425,6 +616,6 @@ end
 function Base.show(io::IO, s::KernelThinningSplitter)
   print(
     io,
-    "KernelThinningSplitter(kernel=$(s.kernel), ratio=$(s.ratio), delta=$(s.delta))",
+    "KernelThinningSplitter(kernel=$(s.kernel), ratio=$(s.ratio), delta=$(s.delta), compress=:$(s.compress))",
   )
 end

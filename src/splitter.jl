@@ -139,10 +139,52 @@ _with_kernel(s::SupportPointSplitter, kernel) = SupportPointSplitter(
   s.verbose,
 )
 
+# Raw-matrix input for `standardize = false`: no centering, scaling, or
+# column removal; a vector is one column. Anything else (a DataFrame) is
+# rejected, since categorical encoding needs the preprocessing path.
+_raw_matrix(data::AbstractMatrix{<:Real}) = Matrix{Float64}(data)
+_raw_matrix(data::AbstractVector{<:Real}) = Matrix{Float64}(reshape(data, :, 1))
+_raw_matrix(::Any) = throw(
+  ArgumentError(
+    "standardize = false needs a numeric matrix or vector; encode DataFrames yourself or keep standardize = true",
+  ),
+)
+
+# `_prepare` without preprocessing: the rows are used as they are.
+function _prepare_raw(s::AbstractSplitter, data, weights, reference, reference_weights)
+  X = _raw_matrix(data)
+  if reference === nothing
+    reference_weights === nothing ||
+      throw(ArgumentError("reference_weights needs a reference"))
+    weights === nothing || _check_weights(weights, size(X, 1))
+    return X, resolve(s.kernel, X, s.rng, weights), nothing, nothing
+  end
+  weights === nothing || throw(
+    ArgumentError(
+      "with a reference, weight the reference (reference_weights), not the data",
+    ),
+  )
+  R = _raw_matrix(reference)
+  size(R, 1) >= 1 || throw(ArgumentError("reference must have at least one row"))
+  size(R, 2) == size(X, 2) ||
+    throw(ArgumentError("reference must have the same number of columns as data"))
+  reference_weights === nothing || _check_weights(reference_weights, size(R, 1))
+  return X, resolve(s.kernel, R, s.rng, reference_weights), R, reference_weights
+end
+
 # Preprocess and resolve the kernel for the data-as-target case (weights)
 # or the reference case. Returns the encoded data, the resolved kernel, the
-# encoded target (or nothing), and the target weights.
-function _prepare(s::AbstractSplitter, data, weights, reference, reference_weights)
+# encoded target (or nothing), and the target weights. `standardize = false`
+# skips preprocessing entirely (see `_prepare_raw`).
+function _prepare(
+  s::AbstractSplitter,
+  data,
+  weights,
+  reference,
+  reference_weights;
+  standardize::Bool = true,
+)
+  standardize || return _prepare_raw(s, data, weights, reference, reference_weights)
   if reference === nothing
     reference_weights === nothing ||
       throw(ArgumentError("reference_weights needs a reference"))
@@ -194,9 +236,10 @@ function _select(
   weights = nothing,
   reference = nothing,
   reference_weights = nothing,
+  standardize::Bool = true,
 )
   X, kernel, target, target_weights =
-    _prepare(s, data, weights, reference, reference_weights)
+    _prepare(s, data, weights, reference, reference_weights; standardize)
   N = size(X, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
   indices, converged, iterations =
@@ -206,7 +249,8 @@ end
 
 """
     selectrows(splitter::AbstractSplitter, data, n; weights = nothing,
-           reference = nothing, reference_weights = nothing) -> Vector{Int}
+           reference = nothing, reference_weights = nothing,
+           standardize = true) -> Vector{Int}
 
 Indices of the `n` rows of `data` the splitter chooses, in selection order
 (support-point order for `SupportPointSplitter`, greedy order for
@@ -218,6 +262,10 @@ when `reference` is given, the distribution of `reference` (weighted by
 `reference_weights`): preprocessing is then fit on `reference` and applied
 to both, candidates stay the rows of `data`, and `weights` may not be
 given. Convergence diagnostics are reported by [`datasplit`](@ref).
+
+`standardize = false` uses a numeric matrix or vector as it is (no
+centering, scaling, or constant-column removal) — for cosine-normalized
+embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function selectrows(
   s::AbstractSplitter,
@@ -226,8 +274,9 @@ function selectrows(
   weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
   reference_weights::Union{Nothing,AbstractVector} = nothing,
+  standardize::Bool = true,
 )
-  return _select(s, data, n; weights, reference, reference_weights)[1]
+  return _select(s, data, n; weights, reference, reference_weights, standardize)[1]
 end
 
 _nrows(data::AbstractMatrix) = size(data, 1)
@@ -262,6 +311,10 @@ reference, and candidates remain the rows of `data`. `weights` cannot be
 combined with `reference`. The train/test labeling rule is unchanged;
 `result.selected` names the side that holds the chosen rows. See
 [`selectrows`](@ref) for the indices alone.
+
+`standardize = false` uses a numeric matrix or vector as it is (no
+centering, scaling, or constant-column removal) — for cosine-normalized
+embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function datasplit(
   s::AbstractSplitter,
@@ -269,13 +322,14 @@ function datasplit(
   weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
   reference_weights::Union{Nothing,AbstractVector} = nothing,
+  standardize::Bool = true,
 )
   n_total = _nrows(data)
   n_small = round(Int, min(s.ratio, 1 - s.ratio) * n_total)
   0 < n_small < n_total ||
     throw(ArgumentError("ratio $(s.ratio) leaves an empty subset for $(n_total) rows"))
   small, converged, iterations, fitted =
-    _select(s, data, n_small; weights, reference, reference_weights)
+    _select(s, data, n_small; weights, reference, reference_weights, standardize)
   rest = setdiff(1:n_total, small)
   test, train = s.ratio <= 0.5 ? (small, rest) : (rest, small)
   selected = s.ratio <= 0.5 ? :test : :train

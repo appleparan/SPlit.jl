@@ -15,7 +15,14 @@ from splitiq._convert import (
     to_weights,
 )
 from splitiq._julia import _translate_error, julia
-from splitiq.split import _METHODS, SplitKernelName, SplitMethod, StartRule, _build_splitter
+from splitiq.split import (
+    _METHODS,
+    CompressMode,
+    SplitKernelName,
+    SplitMethod,
+    StartRule,
+    _build_splitter,
+)
 
 if TYPE_CHECKING:
     import numpy as np
@@ -39,9 +46,11 @@ def multiplet(
     seed: int | None = None,
     start: StartRule | None = None,
     delta: float = 0.5,
+    compress: CompressMode = 'auto',
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
+    standardize: bool = True,
 ) -> list[np.ndarray]:
     """Partition `data` into `k` folds that each resemble the whole data.
 
@@ -75,12 +84,19 @@ def multiplet(
         delta: Failure probability of the kernel-thinning guarantees
             (``method='kernel_thinning'`` only; the papers use ``0.5``).
             Any other value with another method raises ``ValueError``.
+        compress: ``'auto'`` (default), ``'always'``, or ``'never'``:
+            whether ``method='kernel_thinning'`` runs Compress++ in place of
+            plain kernel thinning. A non-default value with another
+            `method` raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` (not available
             for twinning). Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or
             ``None`` (not available for twinning).
         reference_weights: One non-negative entry per row of `reference`,
             or ``None``. Requires `reference`.
+        standardize: ``False`` uses a numeric array as it is (no centering,
+            scaling, or constant-column removal) — for cosine-normalized
+            embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:
         A list of `k` 0-based, ascending index arrays that partition the
@@ -120,6 +136,7 @@ def multiplet(
         rng,
         start,
         delta,
+        compress,
     )
     with _translate_error():
         folds = jl.multiplet(
@@ -129,5 +146,6 @@ def multiplet(
             strategy=jl.Symbol(strategy),
             **_weights_kwarg(julia_weights),
             **_reference_kwargs(julia_reference, julia_reference_weights),
+            standardize=standardize,
         )
     return [to_python_indices(fold) for fold in folds]
