@@ -1,6 +1,7 @@
 # Python
 
-The Python package `splitiq` exposes SPlit.jl to Python through
+The Python package [splitiq](https://pypi.org/project/splitiq/) exposes
+SPlit.jl to Python through
 [juliacall](https://github.com/JuliaPy/PythonCall.jl). It is a thin wrapper:
 every computation runs in Julia, so the properties documented on the
 [Methods](10-methods.md) page hold unchanged.
@@ -9,9 +10,10 @@ every computation runs in Julia, so the properties documented on the
 uv add splitiq        # or, without uv: pip install splitiq
 ```
 
-The first `import splitiq` call installs Julia (through juliaup, if no
-compatible Julia is on the path) and precompiles SPlit.jl. That one-time step
-takes a few minutes; later imports start in a couple of seconds.
+Importing `splitiq` does not start Julia. The first call to `datasplit`, or
+any other function, starts it: `juliapkg`/`juliaup` install a compatible
+Julia if none is on the `PATH`, and SPlit.jl is precompiled. That one-time
+step takes a few minutes; later starts take about two seconds.
 
 ```python
 import numpy as np
@@ -33,12 +35,18 @@ splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
 |---|---|
 | `datasplit(X, ratio, method="support_points", kernel="energy", kappa=..., seed=...)` | `datasplit(SupportPointSplitter(...), X)` |
 | `datasplit(X, ratio, method="herding", kernel="gaussian", bandwidth=...)` | `datasplit(HerdingSplitter(...), X)` |
+| `datasplit(X, ratio, method="twinning", ...)` | `datasplit(TwinningSplitter(...), X)` |
+| `datasplit(X, ratio, method="kernel_thinning", ...)` | `datasplit(KernelThinningSplitter(...), X)` |
+| `select_rows(X, n, ...)` | `selectrows(splitter, X, n)` |
+| `multiplet(X, k, strategy=..., ...)` | `multiplet(splitter, X, k; strategy)` |
+| `compare(X, methods)` / `SplitComparison.best()` | `compare(methods, X)` / `best` |
 | `splitquality`, `energydistance`, `mmd` with `Exact`, `Subsample`, `RandomSlices`, `RandomFeatures` | same names and estimators |
 | `optimal_split_ratio(x, y)` | `optimal_split_ratio(x, y)` |
 | `seed=<int>` | `rng = Xoshiro(seed)` |
+| 0-based numpy arrays of indices | 1-based `Vector{Int}` of indices |
 
 Julia runs single-threaded inside Python unless `PYTHON_JULIACALL_THREADS`
-is set (for example to `auto`) before the first import.
+is set (for example to `auto`) before the first call.
 
 The Python package shares its version number with SPlit.jl. Release `vX.Y.Z`
 of `splitiq` pins SPlit.jl at the git tag `vX.Y.Z`, and pushing that tag
