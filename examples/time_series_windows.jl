@@ -77,7 +77,7 @@ let
   io = IOBuffer()
   println(io, "## Fixture\n")
   println(io, "`X` (N = 5 rows, p = 2 variables), `L = $L`, `stride = $stride`:\n")
-  println(io, "```")
+  println(io, "```text")
   println(io, "X = ", X)
   println(io, "windows(X, $L; stride = $stride) = ", Z)
   println(io, "starts = ", starts)
@@ -251,7 +251,7 @@ let
     io,
     "(each stays a separate L × p sample; selected windows are never concatenated):\n",
   )
-  println(io, "```")
+  println(io, "```text")
   for i in first(sel, 3)
     w = recover_window(X, starts[i], L_MAIN)
     println(io, "window $i (rows $(starts[i]):$(starts[i]+L_MAIN-1)):")
