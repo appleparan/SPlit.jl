@@ -407,8 +407,9 @@ end
     @test SPlit._compress_pays_off(10_000, 500)
     @test !SPlit._compress_pays_off(10_000, 2_000)
     @test !SPlit._compress_pays_off(1_000, 50)
-    @test !SPlit._compress_pays_off(10_000, 2_000) &&
-          !SPlit._compress_pays_off(100_000, 20_000)  # split ratios never
+    # the default 20% ratio never pays off, a 5% one does once N is large enough
+    @test all(!SPlit._compress_pays_off(N, round(Int, 0.2N)) for N in (10^4, 10^5, 10^6))
+    @test SPlit._compress_pays_off(6_000, 300)
   end
 
   @testset "four parts and the halving count" begin
@@ -483,6 +484,20 @@ end
       rng = MersenneTwister(86),
       n_threads = 1,
     )[1]
+  end
+
+  @testset "the g guard reruns Compress when the compressed set is not larger than n" begin
+    # N = 257 with n = 128 gives |S_C| = 128 = n at g = 4, forcing the bump
+    X257 = SPlit.preprocess(randn(MersenneTwister(7), 257, 2))
+    rows257, _ = SPlit._compress_plus_plus(
+      EnergyKernel(),
+      X257,
+      128;
+      delta = 0.5,
+      rng = MersenneTwister(9),
+      n_threads = 1,
+    )
+    @test length(rows257) == 128 && allunique(rows257)
   end
 end
 
@@ -617,18 +632,50 @@ end
     folds = multiplet(KernelThinningSplitter(rng = MersenneTwister(8)), small, 3)
     @test sort(reduce(vcat, folds)) == 1:600
   end
+
+  @testset ":auto fires at a small split ratio, not at the default one" begin
+    data = randn(MersenneTwister(11), 6_000, 2)
+    auto5 = test_indices(
+      datasplit(KernelThinningSplitter(ratio = 0.05, rng = MersenneTwister(1)), data),
+    )
+    @test auto5 == test_indices(
+      datasplit(
+        KernelThinningSplitter(ratio = 0.05, compress = :always, rng = MersenneTwister(1)),
+        data,
+      ),
+    )
+    @test auto5 != test_indices(
+      datasplit(
+        KernelThinningSplitter(ratio = 0.05, compress = :never, rng = MersenneTwister(1)),
+        data,
+      ),
+    )
+    @test test_indices(
+      datasplit(KernelThinningSplitter(ratio = 0.2, rng = MersenneTwister(1)), data),
+    ) == test_indices(
+      datasplit(
+        KernelThinningSplitter(ratio = 0.2, compress = :never, rng = MersenneTwister(1)),
+        data,
+      ),
+    )
+  end
 end
 
 @testset "review fixes: symmetric odd halving, uniform weights, target validation" begin
   X = SPlit.preprocess(randn(MersenneTwister(95), 400, 2))
-  # odd block: across seeds the complement branch drops different rows, so no row is always excluded
+  # odd block: the KT half is taken with probability half/ℓ and the trimmed complement with
+  # (half + 1)/ℓ, so every row is kept with probability exactly 100/201
   S = collect(1:201)
   outs = [
-    SPlit._symmetrized_halve(EnergyKernel(), X, S, 0.1, MersenneTwister(s); n_threads = 2) for s = 1:40
+    SPlit._symmetrized_halve(EnergyKernel(), X, S, 0.1, MersenneTwister(s); n_threads = 2) for s = 1:400
   ]
   @test all(o -> length(o) == 100, outs)
-  never_kept = setdiff(S, union(outs...))
-  @test isempty(never_kept)
+  counts = zeros(Int, 201)
+  for o in outs, r in o
+    counts[r] += 1
+  end
+  @test all(140 .<= counts .<= 260)          # 400·100/201 ≈ 199, sd ≈ 10
+  @test 190 <= mean(counts) <= 208
   # uniform weights reproduce the unweighted path, including the Compress++ decision
   mixture = let rng = MersenneTwister(96), N = 6_000
     c = rand(rng, 1:4, N)

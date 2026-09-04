@@ -277,10 +277,10 @@ kernel-thinning selection of the `N - n` rows not chosen (same `rng` order,
 for why this is a reasonable rule). `delta` is the failure probability `δ`
 of the kernel-thinning guarantees: the papers' `δ_i = δ/L`, applied as
 `δ_i/m` at every halving step; `weights`, `target`, `target_weights` define
-the target measure as in [`herd`](@ref) and act on KT-SWAP only. Cost:
-`O(L²)` kernel evaluations for KT-SPLIT, `O(N²)` for the data term, `O(nN)`
-for KT-SWAP, all threaded. Deterministic given `rng` and independent of
-`n_threads`.
+the target measure as in [`herd`](@ref) and act on KT-SWAP only. Rough
+kernel-evaluation estimates, used only to choose the path: `O(L²)` for
+KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP, all threaded.
+Deterministic given `rng` and independent of `n_threads`.
 
 `compress` selects [`Compress++`](@ref _compress_plus_plus) (Shetty, Dwivedi
 & Mackey 2022) in place of plain kernel thinning: `:never` (default) never
@@ -288,8 +288,8 @@ runs it; `:always` always runs it and requires `weights === target ===
 nothing`, since Compress++ is defined for the data's own distribution, not
 a weighted or reference target; `:auto` runs it exactly when `weights ===
 target === nothing` and `_compress_pays_off` judges it cheaper than
-plain kernel thinning at this `N` and `n` (in practice only when
-`n` is far below `N`).
+plain kernel thinning at this `N` and `n`, which needs `n` far below `N`:
+not at a 20% split ratio, but below roughly 10% for `N ≥ 10⁴`.
 
 # Differences from the paper
 
@@ -394,9 +394,10 @@ const _COMPRESS_G_MIN = 4
 
 _compress_g(N::Int, n::Int) = max(_COMPRESS_G_MIN, ceil(Int, log2(2n / sqrt(N))))
 
-# Estimated kernel evaluations: plain kernel thinning ≈ 1.5N² (halvings,
-# data term, swap pass) against Compress++ ≈ 4^g N (4 log₄ N + 1) (paper
-# Remark 1 with a quadratic HALVE, plus THIN on 2^g √N rows).
+# Rough kernel-evaluation estimates, used only to choose the path: plain
+# kernel thinning ≈ 1.5N² (halvings, data term, swap pass) against
+# Compress++ ≈ 4^g N (4 log₄ N + 1) (paper Remark 1 with a quadratic HALVE,
+# plus THIN on 2^g √N rows).
 _compress_pays_off(N::Int, n::Int) = 4.0^_compress_g(N, n) * (4 * log(4, N) + 1) < 1.5 * N
 
 # Four consecutive parts of sizes ⌊ℓ/4⌋ or ⌈ℓ/4⌉ (the paper's "arbitrary
@@ -415,11 +416,15 @@ function _compress_halvings(ℓ::Int, g::Int)
 end
 
 # HALVE (paper Ex. 2 and Remark 3): kernel thinning of the block's own rows
-# to ⌊ℓ/2⌋, then the selected half or its complement with equal
-# probability, so each halving is unbiased. When ℓ is odd the complement has
-# half + 1 rows; one of them is dropped uniformly at random with `rng` so
-# every row of the block has the same marginal probability of being kept.
-# Rows keep the block's order.
+# to `half = ⌊ℓ/2⌋`, then either that half or its complement, so each
+# halving is unbiased. The KT half is taken with probability `half/ℓ` and
+# the complement with probability `(ℓ - half)/ℓ`; when ℓ is odd the
+# complement has `half + 1` rows and one of them is dropped at random with
+# `rng`. Conditionally on the KT partition a row of the KT half is then kept
+# with probability `half/ℓ` and a row of the complement with
+# `((half + 1)/ℓ)·(half/(half + 1)) = half/ℓ`, so every row of the block is
+# kept with probability exactly `half/ℓ`. For even ℓ the two branches have
+# probability ½ each. Rows keep the block's order.
 function _symmetrized_halve(
   kernel::SplitKernel,
   X::Matrix{Float64},
@@ -433,7 +438,7 @@ function _symmetrized_halve(
   half = ℓ ÷ 2
   local_rows, _ =
     kernel_thinning(kernel, X[S, :], half; delta = δ, compress = :never, n_threads, rng)
-  keep = if rand(rng) < 0.5
+  keep = if rand(rng) < half / ℓ
     local_rows
   else
     other = setdiff(1:ℓ, local_rows)
@@ -535,9 +540,12 @@ worse than a uniform random subset. Cost is `O(N²)` kernel evaluations like
   the papers' `δ_i = δ/L`, applied as `δ_i/m` at every halving step (the
   experiments use `δ = 0.5`).
 - `compress`: `:auto` (default) runs Compress++ when `n ≪ N` makes it
-  cheaper than plain kernel thinning and the target is the data itself
-  (never at split ratios, so `datasplit` is unaffected); `:always`/`:never`
-  force it.
+  cheaper than plain kernel thinning and the target is the data itself. It
+  does not fire at the default 20% ratio, so `datasplit` with the default
+  splitter is unchanged; it can fire below roughly a 10% ratio for
+  `N ≥ 10⁴`, where `n` is small enough for Compress++ to be cheaper. Pass
+  `compress = :never` to keep the plain path there; `:always` forces
+  Compress++.
 - `rng`: the input shuffle, the halving coin flips, and the baseline draw.
 
 `SplitResult.converged` is always `true`; `iterations` is the number of
