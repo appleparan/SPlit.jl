@@ -72,6 +72,6 @@ behavior; it only exposes it to Python.
 Selecting rows from a time series means flattening fixed-length windows into rows first;
 `examples/time_series_windows.py` walks through the flattening rule, a synthetic two-regime
 demo, and the effect of window length on selection quality using `select_rows` and
-`datasplit`. See the
-[Time-series windows](https://liam.kim/SPlit.jl/45-time-series/) page for the full workflow,
-the measured comparisons, and where flattening stops being practical.
+`datasplit`. The "Time-series windows" page of the
+[Julia documentation](https://liam.kim/SPlit.jl) has the full workflow, the measured
+comparisons, and where flattening stops being practical.
