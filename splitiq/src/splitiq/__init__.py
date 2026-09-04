@@ -1,6 +1,8 @@
 """splitiq package.
 
-Optimal train/test splitting via support points, backed by SPlit.jl
+Distribution-preserving subset selection for tabular data and embeddings:
+train/test splits, k-fold multiplets, and training-data selection, backed by
+SPlit.jl
 """
 
 from splitiq._version import __version__

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
-from splitiq import compare, splitquality
+from splitiq import RandomSlices, compare, splitquality
 
 if TYPE_CHECKING:
     from splitiq.split import SplitResult
@@ -107,3 +107,23 @@ def test_weights_together_with_reference_raises_value_error() -> None:
     ref = data[data[:, 0] > 0]
     with pytest.raises(ValueError, match='reference'):
         compare(data, ['herding'], weights=np.ones(len(data)), reference=ref)
+
+
+def test_estimator_is_forwarded_to_the_scoring_step() -> None:
+    data = _data(21)
+    comparison = compare(data, ['herding'], ratio=0.2, estimator=RandomSlices(16), seed=1)
+    exact = compare(data, ['herding'], ratio=0.2, seed=1)
+    assert all(np.isfinite(q) for q in comparison.qualities)
+    assert comparison.qualities[0] != pytest.approx(exact.qualities[0])
+    result = comparison.results[0]
+    assert comparison.qualities[0] == pytest.approx(
+        splitquality(data, result, estimator=RandomSlices(16), seed=1)
+    )
+
+
+def test_exact_threshold_zero_forces_the_fallback_estimator() -> None:
+    data = _data(22)
+    fallback = compare(data, ['herding', 'twinning'], ratio=0.2, exact_threshold=0, seed=1)
+    exact = compare(data, ['herding', 'twinning'], ratio=0.2, seed=1)
+    assert all(np.isfinite(q) for q in fallback.qualities)
+    assert fallback.qualities != pytest.approx(exact.qualities)

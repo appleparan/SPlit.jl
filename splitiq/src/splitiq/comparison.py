@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from splitiq._convert import (
     DataLike,
@@ -16,6 +16,7 @@ from splitiq._convert import (
     to_weights,
 )
 from splitiq._julia import JuliaValue, _translate_error, julia
+from splitiq.quality import _estimator_kwargs
 from splitiq.split import (
     _DEFAULT_COMPRESS,
     _DEFAULT_DELTA,
@@ -31,6 +32,9 @@ from splitiq.split import (
     _build_splitter,
     _to_split_result,
 )
+
+if TYPE_CHECKING:
+    from splitiq.estimators import DiscrepancyEstimator
 
 _METHOD_OPTION_KEYS = (
     'kernel',
@@ -97,6 +101,8 @@ def compare(
     ratio: float = 0.2,
     kernel: SplitKernelName = 'energy',
     bandwidth: float | Literal['median'] = 'median',
+    estimator: DiscrepancyEstimator | None = None,
+    exact_threshold: int = 20_000,
     seed: int | None = None,
     n_threads: int | None = None,
     weights: DataLike | None = None,
@@ -127,6 +133,13 @@ def compare(
             per-method ``kernel`` in `methods`.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
+        estimator: A `DiscrepancyEstimator` for the scoring step, or
+            ``None`` to compute exactly below `exact_threshold` total rows
+            and fall back to a fixed estimator above it (Julia's own
+            default). Passed to `~splitiq.quality.splitquality`; it does
+            not change the splitters themselves.
+        exact_threshold: Row-count threshold below which `estimator=None`
+            scores exactly. Passed to `~splitiq.quality.splitquality`.
         seed: Seed shared by every splitter and by the scoring kernel's
             ``'median'`` bandwidth resolution; each splitter gets its own
             fresh RNG built from this seed (as if each were constructed
@@ -156,9 +169,10 @@ def compare(
             recognized method name or a mapping with a ``'method'`` key
             naming one, if a mapping has a key outside the per-method
             option set above, if any per-method option is invalid for its
-            `method` (see `~splitiq.split.datasplit`), or if Julia rejects
-            the arguments (e.g. `ratio` outside (0, 1), `weights` combined
-            with `reference`, `reference_weights` without `reference`).
+            `method` (see `~splitiq.split.datasplit`), if `estimator` is
+            not defined for `kernel`, or if Julia rejects the arguments
+            (e.g. `ratio` outside (0, 1), `weights` combined with
+            `reference`, `reference_weights` without `reference`).
     """
     if not methods:
         msg = '`methods` must not be empty'
@@ -171,14 +185,13 @@ def compare(
     julia_reference = to_julia_data(reference) if reference is not None else None
     julia_reference_weights = to_weights(reference_weights)
     scoring_kernel_obj = build_kernel(jl, kernel, bandwidth)
-    top_rng = build_rng(jl, seed)
 
     splitters = [_build_comparison_splitter(jl, spec, ratio, n_threads, seed) for spec in specs]
     splitters_vector = jl.Vector[jl.AbstractSplitter](splitters)
 
-    compare_kwargs: dict[str, JuliaValue] = {'kernel': scoring_kernel_obj}
-    if top_rng is not None:
-        compare_kwargs['rng'] = top_rng
+    compare_kwargs: dict[str, JuliaValue] = _estimator_kwargs(jl, estimator, seed, n_threads)
+    compare_kwargs['kernel'] = scoring_kernel_obj
+    compare_kwargs['exact_threshold'] = exact_threshold
     compare_kwargs.update(_weights_kwarg(julia_weights))
     compare_kwargs.update(_reference_kwargs(julia_reference, julia_reference_weights))
     compare_kwargs['standardize'] = standardize

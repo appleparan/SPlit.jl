@@ -206,7 +206,8 @@ A `methods` entry can also be a mapping with a `'method'` key and per-method opt
 (`kernel`, `bandwidth`, `kappa`, `max_iterations`, `tolerance`, `start`, `delta`, `compress`);
 `ratio`, `seed`, and `n_threads` are shared by every splitter, and the top-level `kernel`/
 `bandwidth` set the *scoring* kernel passed to `splitquality`, independent of any per-method
-`kernel`:
+`kernel`. `estimator` and `exact_threshold` go to `splitquality` too, so the same scoring
+shortcut is available here as on a single split:
 
 ```python
 comparison = compare(
@@ -237,10 +238,10 @@ folds = multiplet(data, 4, strategy='single')    # one twinning run, folds by ne
 
 ## Embeddings
 
-- `standardize=False` on `datasplit`, `select_rows`, `multiplet`, and `splitquality` uses a
-  numeric array as it is — no centering, scaling, or constant-column removal — which suits
-  cosine-normalized embeddings where standardizing would distort direction. A pandas DataFrame
-  then raises `ValueError`.
+- `standardize=False` on `datasplit`, `select_rows`, `multiplet`, `splitquality`, and
+  `compare` uses a numeric array as it is — no centering, scaling, or constant-column
+  removal — which suits cosine-normalized embeddings where standardizing would distort
+  direction. A pandas DataFrame then raises `ValueError`.
 - `compress='auto'` (default), `'always'`, or `'never'` on `datasplit`, `select_rows`, and
   `multiplet` controls whether `method='kernel_thinning'` runs Compress++ in place of plain
   kernel thinning; it is a kernel-thinning-only option, so a non-default value with another
