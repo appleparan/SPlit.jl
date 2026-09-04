@@ -160,7 +160,7 @@ def test_lag1_autocorrelation_constant_is_zero() -> None:
 
 def test_lag1_autocorrelation_exact_value() -> None:
     # y = [1, 2, 3, 4]; ybar = 2.5, dev = [-1.5, -0.5, 0.5, 1.5]
-    # denom = sum(dev**2) = 5.0; numer = sum(dev[:-1] * dev[1:]) = 1.25
+    # denom = sum(dev**2) = 5.0; numerator = sum(dev[:-1] * dev[1:]) = 1.25
     # r1 = 1.25 / 5.0 = 0.25
     z_row = np.array([1.0, 2.0, 3.0, 4.0])
     assert tsw.lag1_autocorrelation(z_row, 4, 1) == pytest.approx(0.25)
