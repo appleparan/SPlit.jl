@@ -1,9 +1,10 @@
 # [Design experiments](@id design-experiments)
 
 These are measurements that fixed decisions in the code: `splitquality`'s
-automatic estimator fallback, and kernel herding's exact (not approximated)
-data term. They are not the splitter comparison, which is on the
-[Benchmarks](@ref benchmarks) page.
+automatic estimator fallback, kernel herding's exact (not approximated)
+data term, the weighted `kappa` rule, twinning's nearest-neighbor
+structure, and kernel thinning's Compress++ cost rule. They are not the
+splitter comparison, which is on the [Benchmarks](@ref benchmarks) page.
 
 ## [Estimator selection](@id estimator-selection)
 
@@ -140,4 +141,57 @@ question on high-dimensional nearest neighbors for M3. Reproduce with:
 
 ```sh
 julia --project=benchmark benchmark/twinning_trees.jl
+```
+
+## [Compress++ cost rule](@id compress-rule)
+
+`KernelThinningSplitter(compress = :auto)` runs [Compress++](@ref compress)
+when the estimated kernel-evaluation count `4^g N (4 log₄ N + 1)` is below
+plain kernel thinning's `1.5 N²`, with `g = max(4, ⌈log₂(2n/√N)⌉)`. The
+estimate was checked against wall time and quality on standard-normal
+matrices passed with `standardize = false` (the embedding path): N = 10,000
+at p = 10 and 384, N = 100,000 at p = 10, and n/N from 1% to 20%, on
+16 threads (Julia 1.10.12, AMD Ryzen 7 7800X3D). Each cell runs three
+splitter seeds; the time is the minimum over them and ED, the energy
+distance between the selected rows and the full data, is their mean.
+`plain` is `compress = :never`, `compress++` is `:always`, `auto fires` is
+what `:auto` would choose. ED is exact when N + n ≤ 20,000 and otherwise
+`RandomSlices(64)` (the `splitquality` fallback, with the same slices in
+every column); `ED random` is the mean over three uniform random subsets.
+
+| N | p | n | n/N | auto fires | g | plain (s) | compress++ (s) | plain / compress++ | ED plain | ED compress++ | ED random |
+|---:|---:|---:|---:|:---:|---:|---:|---:|---:|---:|---:|---:|
+| 10000 | 10 | 100 | 0.01 | yes | 4 | 1.12 | 0.826 | 1.36 | 0.0139 | 0.0146 | 0.0371 |
+| 10000 | 10 | 500 | 0.05 | yes | 4 | 1.54 | 0.804 | 1.92 | 0.00222 | 0.00237 | 0.00792 |
+| 10000 | 10 | 1000 | 0.1 | no | 5 | 1.84 | 1.62 | 1.14 | 0.000978 | 0.00102 | 0.00415 |
+| 10000 | 10 | 2000 | 0.2 | no | 6 | 1.66 | 2.27 | 0.732 | 0.000406 | 0.000414 | 0.00172 |
+| 10000 | 384 | 100 | 0.01 | yes | 4 | 10.9 | 11.2 | 0.975 | 0.156 | 0.163 | 0.268 |
+| 10000 | 384 | 500 | 0.05 | yes | 4 | 15.3 | 11.6 | 1.31 | 0.027 | 0.0278 | 0.0506 |
+| 10000 | 384 | 1000 | 0.1 | no | 5 | 16.7 | 22.0 | 0.761 | 0.0126 | 0.0127 | 0.0248 |
+| 10000 | 384 | 2000 | 0.2 | no | 6 | 16.1 | 24.6 | 0.654 | 0.00554 | 0.00556 | 0.0113 |
+| 100000 | 10 | 1000 | 0.01 | yes | 4 | 44.2 | 6.39 | 6.92 | 0.00104 | 0.00112 | 0.00456 |
+| 100000 | 10 | 5000 | 0.05 | yes | 5 | 47.5 | 17.3 | 2.75 | 0.000163 | 0.000189 | 0.000817 |
+| 100000 | 10 | 10000 | 0.1 | yes | 6 | 44.9 | 31.7 | 1.42 | 7.28e-5 | 8.43e-5 | 0.000404 |
+| 100000 | 10 | 20000 | 0.2 | no | 7 | 47.2 | 49.6 | 0.952 | 3.01e-5 | 3.4e-5 | 0.000169 |
+
+The rule sorts the cells correctly up to two exceptions. Where it fires
+(seven cells) Compress++ is 1.3-6.9x faster in six and 2.8% slower in the
+seventh (N = 10⁴, p = 384, 1%); where it does not (five cells) plain is
+1.05-1.5x faster in four and Compress++ is 1.14x faster in the fifth
+(N = 10⁴, p = 10, 10%). The dimension moves the ratio against Compress++
+(1.36x at p = 10 against 0.98x at p = 384 for N = 10⁴ and 1%; 1.92x against
+1.31x at 5%). The speedup grows with N, and at N = 10⁵ it shrinks with n/N
+from 6.9x at 1% to 1.4x at 10%; at N = 10⁴ it peaks at 5%. The price is
+quality: where the rule fires, Compress++'s energy distance is 3-7% above
+plain kernel thinning at N = 10⁴ and 8-16% above it at N = 10⁵, worst at
+5-10% where `g` = 5-6 leaves the compressed set only about 2n rows for the
+final thinning (`2^g √N ≈ 2.02n` there, against `3.2n` at N = 10⁴); both
+stay at least 1.6x below random in every cell, and plain kernel thinning
+up to 5.6x below it at N = 10⁵. `_compress_pays_off` therefore stays as
+it is and `:auto` remains the default; pass `compress = :never` when the
+last 8-16% of quality matter more than the run time at N ≥ 10⁵. Reproduce
+with:
+
+```sh
+julia -t auto --project=benchmark benchmark/compress.jl
 ```

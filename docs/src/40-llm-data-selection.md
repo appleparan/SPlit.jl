@@ -83,10 +83,12 @@ most.
 Compress++ pays for itself at this size only marginally: at n = 250,
 `compress = :never` scores 0.00244 in 4.5 s and `compress = :always`
 0.00258 in 3.1 s, both well below random's 0.00485. The 6% quality cost
-buys a 1.5x speedup at N = 5,000; the ratio grows with N, which is why
-`:auto` fires only when the cost rule says so — not at the default 20%
-split ratio, but from roughly a 10% one downwards once N ≥ 10⁴. Pass
-`compress = :never` to keep the plain path.
+buys a 1.5x speedup at N = 5,000; the ratio grows with N (2.8x at
+N = 10⁵ and the same 5% ratio, 6.9x at 1%, see
+[Compress++ cost rule](@ref compress-rule)), which is why `:auto` fires
+only when the cost rule says so — not at the default 20% split ratio, but
+from roughly a 10% one downwards once N ≥ 10⁴. Pass `compress = :never` to
+keep the plain path.
 
 ## What this does not settle
 
