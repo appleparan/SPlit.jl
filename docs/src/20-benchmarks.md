@@ -1,29 +1,36 @@
 # [Benchmarks](@id benchmarks)
 
-**Use `herding · energy` by default.** On four synthetic datasets at
-N = 1,000 and 10,000 it has the lowest energy distance in 6 of 8 cases and
-is never far from the best. It also runs 30-100x faster than the
-support-point optimizer. Sections 1 and 2 are the evidence; section 3 is
+**Use `herding · energy` by default; use `kernel thinning` when MMD is the
+criterion.** On four synthetic datasets at N = 1,000 and 10,000
+`herding · energy` has the lowest energy distance in 4 of 8 cases and
+`kernel thinning · energy` in 3, and the two stay within 0.85-1.06x of each
+other everywhere; on Gaussian MMD kernel thinning wins 6 of 8. Herding is
+also the fastest optimized method in every cell, 26-100x faster than the
+support-point optimizer and 8.6-11x faster than kernel thinning at
+N = 10,000. Sections 1 and 2 are the evidence; section 3 is
 why support points fall behind. The setup is under
 [How it was run](@ref benchmarks-environment). Section 4 shows where
 `twinning` fits at N up to 10⁶.
 
-## 1. Quality: `herding · energy` is best or close to best
+## 1. Quality: `herding · energy` and `kernel thinning` share the wins
 
 ![Discrepancy relative to the random split](assets/benchmarks/quality.png)
 
 Each marker is one method on one (dataset, N) cell. The y axis is that
 method's discrepancy divided by the random split's, so 1 means no better
-than random and lower is better. Left: energy distance, the quantity
-`support points · energy` and `herding · energy` minimize. Right: Gaussian
-MMD, the quantity the two `gaussian` methods minimize.
+than random and lower is better. Left: energy distance, the quantity the
+three `energy` methods minimize. Right: Gaussian MMD, the quantity the
+three `gaussian` methods minimize.
 
-- `herding · energy` has the lowest energy distance in 6 of 8 cells. In the
-  other two (`mixture-2d` and `t3-3d` at N = 1,000) `support points · energy`
-  wins and herding is within 1.4x of it.
-- On MMD, herding is best in every cell at N = 10,000. At N = 1,000
-  `herding · gaussian` wins three datasets and `support points · energy`
-  wins `mixture-2d`.
+- `herding · energy` has the lowest energy distance in 4 of 8 cells and
+  `kernel thinning · energy` in 3; `support points · energy` takes the
+  remaining one (`mixture-2d` at N = 1,000). The two leaders are close
+  everywhere: `kernel thinning · energy` is between 0.85x and 1.06x of
+  `herding · energy` in every cell.
+- On MMD, kernel thinning wins 6 of 8 cells — the Gaussian kernel on
+  `mixture-2d` and `t3-3d` at N = 1,000 and `t3-3d` at N = 10,000, the
+  energy kernel on `uniform-5d` at both N and `mixture-2d` at N = 10,000.
+  Herding takes the two `normal-10d` cells.
 - `support points · gaussian` is no better than random on `normal-10d` and
   `uniform-5d` at either N, and `support points · energy` on `normal-10d`
   at N = 10,000. Section 3 explains why.
@@ -33,28 +40,32 @@ MMD, the quantity the two `gaussian` methods minimize.
 
 | dataset | N | lowest energy distance | lowest MMD |
 |---|---:|---|---|
-| mixture-2d | 1000 | support points · energy | support points · energy |
+| mixture-2d | 1000 | support points · energy | kernel thinning · gaussian |
 | normal-10d | 1000 | herding · energy | herding · gaussian |
-| uniform-5d | 1000 | herding · energy | herding · gaussian |
-| t3-3d | 1000 | support points · energy | herding · gaussian |
-| mixture-2d | 10000 | herding · energy | herding · energy |
+| uniform-5d | 1000 | herding · energy | kernel thinning · energy |
+| t3-3d | 1000 | kernel thinning · energy | kernel thinning · gaussian |
+| mixture-2d | 10000 | kernel thinning · energy | kernel thinning · energy |
 | normal-10d | 10000 | herding · energy | herding · energy |
-| uniform-5d | 10000 | herding · energy | herding · energy |
-| t3-3d | 10000 | herding · energy | herding · gaussian |
+| uniform-5d | 10000 | herding · energy | kernel thinning · energy |
+| t3-3d | 10000 | kernel thinning · energy | kernel thinning · gaussian |
 
 Every cell's fastest optimized method is `herding · energy`. All numbers:
 [`assets/benchmarks/results.md`](assets/benchmarks/results.md).
 
-## 2. Speed: 30-100x faster at N = 10,000
+## 2. Speed: herding is 26-100x faster than support points
 
 ![Wall time by method](assets/benchmarks/time.png)
 
 Wall time against N, log-log, JIT warm-up excluded; the random split is
 not shown because it does no work. At N = 10,000 `herding · energy` takes
-0.11-0.19 s and `herding · gaussian` 0.38-0.50 s. The two support-point
-methods take 3.4-8.7 s and 3.5-12.0 s, a 30-100x gap. Herding's cost is
-one `O(N²)` pass for the data term plus `O(nN)` for the selections, with no
-iterations, step sizes or `kappa` to tune.
+0.13-0.21 s and `herding · gaussian` 0.42-0.52 s; `kernel thinning · energy`
+takes 1.2-1.9 s and `kernel thinning · gaussian` 2.7-3.2 s. The two
+support-point methods take 3.6-8.9 s and 5.4-13.0 s, 26-100x the
+`herding · energy` time. Herding's cost is one `O(N²)` pass for the data
+term plus `O(nN)` for the selections, with no iterations, step sizes or
+`kappa` to tune. Kernel thinning is in the same class: the same `O(N²)`
+data-term pass, plus `O(L²)` kernel evaluations for the halvings and an
+`O(nN)` swap pass ([Kernel thinning](@ref kernel-thinning)).
 
 ## 3. Why support points fall behind on `normal-10d` and `uniform-5d`
 
@@ -81,8 +92,9 @@ directly and has no rounding step. Details: `benchmark/rounding.jl` and
 
 ![Test rows selected on the 2-D mixture](assets/benchmarks/selection.png)
 
-The 2-D mixture at N = 1,000 with each method's test rows overlaid. Herding
-and support points both spread the test rows over the four components in
+The 2-D mixture at N = 1,000, one panel per method: the six optimized
+methods and the random split. Herding, support points and kernel thinning
+all spread the test rows over the four components in
 proportion; the random split leaves gaps and clumps. `support points · energy`
 wins this cell, so the picture shows what a good selection looks like, not
 a difference between the families.
@@ -120,6 +132,8 @@ twinning's time at p = 768.
 | support points · gaussian | `SupportPointSplitter(GaussianKernel())` | `max_iterations = 200` | `max_iterations = 100` |
 | herding · energy | `HerdingSplitter(EnergyKernel())` | exact data term | exact data term |
 | herding · gaussian | `HerdingSplitter(GaussianKernel())` | exact data term | exact data term |
+| kernel thinning · energy | `KernelThinningSplitter(EnergyKernel())` | `delta = 0.5` | `delta = 0.5` |
+| kernel thinning · gaussian | `KernelThinningSplitter(GaussianKernel())` | `delta = 0.5` | `delta = 0.5` |
 | random | uniform random split | mean of 5 seeds | mean of 5 seeds |
 | twinning | `TwinningSplitter()` | `start = :farthest` | `start = :farthest` |
 
