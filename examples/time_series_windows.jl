@@ -47,7 +47,14 @@ const SEEDS_STOCHASTIC = QUICK ? 1 : 3
 const RANDOM_DRAWS_MAIN = QUICK ? 5 : 20
 const RANDOM_DRAWS_LADDER = QUICK ? 5 : 10
 const LADDER1 = [1, 2, 4, 8, 16, 32]           # contrast 1: L_short
-const LADDER2 = QUICK ? [8, 64] : [8, 64, 512, 4096]   # contrast 2: L
+const DATA_SEEDS_CONTRAST1 = QUICK ? 2 : 5     # contrast 1: independent datasets to average over
+# Ladder stops at L = 1024 (L·p = 3,072): TwinningSplitter's brute-force path
+# and SupportPointSplitter's `select_nearest` build static-vector
+# nearest-neighbor structures (NearestNeighbors' BruteTree/KDTree) sized to
+# the row width; that compilation fails outright at L·p = 12,288 (L = 4096,
+# "invalid syntax (memory-error out of gc handles)") and did not finish
+# within 7 minutes at L·p = 6,144 (L = 2048). Measured 2026-09-05.
+const LADDER2 = QUICK ? [8, 64] : [8, 64, 512, 1024]   # contrast 2: L
 const M_LADDER2 = 2000
 const N_LADDER2 = 200
 const KAPPA_LADDER2 = 500
@@ -138,8 +145,12 @@ function main_metrics(sel)
   return ed, prop_err, ac
 end
 
-fmt_stat(v::AbstractVector) =
-  length(v) > 1 ? @sprintf("%.3g ± %.3g", mean(v), std(v)) : @sprintf("%.3g", v[1])
+# Mean ± sd; a spread below rounding noise (identical draws) prints as 0.
+function fmt_stat(v::AbstractVector)
+  length(v) > 1 || return @sprintf("%.3g", v[1])
+  s = std(v)
+  return @sprintf("%.3g ± %.3g", mean(v), s < 1e-9 ? 0.0 : s)
+end
 
 main_rows = DataFrame(
   method = String[],
@@ -151,7 +162,6 @@ main_rows = DataFrame(
 random_main_draws =
   [random_rows(N_MAIN, M_MAIN, MersenneTwister(1000 + d)) for d = 1:RANDOM_DRAWS_MAIN]
 random_main_metrics = main_metrics.(random_main_draws)
-ed_random_mean = mean(first.(random_main_metrics))
 push!(
   main_rows,
   (
@@ -253,20 +263,45 @@ end
 
 # ---- Contrast 1: L below the dependence length
 let
-  rows = DataFrame(
-    L_short = Int[],
-    energy_distance = Float64[],
-    ratio_to_random = Float64[],
-    regime_prop_error = Float64[],
-  )
-  for L_short in LADDER1
-    Zshort, _ = windows(X, L_short; stride = L_MAIN)   # same segment starts as the L = 32 windowing
-    Zshorts = standardize_by_variable(Zshort, L_short, P_MAIN)
-    sel = selectrows(TwinningSplitter(), Zshorts, N_MAIN; standardize = false)
-    ed = energydistance(view(Zs, sel, :), Zs)          # evaluated in the shared full-L space
-    prop_err = abs(mean(view(labels, sel) .== :A) - SHARE_A)
-    push!(rows, (L_short, ed, ed / ed_random_mean, prop_err))
+  # Twinning is deterministic, so run-to-run noise in the ratio to random
+  # comes from the dataset, not the selector: average over
+  # DATA_SEEDS_CONTRAST1 independently generated datasets rather than
+  # judging L_short on the main demo's single series.
+  ratios = [Float64[] for _ in LADDER1]
+  prop_errs = [Float64[] for _ in LADDER1]
+  for d = 1:DATA_SEEDS_CONTRAST1
+    Xd, labels_d = two_regime_series(
+      MersenneTwister(500 + d);
+      M = M_MAIN,
+      L = L_MAIN,
+      p = P_MAIN,
+      share_a = SHARE_A,
+    )
+    Zd, _ = windows(Xd, L_MAIN; stride = L_MAIN)
+    Zsd = standardize_by_variable(Zd, L_MAIN, P_MAIN)
+
+    random_draws_d = [
+      random_rows(N_MAIN, M_MAIN, MersenneTwister(1000 + d * 100 + k)) for
+      k = 1:RANDOM_DRAWS_MAIN
+    ]
+    ed_random_d = mean(energydistance(view(Zsd, sel, :), Zsd) for sel in random_draws_d)
+
+    for (i, L_short) in enumerate(LADDER1)
+      Zshort, _ = windows(Xd, L_short; stride = L_MAIN)   # same segment starts as the L = 32 windowing
+      Zshorts = standardize_by_variable(Zshort, L_short, P_MAIN)
+      sel = selectrows(TwinningSplitter(), Zshorts, N_MAIN; standardize = false)
+      ed = energydistance(view(Zsd, sel, :), Zsd)         # evaluated in this dataset's full-L space
+      push!(ratios[i], ed / ed_random_d)
+      push!(prop_errs[i], abs(mean(view(labels_d, sel) .== :A) - SHARE_A))
+    end
   end
+
+  rows = DataFrame(
+    L_short = LADDER1,
+    ratio_to_random = fmt_stat.(ratios),
+    regime_prop_error = fmt_stat.(prop_errs),
+  )
+
   io = IOBuffer()
   println(io, "## Contrast 1: representation below the dependence length\n")
   println(
@@ -277,45 +312,50 @@ let
     io,
     "only the first `L_short` rows of each length-$L_MAIN segment, evaluated in the",
   )
-  println(io, "full L = $L_MAIN space (dependence length ≈ 1/(1-stay_a) ≈ 16).\n")
-  println(io, "| L_short | energy distance | ratio to random | regime-proportion error |")
-  println(io, "|---:|---:|---:|---:|")
+  println(
+    io,
+    "full L = $L_MAIN space (dependence length ≈ 1/(1-stay_a) ≈ 16), averaged over",
+  )
+  println(
+    io,
+    "$DATA_SEEDS_CONTRAST1 independently generated datasets (mean ± sd over data seeds).\n",
+  )
+  println(io, "| L_short | ratio to random | regime-proportion error |")
+  println(io, "|---:|---:|---:|")
   for r in eachrow(rows)
-    @printf(
-      io,
-      "| %d | %.3g | %.3g | %.3g |\n",
-      r.L_short,
-      r.energy_distance,
-      r.ratio_to_random,
-      r.regime_prop_error,
-    )
+    @printf(io, "| %d | %s | %s |\n", r.L_short, r.ratio_to_random, r.regime_prop_error)
   end
   emit(String(take!(io)))
 end
 
 # ---- Contrast 2: the L*p dimension ladder
 let
-  # Warm up JIT once on a tiny, throwaway problem (separate rng seeds from the
-  # timed runs below) so the first timed call of each splitter type is not
-  # paying for compilation.
-  warmup = randn(MersenneTwister(0), 100, 5)
-  selectrows(TwinningSplitter(), warmup, 10; standardize = false)
-  selectrows(
-    SupportPointSplitter(kappa = 20, max_iterations = 5, rng = MersenneTwister(0)),
-    warmup,
-    10;
-    standardize = false,
-  )
-
   rows = DataFrame(
     L = Int[],
     Lp = Int[],
     method = String[],
+    compile_seconds = Float64[],
     seconds = Float64[],
     energy_distance = Float64[],
     ratio_to_random = Float64[],
   )
   for L in LADDER2
+    # Warm up per L, not once: the static-vector nearest-neighbor structures
+    # (NearestNeighbors' BruteTree for twinning's brute-force path, KDTree for
+    # select_nearest) are compiled fresh for each row width, so a warm-up at a
+    # single fixed width would still leave every other ladder width paying
+    # its own width-specific compilation on the timed call below. Run on a
+    # small throwaway matrix of the same width as this L (separate rng seeds
+    # from the timed runs) and record the elapsed time as `compile_seconds`.
+    warmup = randn(MersenneTwister(0), 60, L * P_MAIN)
+    t_compile_twin = @elapsed selectrows(TwinningSplitter(), warmup, 6; standardize = false)
+    t_compile_sp = @elapsed selectrows(
+      SupportPointSplitter(kappa = 30, max_iterations = 3, rng = MersenneTwister(0)),
+      warmup,
+      6;
+      standardize = false,
+    )
+
     X2, _ = two_regime_series(MersenneTwister(2000 + L); M = M_LADDER2, L = L, p = P_MAIN)
     Z2, _ = windows(X2, L; stride = L)
     Zs2 = standardize_by_variable(Z2, L, P_MAIN)
@@ -341,12 +381,15 @@ let
       d = 1:RANDOM_DRAWS_LADDER
     ]
     ed_random = mean(ed_cached.(random_draws))
-    push!(rows, (L, L * P_MAIN, "random", NaN, ed_random, 1.0))
+    push!(rows, (L, L * P_MAIN, "random", NaN, NaN, ed_random, 1.0))
 
     t_twin = @elapsed sel_twin =
       selectrows(TwinningSplitter(), Zs2, N_LADDER2; standardize = false)
     ed_twin = ed_cached(sel_twin)
-    push!(rows, (L, L * P_MAIN, "twinning", t_twin, ed_twin, ed_twin / ed_random))
+    push!(
+      rows,
+      (L, L * P_MAIN, "twinning", t_compile_twin, t_twin, ed_twin, ed_twin / ed_random),
+    )
 
     times_sp = Float64[]
     eds_sp = Float64[]
@@ -366,6 +409,7 @@ let
         L,
         L * P_MAIN,
         "support points · energy",
+        t_compile_sp,
         minimum(times_sp),
         mean(eds_sp),
         mean(eds_sp) / ed_random,
@@ -384,16 +428,29 @@ let
     io,
     "The cached energy distance at L = $(first(LADDER2)) was checked to agree with",
   )
-  println(io, "`energydistance` directly.\n")
-  println(io, "| L | L·p | method | seconds | energy distance | ratio to random |")
-  println(io, "|---:|---:|---|---:|---:|---:|")
+  println(io, "`energydistance` directly. \"compile seconds\" is the first call at that")
+  println(
+    io,
+    "width, on a throwaway 60-row matrix of the same width, paying the width-specific",
+  )
+  println(
+    io,
+    "compilation of the static-vector nearest-neighbor structures; \"seconds\" is the",
+  )
+  println(io, "timed run that follows it.\n")
+  println(
+    io,
+    "| L | L·p | method | compile seconds | seconds | energy distance | ratio to random |",
+  )
+  println(io, "|---:|---:|---|---:|---:|---:|---:|")
   for r in eachrow(rows)
     @printf(
       io,
-      "| %d | %d | %s | %s | %.3g | %.3g |\n",
+      "| %d | %d | %s | %s | %s | %.3g | %.3g |\n",
       r.L,
       r.Lp,
       r.method,
+      r.method == "random" ? "–" : @sprintf("%.2g", r.compile_seconds),
       r.method == "random" ? "–" : @sprintf("%.2g", r.seconds),
       r.energy_distance,
       r.ratio_to_random,
