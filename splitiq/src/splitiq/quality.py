@@ -157,6 +157,7 @@ def splitquality(
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
+    standardize: bool = True,
 ) -> float:
     """Discrepancy between the train and test rows of `data`. Smaller is better.
 
@@ -182,6 +183,9 @@ def splitquality(
             `reference` instead of against the other side of the split.
         reference_weights: One non-negative entry per row of `reference`,
             or ``None`` for uniform reference weights. Requires `reference`.
+        standardize: ``False`` uses a numeric array as it is (no centering,
+            scaling, or constant-column removal) — for cosine-normalized
+            embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:
         The discrepancy between the train and test rows of `data`, or,
@@ -210,5 +214,6 @@ def splitquality(
                 **kwargs,
                 **_weights_kwarg(to_weights(weights)),
                 **_reference_kwargs(julia_reference, julia_reference_weights),
+                standardize=standardize,
             )
         )

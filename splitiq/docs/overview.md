@@ -22,6 +22,8 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 | any other Julia exception | `juliacall.JuliaError` |
 | 0-based numpy index array | 1-based Julia row index vector |
 | `'farthest'` / `'random'` / 0-based `start` | `:farthest` / `:random` / 1-based row index |
+| `'auto'` / `'always'` / `'never'` `compress` | `:auto` / `:always` / `:never` |
+| `standardize: bool` | `standardize::Bool` (`False` skips preprocessing entirely) |
 
 ## `SplitResult`
 

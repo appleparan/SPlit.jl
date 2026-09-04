@@ -205,3 +205,24 @@ folds = multiplet(data, 4, strategy='single')    # one twinning run, folds by ne
 
 `strategy='halving'` needs `k` to be a power of two. `method='support_points'` and
 `method='herding'` also work with `'sequential'` and `'halving'`.
+
+## Embeddings
+
+- `standardize=False` on `datasplit`, `select_rows`, `multiplet`, and `splitquality` uses a
+  numeric array as it is — no centering, scaling, or constant-column removal — which suits
+  cosine-normalized embeddings where standardizing would distort direction. A pandas DataFrame
+  then raises `ValueError`.
+- `compress='auto'` (default), `'always'`, or `'never'` on `datasplit`, `select_rows`, and
+  `multiplet` controls whether `method='kernel_thinning'` runs Compress++ in place of plain
+  kernel thinning; it is a kernel-thinning-only option, so a non-default value with another
+  `method` raises `ValueError`.
+
+```python
+import numpy as np
+from splitiq import datasplit
+
+embeddings = np.random.default_rng(0).standard_normal((5_000, 384))
+embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+result = datasplit(embeddings, ratio=0.2, method='kernel_thinning', standardize=False)
+```

@@ -72,3 +72,27 @@ def test_kernel_thinning_option_errors() -> None:
         datasplit(data, method='kernel_thinning', start='random')
     with pytest.raises(ValueError, match='method'):
         datasplit(data, method='thinning')  # ty: ignore[invalid-argument-type]
+
+
+def test_compress_options() -> None:
+    # N=6000 is chosen so `_compress_pays_off` makes `'auto'` run Compress++
+    # for this n (the brief's N=4000 stays below that threshold and would
+    # make `'auto'` and `'always'` diverge).
+    n_rows = 6000
+    data = np.random.default_rng(20).standard_normal((n_rows, 2))
+    auto = select_rows(data, 100, method='kernel_thinning', seed=1)
+    always = select_rows(data, 100, method='kernel_thinning', compress='always', seed=1)
+    never = select_rows(data, 100, method='kernel_thinning', compress='never', seed=1)
+    assert np.array_equal(auto, always)
+    assert not np.array_equal(auto, never)
+    with pytest.raises(ValueError, match='compress'):
+        select_rows(data, 100, method='herding', compress='never')
+    with pytest.raises(ValueError, match='compress'):
+        select_rows(
+            data,
+            100,
+            method='kernel_thinning',
+            compress='maybe',  # ty: ignore[invalid-argument-type]
+        )
+    with pytest.raises(ValueError, match='Compress'):
+        select_rows(data, 100, method='kernel_thinning', compress='always', weights=np.ones(n_rows))
