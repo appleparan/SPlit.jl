@@ -9,6 +9,10 @@
 # thinning for n = 250 ≪ N. Prints a markdown table and writes it to
 # docs/src/assets/examples/llm_selection.md.
 #
+# Setup (from the repository root; path="." is the checkout):
+#   julia --project=examples -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+#   julia -t auto --project=examples examples/llm_data_selection.jl
+#
 # Run (a few minutes): julia -t auto --project=examples examples/llm_data_selection.jl
 # Options: --model minilm|arcticlarge, --out PATH, --n 500
 
@@ -50,6 +54,7 @@ println("N = $N, p = $p, target rows (cs) = $(size(R, 1)), n = $N_SELECT")
 # ---- baselines
 random_rows(n, rng) = randperm(rng, N)[1:n]
 function kcenter_greedy(E, n, rng)                       # farthest-first traversal (Sener & Savarese 2018)
+  N = size(E, 1)
   sel = [rand(rng, 1:N)]
   mind = fill(Inf, N)
   for _ = 2:n
@@ -99,6 +104,7 @@ for (setting, kwargs, scorer, skip) in (
   # random: mean of 5 seeds
   rs = [random_rows(N_SELECT, MersenneTwister(100 + i)) for i = 1:5]
   push!(rows, (setting, "random", mean(scorer.(rs)), mean(score_plain.(rs)), 0.0))
+  kcenter_greedy(E[1:200, :], 20, MersenneTwister(0))   # warm-up (JIT)
   t = @elapsed sel = kcenter_greedy(E, N_SELECT, MersenneTwister(7))
   record!(setting, "k-center greedy", sel, t, scorer)
   for (label, s) in splitters(1)
