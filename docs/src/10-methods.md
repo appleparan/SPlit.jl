@@ -585,7 +585,10 @@ so `datasplit` with the default splitter is unchanged; it can fire below
 roughly a 10% ratio once ``N \ge 10^4`` — up to ``n = 800`` at
 ``N = 10^4``, 10,100 at ``N = 10^5`` and 64,000 at ``N = 10^6`` — which is
 where `selectrows` and `multiplet` usually sit. Pass `compress = :never` to
-keep the plain path there; `:always` forces Compress++.
+keep the plain path there; `:always` forces Compress++. The rule was checked
+against wall time and quality in [Compress++ cost rule](@ref compress-rule):
+where it fires, Compress++ is 1.3-6.9x faster in six of seven measured
+cells (a tie in the seventh) at a 3-16% energy-distance cost.
 
 **Differences from the paper.** The halving algorithm is kernel thinning
 of the block (split and swap), the failure probability is split evenly
