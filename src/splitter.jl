@@ -36,7 +36,11 @@ points and mapped to data rows by sequential nearest-neighbor selection.
   support point in one iteration is below this value. In stochastic mode
   the running-average weight decays with the iteration count, so
   convergence there partly reflects that step-size decay rather than the
-  objective flattening out.
+  objective flattening out. For `GaussianKernel` on full data, convergence
+  never fires before the second iteration, and also triggers when the
+  relative objective decrease falls below an internal `rtol = 1e-8` (not
+  exposed here); in stochastic mode the Gaussian kernel uses the MM sweep
+  and the displacement rule only.
 - `rng`: source of all randomness (initialization, jitter, stochastic
   subsampling); pass a seeded RNG for reproducible splits.
 - `verbose`: print per-iteration progress.

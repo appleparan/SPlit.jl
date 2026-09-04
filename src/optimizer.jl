@@ -2,11 +2,13 @@
 Support-point optimization.
 
 Full-data mode applies the closed-form MM update of Mak & Joseph (2018) for
-`EnergyKernel`, which decreases the energy-distance objective monotonically;
-`GaussianKernel` runs the analogous MM mean-shift sweep, which decreases the
-squared MMD monotonically. When `kappa` is given, the stochastic variant of
-Joseph & Vakayil (2022) resamples `kappa` rows per iteration and stabilizes
-the update with running averages.
+`EnergyKernel`, which decreases the energy-distance objective monotonically.
+For `GaussianKernel`, full-data mode minimizes the squared MMD by projected
+gradient descent with Armijo backtracking; in stochastic mode (`kappa` below
+the number of target rows) it instead runs the analogous MM mean-shift
+sweep, which decreases the squared MMD monotonically on full data and, like
+the energy kernel's stochastic mode, resamples `kappa` rows per iteration
+(Joseph & Vakayil 2022) and stabilizes the update with running averages.
 """
 
 using LinearAlgebra
@@ -280,14 +282,10 @@ end
 
 Compute `n` support points for `data` (rows are observations) under `kernel`,
 by the majorization–minimization (MM) sweep of that kernel: the closed-form
-update of Mak & Joseph (2018) for `EnergyKernel`, and for `GaussianKernel`
-the mean-shift update in which each point moves toward the kernel-weighted
-mean of the data, pushed by the linearized repulsion from the other points
-(see the Methods page). Both sweeps cost one pass over the data and the
-point set, and neither increases the objective on full data. Returns the
-points, whether the point-movement tolerance was reached, and the number of
-iterations actually used. A `GaussianKernel` must be resolved (numeric
-bandwidth); `datasplit` resolves it.
+update of Mak & Joseph (2018) for `EnergyKernel`. Both sweeps cost one pass
+over the data and the point set, and neither increases the objective on full
+data. Returns the points, whether the point-movement tolerance was reached,
+and the number of iterations actually used.
 
 Convergence compares the largest *squared* displacement of any support point
 in one iteration to `tolerance`. In stochastic mode (`kappa !== nothing`),
@@ -323,7 +321,44 @@ so weighting a reference is equivalent to duplicating its rows only up to
 that jitter.
 """
 function support_points(
-  k::Union{EnergyKernel,GaussianKernel},
+  k::EnergyKernel,
+  data::Matrix{Float64},
+  n::Int;
+  kappa::Union{Nothing,Int} = nothing,
+  max_iterations::Int = 500,
+  tolerance::Float64 = 1e-10,
+  n_threads::Int = Threads.nthreads(),
+  rng::AbstractRNG = Random.default_rng(),
+  verbose::Bool = false,
+  weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
+  _n0_factor::Float64 = 0.2,
+  _subsampling::Symbol = :uniform,
+)
+  return _support_points_mm(
+    k,
+    data,
+    n;
+    kappa,
+    max_iterations,
+    tolerance,
+    n_threads,
+    rng,
+    verbose,
+    weights,
+    target,
+    target_weights,
+    _n0_factor,
+    _subsampling,
+  )
+end
+
+# Shared MM-sweep loop behind `support_points(::EnergyKernel, …)` and the
+# Gaussian kernel's stochastic mode (`support_points(::GaussianKernel, …)`
+# with `kappa` below the number of target rows).
+function _support_points_mm(
+  k::Union{EnergyKernel,GaussianKernel{Float64}},
   data::Matrix{Float64},
   n::Int;
   kappa::Union{Nothing,Int} = nothing,
@@ -518,9 +553,194 @@ function _mmd_gradient!(
   return G
 end
 
-# Test helper: MMD² objective (up to its constant) after each full-data
-# Gaussian MM sweep, weighted when `weights` is given, toward `target` when
-# one is given. The Gaussian twin of `_objective_trajectory`.
+# One projected-gradient step with Armijo backtracking on the projected step:
+# ξ_new is ξ − tG clamped to the bounding box, and the accepted step size t
+# is the largest tried (starting from t0, halving) satisfying
+# f(ξ_new) ≤ f(ξ) − 1e-4 · ⟨G, ξ − ξ_new⟩ — the sufficient-decrease test
+# against the actual projected move rather than the unprojected ‖G‖², so a
+# point held at the bounding box (where ξ − ξ_new can be much smaller than
+# tG) can still be accepted as converged. Returns (accepted step size,
+# objective at the accepted points), or (0.0, f0) if none of the 30 tried
+# steps decreased the objective.
+function _armijo_step!(
+  new_points::Matrix{Float64},
+  points::Matrix{Float64},
+  G::Matrix{Float64},
+  f0::Float64,
+  t0::Float64,
+  k::GaussianKernel{Float64},
+  data::Matrix{Float64},
+  bounds::Matrix{Float64},
+  w_bar::Union{Nothing,AbstractVector{Float64}},
+)
+  t = t0
+  for _ = 1:30
+    @inbounds for m in axes(points, 1), j in axes(points, 2)
+      new_points[m, j] = clamp(points[m, j] - t * G[m, j], bounds[j, 1], bounds[j, 2])
+    end
+    decrease = 0.0
+    @inbounds for m in axes(points, 1), j in axes(points, 2)
+      decrease += G[m, j] * (points[m, j] - new_points[m, j])
+    end
+    f_new = _mmd_objective(k, new_points, data, w_bar)
+    if f_new <= f0 - 1e-4 * decrease
+      return t, f_new
+    end
+    t /= 2
+  end
+  return 0.0, f0
+end
+
+# Scale-aware initial trial step for the first Armijo iteration: a tenth of
+# the median per-dimension data range, divided by the largest gradient row
+# norm (guarded against a near-zero gradient by `eps()`). The gradient
+# carries 1/n², 1/(nN) factors whose magnitude varies enormously with n and
+# N, so a fixed t0 = 1.0 can be far too small; this keeps the first move a
+# fixed fraction of the data scale regardless. Shared by
+# `support_points(::GaussianKernel, …)` and `_mmd_trajectory`.
+function _first_step(G::Matrix{Float64}, bounds::Matrix{Float64})
+  n = size(G, 1)
+  scale = median(view(bounds, :, 2) .- view(bounds, :, 1))
+  return 0.1 * scale / max(maximum(norm(view(G, m, :)) for m = 1:n), eps())
+end
+
+"""
+    support_points(kernel::GaussianKernel, data, n; kwargs...)
+
+Support points under a Gaussian kernel. On full data (`kappa === nothing`,
+or `kappa` at or above the number of target rows), minimize the squared MMD
+between the point set and the data by projected gradient descent with
+Armijo backtracking on the projected step (the objective never increases
+across accepted steps). In stochastic mode (`kappa` below the number of
+target rows), support points instead come from the Gaussian MM sweep
+(mean-shift data term, majorized repulsion, see the Methods page), with the
+energy path's running-average blend and the displacement rule only — no
+line search. The kernel must be resolved (numeric bandwidth); `datasplit`
+resolves it.
+
+The first trial step of the full-data path is scale-aware:
+`t0 = 0.1 * scale / max(‖∇f‖, eps())`, with `scale` the median per-dimension
+data range and `‖∇f‖` the largest gradient row norm, so the initial move is
+a tenth of the data scale regardless of the point count or gradient
+magnitude (Armijo backtracking and the `2t` warm start on later iterations
+are unchanged). Convergence never fires before the second iteration, and
+then when either the largest squared displacement is below `tolerance` or
+the relative objective decrease `|f_{t-1} - f_t| / max(|f_t|, 1e-12)` is
+below `rtol`. `f` is `_mmd_objective`, which omits the constant data
+self-term and is bounded in `[-1, 1]` for a Gaussian kernel, so `rtol` acts
+as an absolute per-iteration tolerance on that bounded objective, not a
+relative tolerance on the (orders-of-magnitude smaller) true MMD². `rtol`
+applies to the full-data path only; in stochastic mode convergence uses
+only the displacement rule, as on the energy path.
+
+`weights` (one non-negative entry per row, `nothing` for uniform) makes the
+points minimize the MMD² to the weighted empirical distribution
+`Σ w̄ᵢ δ(xᵢ)`: the data term of the objective and of the gradient carries
+`w̄`, with `ŵ = N w̄` (exactly `1.0` for uniform weights) inside the
+gradient loop, so unweighted results are unchanged.
+
+`target` (a matrix with the same columns as `data`) makes the points
+approximate the empirical distribution of `target` instead of `data`:
+the data term of the objective runs over the rows of `target`, weighted by
+`target_weights` (sum-one normalized, `nothing` for uniform; a constant
+vector is treated as `nothing`), while the initial points and the bounding
+box come from `data`, whose rows the points are later rounded to. `weights`
+is only for the case without a target; giving both is an `ArgumentError`. A
+target with duplicate rows is jittered by 1e-3 of its column range like the
+data, so weighting a reference is equivalent to duplicating its rows only
+up to that jitter.
+"""
+function support_points(
+  k::GaussianKernel,
+  data::Matrix{Float64},
+  n::Int;
+  kappa::Union{Nothing,Int} = nothing,
+  max_iterations::Int = 500,
+  tolerance::Float64 = 1e-10,
+  rtol::Float64 = 1e-8,
+  n_threads::Int = Threads.nthreads(),
+  rng::AbstractRNG = Random.default_rng(),
+  verbose::Bool = false,
+  weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
+  _n0_factor::Float64 = 0.2,
+  _subsampling::Symbol = :uniform,
+)
+  isresolved(k) ||
+    throw(ArgumentError("GaussianKernel bandwidth must be resolved; call resolve first"))
+  kappa === nothing ||
+    kappa > 0 ||
+    throw(ArgumentError("kappa must be positive, got $kappa"))
+  M = target === nothing ? size(data, 1) : size(target, 1)
+  stochastic = kappa !== nothing && kappa < M
+  if stochastic
+    return _support_points_mm(
+      k,
+      data,
+      n;
+      kappa,
+      max_iterations,
+      tolerance,
+      n_threads,
+      rng,
+      verbose,
+      weights,
+      target,
+      target_weights,
+      _n0_factor,
+      _subsampling,
+    )
+  end
+
+  N = size(data, 1)
+  0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
+  max_iterations > 0 ||
+    throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
+  rtol > 0 || throw(ArgumentError("rtol must be positive, got $rtol"))
+  R, w_hat, w_bar = _resolve_target(data, weights, target, target_weights)
+  M = size(R, 1)
+
+  bounds = _data_bounds(data)
+  working = copy(R)
+  if length(unique(eachrow(working))) < M
+    _jitter!(rng, working, target === nothing ? bounds : _data_bounds(R))
+  end
+  candidates = target === nothing ? working : copy(data)
+  if target !== nothing && length(unique(eachrow(candidates))) < N
+    _jitter!(rng, candidates, bounds)
+  end
+  points = _initial_points(rng, candidates, n, bounds)
+  new_points = similar(points)
+  G = similar(points)
+  f = _mmd_objective(k, points, working, w_bar)
+  t = 1.0
+
+  iteration = 0
+  converged = false
+  while !converged && iteration < max_iterations
+    iteration += 1
+    verbose && print("\rIteration $iteration/$max_iterations  objective(mmd2 − const)=$f")
+    _mmd_gradient!(G, k, points, working, w_hat, n_threads)
+    t0 = iteration == 1 ? _first_step(G, bounds) : 2t
+    f_prev = f
+    t, f = _armijo_step!(new_points, points, G, f, t0, k, working, bounds, w_bar)
+    t == 0.0 && break   # no decreasing step found: stop, report not converged
+    max_move = 0.0
+    @views for m = 1:n
+      max_move = max(max_move, sum(abs2, new_points[m, :] .- points[m, :]))
+    end
+    points, new_points = new_points, points
+    rel = abs(f_prev - f) / max(abs(f), 1e-12)
+    converged = iteration >= 2 && (max_move < tolerance || rel < rtol)
+  end
+  verbose && println()
+  return points, converged, iteration
+end
+
+# Test helper: objective after each accepted step (full-data Gaussian path),
+# weighted when `weights` is given. Mirrors the scale-aware first step of
+# `support_points(::GaussianKernel, …)`.
 function _mmd_trajectory(
   k::GaussianKernel{Float64},
   data::Matrix{Float64},
@@ -535,24 +755,17 @@ function _mmd_trajectory(
   bounds = _data_bounds(data)
   points = _initial_points(rng, copy(data), n, bounds)
   new_points = similar(points)
-  running_const = zeros(n)
-  current_const = zeros(n)
-  traj = Float64[_mmd_objective(k, points, R, w_bar)]
-  for _ = 1:max_iterations
-    _mm_sweep!(
-      k,
-      new_points,
-      current_const,
-      points,
-      R,
-      w_hat,
-      running_const,
-      1.0,
-      bounds,
-      1,
-    )
+  G = similar(points)
+  f = _mmd_objective(k, points, R, w_bar)
+  traj = Float64[f]
+  t = 1.0
+  for iteration = 1:max_iterations
+    _mmd_gradient!(G, k, points, R, w_hat, 1)
+    t0 = iteration == 1 ? _first_step(G, bounds) : 2t
+    t, f = _armijo_step!(new_points, points, G, f, t0, k, R, bounds, w_bar)
+    t == 0.0 && break
     points, new_points = new_points, points
-    push!(traj, _mmd_objective(k, points, R, w_bar))
+    push!(traj, f)
   end
   return traj
 end

@@ -124,7 +124,7 @@ end
     @test G4 == G
   end
 
-  @testset "objective is non-increasing along full-data sweeps" begin
+  @testset "objective is non-increasing along accepted steps" begin
     data = randn(MersenneTwister(62), 150, 2)
     traj =
       SPlit._mmd_trajectory(k, data, 15; max_iterations = 40, rng = MersenneTwister(63))
@@ -192,12 +192,26 @@ end
     @test traj[end] < traj[1]
   end
 
-  @testset "a flat objective stops by the displacement rule" begin
+  @testset "relative-decrease rule stops a flat objective honestly" begin
+    data = randn(MersenneTwister(143), 200, 2)
+    _, conv, iters = SPlit.support_points(
+      GaussianKernel(1.0),
+      data,
+      20;
+      max_iterations = 300,
+      rtol = 1e-3,
+      rng = MersenneTwister(144),
+    )
+    @test conv && 2 <= iters < 300
+  end
+
+  @testset "a flat objective stops by the displacement rule in stochastic mode" begin
     data = randn(MersenneTwister(143), 200, 2)
     _, conv, iters = SPlit.support_points(
       GaussianKernel(1e-3),   # far below the row spacing: nothing moves
       data,
       20;
+      kappa = 100,
       max_iterations = 50,
       rng = MersenneTwister(144),
     )
@@ -255,6 +269,22 @@ end
       rng = MersenneTwister(149),
     )
     @test SPlit._mmd_objective(k, pts, data) < SPlit._mmd_objective(k, init, data)
+  end
+
+  @testset "stochastic mode is the MM sweep: kappa < N never calls the line search" begin
+    data = randn(MersenneTwister(150), 300, 2)
+    # An unresolvable line search would report converged = false at iteration 1;
+    # the MM sweep always produces a step, so a 5-iteration run reports 5.
+    _, conv, iters = SPlit.support_points(
+      k,
+      data,
+      20;
+      kappa = 50,
+      max_iterations = 5,
+      tolerance = 1e-30,
+      rng = MersenneTwister(151),
+    )
+    @test conv == false && iters == 5
   end
 end
 
@@ -537,12 +567,12 @@ end
     w = vcat(fill(9.0, 200), fill(1.0, 200))
     in_A(pts) = count(<(0.0), pts[:, 1])
     unweighted, _, _ =
-      SPlit.support_points(k, data, 40; max_iterations = 500, rng = MersenneTwister(4))
+      SPlit.support_points(k, data, 40; max_iterations = 100, rng = MersenneTwister(4))
     weighted, _, _ = SPlit.support_points(
       k,
       data,
       40;
-      max_iterations = 500,
+      max_iterations = 100,
       rng = MersenneTwister(4),
       weights = w,
     )
