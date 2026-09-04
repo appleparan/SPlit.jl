@@ -9,3 +9,6 @@ node_modules
 
 # Font downloads cached by docs/diagrams/export.py
 docs/diagrams/.cache/
+
+# Example datasets downloaded on demand
+examples/data/
