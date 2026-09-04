@@ -944,3 +944,90 @@ git commit -m "docs: Describe the Gaussian MM sweep and close roadmap M6
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
+
+---
+
+## Amendment after Task 4 (user decision, option 1)
+
+The spec's Amendment section is binding from here: Armijo stays on full data, the MM sweep runs in stochastic mode only. Task 5 shrinks to a signature fix (no benchmark reruns); Task 4's script and docs section are revised in Task 8; Task 6's docs text must describe both paths.
+
+### Task 7: Armijo on full data, MM sweep in stochastic mode
+
+**Files:**
+
+- Modify: `src/optimizer.jl`, `src/splitter.jl` (docstring only), `test/test_optimizer.jl`
+- Reference: `git show c9e2809:src/optimizer.jl` (the pre-M6 file; lines 421-475 hold `_armijo_step!` and `_first_step`, 472-577 the Gaussian `support_points` docstring and method, 579-606 the Armijo `_mmd_trajectory`) and `git show c9e2809:test/test_optimizer.jl`
+
+**Interfaces:**
+
+- Produces:
+  - `_support_points_mm(k::Union{EnergyKernel,GaussianKernel{Float64}}, data::Matrix{Float64}, n::Int; kappa, max_iterations, tolerance, n_threads, rng, verbose, weights, target, target_weights, _n0_factor, _subsampling) -> (points, converged, iterations)` — the current unified loop, renamed (body unchanged).
+  - `support_points(k::EnergyKernel, data, n; kappa = nothing, max_iterations = 500, tolerance = 1e-10, n_threads = Threads.nthreads(), rng = Random.default_rng(), verbose = false, weights = nothing, target = nothing, target_weights = nothing, _n0_factor = 0.2, _subsampling = :uniform)` — forwards every keyword to `_support_points_mm`; the current merged docstring moves above it, with its Gaussian sentences removed.
+  - `support_points(k::GaussianKernel, data, n; kappa = nothing, max_iterations = 500, tolerance = 1e-10, rtol =
+    1e-8, n_threads, rng, verbose, weights, target, target_weights, _n0_factor = 0.2, _subsampling = :uniform)`:
+    `isresolved(k)` check; `M = target === nothing ? size(data, 1) : size(target, 1)`; `stochastic = kappa !==
+    nothing && kappa < M`; when stochastic, `return _support_points_mm(k, data, n; kappa, max_iterations,
+    tolerance, n_threads, rng, verbose, weights, target, target_weights, _n0_factor, _subsampling)`; otherwise the
+    pre-M6 Armijo body restored verbatim (from `git show c9e2809:src/optimizer.jl` lines 512-577) minus its
+    `kappa` `ArgumentError` line (kappa validation `kappa === nothing || kappa > 0 || throw(ArgumentError("kappa
+    must be positive, got $kappa"))` replaces it, before the `stochastic` test). Its docstring is the pre-M6 one
+    (lines 472-511) rewritten so the first paragraph says: full data → projected gradient with Armijo backtracking
+    (unchanged text), stochastic mode (`kappa` below the number of target rows) → the Gaussian MM sweep (mean-
+    shift data term, majorized repulsion, see the Methods page) with the energy path's running-average blend and
+    the displacement rule only; `rtol` applies to the full-data path only. Keep the weights/target paragraphs.
+  - `_armijo_step!`, `_first_step` restored verbatim (lines 421-471) directly above the Gaussian method.
+  - `_mmd_trajectory(k::GaussianKernel{Float64}, data, n; max_iterations, rng, weights, target, target_weights)` restored verbatim as the Armijo trajectory (lines 579-606); the current sweep-based body is deleted (the one-sweep tests in "Gaussian MM sweep" cover the sweep).
+  - Method order in the file: `_mm_sweep!` (energy), the two Task-1 methods, `_resolve_target`, `_draw_subsample`, docstring + `support_points(::EnergyKernel)`, `_support_points_mm`, `_objective_trajectory`, `_mmd_objective`s, `_mmd_gradient!`, `_armijo_step!`, `_first_step`, docstring + `support_points(::GaussianKernel)`, `_mmd_trajectory`.
+
+- [ ] **Step 1: Test edits (RED first where applicable)**
+
+In `test/test_optimizer.jl`, testset `support_points with GaussianKernel`:
+
+- Rename `"objective is non-increasing along full-data sweeps"` back to `"objective is non-increasing along accepted steps"` (body unchanged; it uses `_mmd_trajectory`, now Armijo again).
+- Restore the pre-M6 testset `"relative-decrease rule stops a flat objective honestly"` verbatim from `git show c9e2809:test/test_optimizer.jl` (it passes `rtol = 1e-3` and asserts `conv && 2 <= iters < 300`).
+- Change `"a flat objective stops by the displacement rule"` into the stochastic version: add `kappa = 100` to its `support_points` call (N = 200, so stochastic) and rename it `"a flat objective stops by the displacement rule in stochastic mode"`; assertions unchanged (`conv == true`, `iters < 50`).
+- Keep `"stochastic mode: runs, reproducible, full-data when kappa ≥ N"` and `"stochastic mode beats the initial sample under MMD"` unchanged.
+- In `"concentrated weights pull support points toward the heavy cluster"` set both `max_iterations` back to `100` (the Armijo path passes there, as before Task 2).
+- Add, at the end of that testset:
+
+```julia
+  @testset "stochastic mode is the MM sweep: kappa < N never calls the line search" begin
+    data = randn(MersenneTwister(150), 300, 2)
+    # An unresolvable line search would report converged = false at iteration 1;
+    # the MM sweep always produces a step, so a 5-iteration run reports 5.
+    _, conv, iters = SPlit.support_points(
+      k,
+      data,
+      20;
+      kappa = 50,
+      max_iterations = 5,
+      tolerance = 1e-30,
+      rng = MersenneTwister(151),
+    )
+    @test conv == false && iters == 5
+  end
+```
+
+Run `test/test_optimizer.jl`: the restored `rtol` test errors (`rtol` is not a keyword yet) — RED.
+
+- [ ] **Step 2: Source changes** as in Interfaces. Then in `src/splitter.jl`'s `SupportPointSplitter` docstring, `tolerance` bullet, re-add after "…rather than the objective flattening out.": `For \`GaussianKernel\` on full data, convergence never fires before the second iteration, and also triggers when the relative objective decrease falls below an internal \`rtol = 1e-8\` (not exposed here); in stochastic mode the Gaussian kernel uses the MM sweep and the displacement rule only.`
+
+- [ ] **Step 3: Verify.** `test/test_optimizer.jl` and `test/test_splitter.jl` on Julia 1.10 and 1.12, then the full suite. `grep -n "rtol\|_armijo_step!\|_first_step\|_support_points_mm" src/optimizer.jl` shows the restored names; `grep -rn "_mm_trajectory" src test` is empty.
+
+- [ ] **Step 4: Commit** `feat: Keep Armijo on full data and run the MM sweep in stochastic mode`.
+
+### Task 8: Revise the benchmark script and the Design experiments section
+
+**Files:** `benchmark/gaussian_update.jl`, `docs/src/assets/benchmarks/gaussian_update.md` (regenerated), `docs/src/25-design-experiments.md` (the `gaussian-update` section)
+
+- Delete the script's private Armijo copy; the `armijo` arm becomes `SPlit.support_points(k, Z, n; max_iterations = max_iter, rng = MersenneTwister(200 + seed), n_threads = Threads.nthreads())` (full data → Armijo). The `mm` arm becomes a private loop: `max_iter` calls of `SPlit._mm_sweep!(k, new_points, current_const, points, Z, ones(N), running_const, 1.0, bounds, Threads.nthreads())` from `init` (with `points, new_points = new_points, points` after each), reporting `max_iter` as its iteration count. The `mm kappa=1000` arm stays `SPlit.support_points(…; kappa = 1_000, …)`. Update the header comment to say what each arm is and that the full-data sweep is not an API path.
+- Rerun quick, then full (background; wait with a loop that does NOT match itself — e.g. `until grep -q "gaussian_update: done" LOG; do sleep 30; done`).
+- Rewrite the docs section: it now records the decision — Armijo on full data, MM sweep in `kappa` mode — with the measured reasons (the `uniform-5d` MMD numbers, the early-stop/wall-time observation, the `kappa` speedups), the rejected over-relaxation experiment in one sentence, the table link, and the reproduce command. Commit `perf: Record the Gaussian optimizer decision with the revised benchmark`.
+
+### Task 5 (amended): `benchmark/rounding.jl` signature fix only
+
+Change `SPlit._mmd_gradient!(G, k, points, data, n_threads)` to `SPlit._mmd_gradient!(G, k, points, data, ones(size(data, 1)), n_threads)`; keep its Armijo loop and `rtol`. Do not rerun `run.jl` or `rounding.jl`. Commit `fix: Match the rounding benchmark to the gradient signature`. May be batched with Task 3.
+
+### Task 6 (amended)
+
+The Methods page keeps the Armijo description for full data and adds the MM sweep paragraph for stochastic mode (the same formulas as written in Task 6 Step 1, introduced by "With `kappa` below the number of rows, the Gaussian kernel switches to a majorization–minimization sweep of the energy sweep's shape…"), ending with the measured reason the sweep is not used on full data (link to the Design experiments section). Roadmap M6 "Done (2026-09-04)": what landed (MM sweep, `kappa` for `GaussianKernel`), the outcome (full data stays Armijo, measured), the paper's weighted map not adopted. README/AGENTS.md: `GaussianKernel` gotcha becomes "`kappa` runs the MM sweep (mean-shift data term, majorized repulsion, displacement rule); full data stays the Armijo path with its first-trial-step and `rtol` rules (measured, see Design experiments)". Keep the existing "Gaussian optimizer: the first trial step…" gotcha.

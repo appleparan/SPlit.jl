@@ -296,3 +296,39 @@ its numbers about `support points · gaussian` change.
 - Fukunaga, K., & Hostetler, L. (1975). The estimation of the gradient of a
   density function, with applications in pattern recognition. *IEEE Trans.
   Inf. Theory*, 21(1), 32-40.
+
+## Amendment (2026-09-04, after the benchmark)
+
+Decision 1's criterion was not met: on `uniform-5d` the MM path's selected
+rows are worse than Armijo's (N = 1,000: MMD 0.00267 vs 0.00116; N = 10,000:
+0.000393 vs 0.000305, random 0.000401), and on full data the MM sweep never
+reaches the displacement rule within the iteration cap while Armijo stops
+early by its relative-decrease rule, so its wall time is higher on two of
+four datasets at N = 10,000. The `kappa` mode, which only the sweep can
+provide, is 3-4x faster than full-data MM at Armijo-level quality on three
+datasets (`benchmark/gaussian_update.jl`, Design experiments page). An
+over-relaxed sweep (adaptive extrapolation with one objective evaluation
+per iteration) was tried and rejected: negligible objective gain at 2-3x the
+cost.
+
+Decision taken with the user (option 1 of three): **the Gaussian kernel
+keeps the Armijo projected-gradient optimizer on full data and runs the MM
+sweep only in stochastic mode (`kappa` below the number of target rows).**
+Consequences:
+
+- `support_points(::GaussianKernel, …)` regains `rtol` (full-data rule:
+  at least 2 iterations, then displacement or relative decrease) and
+  dispatches on `stochastic`; the shared MM loop becomes the internal
+  `_support_points_mm`, called by `support_points(::EnergyKernel, …)` and
+  by the Gaussian stochastic branch. `kappa ≥ M` is the full-data (Armijo)
+  path, bit-identical to `kappa = nothing`.
+- `_armijo_step!`, `_first_step`, and the Armijo `_mmd_trajectory` return
+  verbatim; the benchmark script's private copy of Armijo goes away and the
+  script's `mm` (full-data sweep) arm becomes a private loop over
+  `_mm_sweep!`, since that path is no longer reachable through the API.
+- `benchmark/rounding.jl` keeps its Armijo loop (its stale
+  `_mmd_gradient!` call gains the `w_hat` argument); `benchmark/run.jl` is
+  not rerun: the full-data Gaussian path is unchanged, so the Benchmarks
+  page stays valid.
+- The "one optimizer per kernel" principle is set aside on measured
+  grounds, recorded on the Design experiments page.
