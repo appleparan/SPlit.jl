@@ -24,7 +24,7 @@ embedding matrices:
    when its estimated cost is below plain kernel thinning's and the target
    measure is the data itself.
 3. `examples/llm_data_selection.jl`: downloads a public arXiv-abstract
-   embedding matrix (10,000 × 384, CC0), cosine-normalizes it, selects
+   embedding matrix (5,000 × 384, CC0), cosine-normalizes it, selects
    subsets with the M1–M4 combinations (plain, quality-weighted, targeted at
    a category, Compress++ for `n ≪ N`), and compares the energy distance to
    the (weighted or target) measure against uniform random and K-center
@@ -44,8 +44,9 @@ Decisions taken with the user on 2026-09-04:
    keyword (a `DataFrame` with `standardize = false` is an `ArgumentError`).
 3. The example uses a real public embedding dataset
    (`sondalex/arxiv-abstracts-2021-embeddings-10000` on Hugging Face,
-   CC0-1.0: `id`, `content`, `categories`, `embedding`; MiniLM 384-d by
-   default, Arctic-large 1024-d selectable).
+   CC0-1.0: `id`, `content`, `categories`, `embedding`; the MiniLM file has
+   5,000 rows × 384 dimensions, the Arctic-large file 1,024 dimensions;
+   categories are coarse arXiv archives such as `math`, `astro-ph`, `cs`).
 4. The merged M3/M4 worktrees were removed.
 
 ## 1. `standardize`
@@ -145,7 +146,8 @@ With `:auto` and a split ratio (`n = 0.2N`), `2^g √N ≥ 2n` forces
 `4^g ≥ 0.16 N`, and the cost rule then rejects Compress++ for every `N`,
 so `datasplit` results with the default splitter stay identical to M4's.
 Compress++ only engages through `selectrows`/`multiplet` with `n ≪ N` — at
-N = 10⁴ up to n ≈ 800 (`g = 4`), at N = 10⁶ up to a few 10⁴ rows.
+N = 5,000 up to n ≈ 560, at N = 10⁴ up to n ≈ 800 (`g = 4`), at N = 10⁶ up
+to a few 10⁴ rows.
 
 `SplitResult.iterations` is THIN's swap count. Documented differences from
 the paper: HALVE is kernel thinning of the block (split + swap, `m = 1`);
@@ -163,11 +165,11 @@ Downloads, Statistics, Random, LinearAlgebra, Printf) and
    `https://huggingface.co/datasets/sondalex/arxiv-abstracts-2021-embeddings-10000/resolve/main/`
    into `examples/data/` (skipped when present); read `embedding`,
    `categories`, `content` with DuckDB (`read_parquet`).
-2. `E`: rows cosine-normalized (`x / ‖x‖`). `N = 10,000`, `p = 384`.
+2. `E`: rows cosine-normalized (`x / ‖x‖`). `N = 5,000`, `p = 384`.
 3. Quality weights `w`: abstract length in characters, clipped at the 99th
    percentile (a stand-in for a quality score). Target `R`: the rows whose
-   `categories` contain `cs.LG` (machine learning), a few hundred rows.
-4. Selections of `n = 1,000` rows with `standardize = false`, each timed:
+   `categories` contain `cs` (computer science), 250 of the 5,000 rows.
+4. Selections of `n = 500` rows (10%) with `standardize = false`, each timed:
    - `random` (uniform, mean of 5 seeds),
    - `k-center greedy` (farthest-first traversal from a random row; Sener &
      Savarese 2018 use it as the core-set baseline; implemented in the
@@ -178,7 +180,8 @@ Downloads, Statistics, Random, LinearAlgebra, Printf) and
      weights),
    - the same four with `reference = R` (twinning skipped),
    - `KernelThinningSplitter(compress = :always)` and `(:never)` for
-     `n = 300` (`n ≪ N`), timed against each other.
+     `n = 250` (`n ≪ N`; at `N = 5,000`, `g = 4` gives about 1,100
+     compressed rows), timed against each other.
 5. Scores with `standardize = false`: energy distance of the selection to
    the plain data (`energydistance(E[sel, :], E)`), to the weighted data
    (`weights_y = w`), and to the target (`energydistance(E[sel, :], R)`),
