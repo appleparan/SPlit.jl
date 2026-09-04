@@ -1,129 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="energy-distance-title energy-distance-desc" width="960" height="600">
-      <title id="energy-distance-title">Energy distance: two groups in a room</title>
-      <desc id="energy-distance-desc">Two point-cloud panels compare the average cross-group distance with the average within-group distance. When group A and group B are the same crowd, cross and within distances are similar and the energy distance is near zero. When the groups are different populations sitting apart, the cross distance is much larger than either within distance and the energy distance is large.</desc>
+    <title id="energy-distance-title">Energy distance compares cross-group and within-group distances</title>
+    <desc id="energy-distance-desc">Two panels compare samples A, shown as filled gray circles, and B, shown as filled blue squares. Intermingled samples have similar cross-group and within-group distances, while separated samples have much longer cross-group distances.</desc>
 <style>
-@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
-@font-face{font-family:'Pretendard';font-style:normal;font-weight:600;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:600;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAb0AA0AAAAADMgAAAakAAFPGgAAAAAAAAAAAAAAAAAAAAAAAAAAGhwbg3gcUAZgAHQKjFCKUwE2AiQDVAssAAQgBYJGByAbvgpRVJJKAPxMsG0ZbHdjkVLatG0Yly0vzQ96Px+e3+afe7nUew/UVbKINFZYDViJUVj1B64zkUXFN3o80F/t/Wt3gcMAmzhq0hvkuqnEAwolkcCi0s3/cICSYB84prpoi7Rs0OmAxhOpKppFPsq22UsvvFtEALcf6O0H0vt1E5FXt3MovKaaOrvBtgEBCAAAoKe0DMGxQe4CcDobiA5HHhooL8vsNCgxAN4cbedtZhpk4CFj5BSK08gE4wFrYGeKgIE2/ssgFCjazkZHNLTAgPRDJAFvGP73WOynZE2eeVuW1bxWw8K+CIK2bNi0Uf/KB//9JluaX32S/KgwjYrk/DuVBcWeCxCHUZCyYoPXWBNKBJ1pWO2AmARF1kkRkQJkbXIAj8ePy5CxyhEB520g5BgxKQmAos9e8fZIzdRi/fO30io1cjIZHqu20kBiEPfyHcBK4aJvu+KsOGna7SKAtA3HLbT+OEeloF7dAFCA/ORdgw3KNgAqAoACRIAmRAjGMpHXsSbCqETRS5TCIFueglYi6BjxuDSZP5Ott85aa6y20nLLIgZUU7v3BLQD8gH6BQgWDUjQFLFQ0d49K/FpW1+35mFj1WQEVWPrVvJOyuaMNbe2btwLrNPEmgnNiopQWKCyxKFnjwLOelJi4WaYVdwjGcfPLC0F4whnNrtLFgspLVVVJER0mo7EG1sJLaLlLMuiZph6KIA3K5yraHkxX5BHk3WQlND702QBZWkC8CBAhFZcmg/Yq+ODTlKJblmNlie8zORe8CqxMK8QinjG5xgnLommixQy4TApbFzOgwLXLEA1mryTVmsvWhgbgi2BCBNqJ6Vzbc1aLcerNZfn1SmqVa8e0unuUKmIY6b7/4gzLu1hmwAxR3gRT/kiRRgfYQ+TL4RzocKToeQyP/PqxUGDChUFjEq+2czV5gJdtJ4vLlTES/ymB2p6qKb72n6PS+akPPiD1UcpJ9pTA+RTU1KBrzYOaejMvgBD5o3CIt+9g/OTt4v2cbv4BJHOVx8Y7p/o+K1CFpqx4Kr/5MxrTqYt0yxlS2Td3NdG5Cducg9bmFA+NsZF455l6xBnj8CfyjBpvKcTDjX9Ovu/+k2bjQ04tHriLf6/Y68sq8zKN0Mf7J2rGbMmxTB6Xa7WR5cTYRVQJs/M3X8zejJmNb4xKat+776c2pslpsdhZ7k2DRBvq9mljDj7eMn9rAC7tUmJtquytH7+WQEjV8cl2K7NCvLD8aY/p42v3b7V2PB59vIZr3MmVRz1qUCw46QiR3/fDPuSmmZhxlmXPIp/rISrfZZhjKt7tnpcNnPEpd1mn8JFMn2DoC52is2blJp9T+jitijBaLxZmP17156cipvjTca5hu7ewoE6n6mmY+9DlhROnrJndbztyixNIc0rY5dPPlCMQtR6847KruHr4goztoWHHC051DDLkJ6vd0waaWvwhHSTAxzA1cB6h7Jjyi5hm+LzFpQjgo/CeBwszVAQq44fOSLNC0ebfptprNu6zViPXatW29T4+m1b5+O/zlitvZkdNnJ9nH7khhbR6HI/pjhRNYvuIn9S1SGhdcj8+PDhQ76LHeXtnQy2o5LVJqBPjFOMs89QnapGRHWrOh/tsqLj4rnIhj5j1T3drNu/9zRexXh1gjoo1OBo18/Dzsdmd5clbVcsz41JXnLZd5LpjFfqfFn0X/SYWGgZ7HJ5WP//77UMj1k2WjcZ0eGrLq1iDcwCOsmBna3lztfSi5Xc6UrWWO3A3XylNIfjcHZp+a3/e3ftU+YU1OKSRml1cbAgh1K2Vl/oN/XozEVQlD1Wd+42umsX40+i+7jOxi5du43euDvYZss5ek7kH/ijZ88fvXrp8+z1vDekD8/RIybZ2nRnbzfDaPtCTc2Zx2onT/vRnr4UXMC65ACq0R8wARKAPMU/EQAZdzxfze0fYWX3kyUZAODNNXwOvnBGUPXL+nnNBsuWAZCiAICA9NUAmt0ZiNprI0Fe1YdsgGXhI7Adl5zCI1t45RkNeKP2AApDmQQLKkTmXeVt8EgMv6yBXOJb3atM3XOSzlFAZvAxOqm4IICmjHh7yBBUOxJALECCAaSCiZAsB2AHcybRlR2TUopmithJn894TLFWdl1GoqsrxjFIVyBTongJsqlsF/RA/Z/WICruEqVQcVEgR5p4fSRJlMZHJr1semliRckUS8WfXqpEYxmkiOVHL16OlP69B+hrkP5GsDWOhpY/22yy+wB1r8mUJZFBGtV3NnJ4RQZl/9rYBQ==) format('woff2');}
+@font-face{font-family:'STIX Two Text';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAPIABAAAAAAB1QAAANtAAIhSAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbIByBPAZgP1NUQVRIADwRCAqCaIJTATYCJAMSCwwABCAFhDoHIAwHGx0GKB6HsXukxFZM4uiNWkUQ5cV/9WQ2T+JJ4gd8A4HM//7e+/7AJt4vetL75H1DCXCcT1+IC0loCmWN+Y9fOP+X0xvL9/OxBc4OcbcGjanhvbhvtUF6CfUCSuC8BTgmWRqQ9KZD2OqZIYg4ERGRjjp6ri5AoCEgCWQhUF9Ho7Ap03zjoFWGqgIE6htpXqOrP7h5vVZAYbtaMi/sjKNSOlYqPpqNW3YtF0H3nw0AMLgrUawBip3H8ACz+tpS8elgXWEkTKnFCqE5lh+FqNWQI61SMuwJjSSFnLrHiWqko9MKwGyxTawjiYHIGT528RL3NLjSlSj9rbn/3CbuQkC8lU5CVyQh1JXQEgk9kfbbLoMw7LA3XsBqQtZSA1JEnEi6F4WQogQBEgoC+RDaRn0BpQdDuhJVgJerPqpeFoAQFU1ADdRHXewBOBN10RBkJKmSG+ZezTsbN9ylcZ0m+x99dRxxQ4NjrnP4lTuWjeqsqR9H3PLII2/EES/XP/pOh5911t7FehzxhjP22msOf/VBEiw9+nVvk5ouVecdE4Neh16tvrbcE6zgmp01/sGiK2fePbN5fGDkul3bz47tH9q0fav/2aKPF70/ou8gc66rudUUgXZFxDtq03Tn4hZtLpqPcOgXfD5xdFRqlvGg++vvBt181x+zWCad61u1LEm2Ny10mXGfcnu7Cf2EbC4qPx89YePEM8edOG60ceu0k8af6LlfxszWUJc1+GIx4InlE0plp093PWjY9PSScEooYNc4PyeaBqQ6CqpcF7pXx8FxnkDqNqN+OO2y9U3G/FY3FV/CO9XjqwHefXLhmf/O+f+YWrPcBlBKIHg7ldo4D/Xfu2tg6PtyWqvdN8QPOsS5uqPAUHOkhi5VxhJmgQaOVohcDzdCkUJ7l1LS2NNSYYpXKesfHaWa7jFNLPWO7S1Bwzi+FtKqUTPxs89Rqh+Xm6ysYl1NVloGAkmIiIjxJSz5NGhcRhIUNc5tGuRQVoLUQSE1ZTlJcQhkRkAyymrqIJYMBKmo0xASSstCMggxAnFlRUJ1SFZlpbTemlRdja2FJ+hVZW3SGiSyXxqhAFcjISAmBcWIKYlpE9IYJqWPBXwYtXARPFuTkvfNZ/sugR0mUdubknyMH+SG4Aqy4iLKinAlDUB1sxFo8M6oujEfBwA=) format('woff2');}
 </style>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(79, 93, 117)"></polygon></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(235, 108, 54)"></polygon></marker>
+    </defs>
 
-      <rect width="100%" height="100%" fill="rgb(245, 245, 245)"></rect>
+    <rect width="100%" height="100%" fill="rgb(245, 245, 245)"></rect>
 
-      <!-- ============ LEFT PANEL: SAME CROWD ============ -->
-      <rect x="40" y="40" width="416" height="460" rx="8" fill="rgb(236, 236, 236)" stroke="rgba(45, 49, 66, 0.12)" stroke-width="1"></rect>
+    <rect x="40" y="40" width="416" height="460" rx="8" fill="rgb(236, 236, 236)" stroke="rgba(45, 49, 66, 0.12)"></rect>
+    <line x1="80" y1="332" x2="192" y2="312" stroke="rgb(235, 108, 54)" stroke-width="1.2"></line>
+    <line x1="276" y1="324" x2="180" y2="408" stroke="rgb(79, 93, 117)" stroke-dasharray="4,3"></line>
+    <line x1="380" y1="144" x2="296" y2="236" stroke="rgb(46, 90, 168)" stroke-dasharray="4,3"></line>
+    <rect x="112" y="300" width="48" height="14" rx="2" fill="rgb(236, 236, 236)"></rect>
+    <text x="136" y="310" fill="rgb(235, 108, 54)" font-size="8" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">CROSS</text>
+    <rect x="200" y="364" width="64" height="14" rx="2" fill="rgb(236, 236, 236)"></rect>
+    <text x="232" y="374" fill="rgb(79, 93, 117)" font-size="8" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">WITHIN A</text>
+    <rect x="296" y="180" width="64" height="14" rx="2" fill="rgb(236, 236, 236)"></rect>
+    <text x="328" y="190" fill="rgb(46, 90, 168)" font-size="8" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">WITHIN B</text>
+    <g fill="rgb(79, 93, 117)">
+      <circle cx="292" cy="132" r="5"></circle><circle cx="184" cy="216" r="5"></circle><circle cx="376" cy="224" r="5"></circle>
+      <circle cx="80" cy="332" r="5"></circle><circle cx="276" cy="324" r="5"></circle><circle cx="180" cy="408" r="5"></circle><circle cx="384" cy="404" r="5"></circle>
+    </g>
+    <g fill="rgb(46, 90, 168)">
+      <rect x="375" y="139" width="10" height="10"></rect><rect x="95" y="227" width="10" height="10"></rect><rect x="291" y="231" width="10" height="10"></rect>
+      <rect x="187" y="307" width="10" height="10"></rect><rect x="391" y="303" width="10" height="10"></rect><rect x="87" y="415" width="10" height="10"></rect><rect x="295" y="419" width="10" height="10"></rect>
+    </g>
+    <text x="56" y="64" fill="rgb(79, 93, 117)" font-size="8" letter-spacing="0.12em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">SAME CROWD</text>
+    <text x="56" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">cross</text>
+    <text x="92" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">≈</tspan></text>
+    <text x="108" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">within</text>
+    <text x="150" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">→</tspan></text>
+    <text x="170" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">energy distance</text>
+    <text x="270" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">≈ 0</tspan></text>
+    <text x="72" y="116" fill="rgb(79, 93, 117)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">two random samples</text>
+    <text x="72" y="134" fill="rgb(79, 93, 117)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">from the same crowd</text>
+    <path d="M 152 140 Q 164 174 184 216" fill="none" stroke="rgba(45, 49, 66, 0.4)" stroke-dasharray="4,3"></path>
+    <circle cx="184" cy="216" r="2" fill="rgb(45, 49, 66)"></circle>
 
-      <!-- left panel distance lines (drawn before points so points sit on top) -->
-      <!-- CROSS A-B -->
-      <line x1="80" y1="332" x2="192" y2="312" stroke="rgb(235, 108, 54)" stroke-width="1.2"></line>
-      <!-- WITHIN A -->
-      <line x1="276" y1="324" x2="180" y2="408" stroke="rgb(79, 93, 117)" stroke-width="1" stroke-dasharray="4,3"></line>
-      <!-- WITHIN B -->
-      <line x1="380" y1="144" x2="296" y2="236" stroke="rgb(46, 90, 168)" stroke-width="1" stroke-dasharray="4,3"></line>
+    <rect x="504" y="40" width="416" height="460" rx="8" fill="rgb(236, 236, 236)" stroke="rgba(45, 49, 66, 0.12)"></rect>
+    <line x1="592" y1="392" x2="832" y2="204" stroke="rgb(235, 108, 54)" stroke-width="1.2"></line>
+    <line x1="536" y1="392" x2="592" y2="448" stroke="rgb(79, 93, 117)" stroke-dasharray="4,3"></line>
+    <line x1="776" y1="148" x2="832" y2="148" stroke="rgb(46, 90, 168)" stroke-dasharray="4,3"></line>
+    <rect x="684" y="284" width="48" height="14" rx="2" fill="rgb(236, 236, 236)"></rect>
+    <text x="708" y="294" fill="rgb(235, 108, 54)" font-size="8" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">CROSS</text>
+    <rect x="536" y="408" width="64" height="14" rx="2" fill="rgb(236, 236, 236)"></rect>
+    <text x="568" y="418" fill="rgb(79, 93, 117)" font-size="8" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">WITHIN A</text>
+    <rect x="772" y="128" width="64" height="14" rx="2" fill="rgb(236, 236, 236)"></rect>
+    <text x="804" y="138" fill="rgb(46, 90, 168)" font-size="8" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">WITHIN B</text>
+    <g fill="rgb(79, 93, 117)">
+      <circle cx="536" cy="336" r="5"></circle><circle cx="592" cy="336" r="5"></circle><circle cx="536" cy="392" r="5"></circle>
+      <circle cx="592" cy="392" r="5"></circle><circle cx="536" cy="448" r="5"></circle><circle cx="592" cy="448" r="5"></circle><circle cx="648" cy="448" r="5"></circle>
+    </g>
+    <g fill="rgb(46, 90, 168)">
+      <rect x="771" y="143" width="10" height="10"></rect><rect x="827" y="143" width="10" height="10"></rect><rect x="883" y="143" width="10" height="10"></rect>
+      <rect x="827" y="199" width="10" height="10"></rect><rect x="883" y="199" width="10" height="10"></rect><rect x="827" y="255" width="10" height="10"></rect><rect x="883" y="255" width="10" height="10"></rect>
+    </g>
+    <text x="520" y="64" fill="rgb(79, 93, 117)" font-size="8" letter-spacing="0.12em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">DIFFERENT POPULATIONS</text>
+    <text x="520" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">cross</text>
+    <text x="556" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">≫</tspan></text>
+    <text x="574" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">within</text>
+    <text x="616" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">→</tspan></text>
+    <text x="636" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">energy distance large</text>
 
-      <!-- left panel line-end dots (reinforce measurement, sit under point circles) -->
-      <circle cx="80" cy="332" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="192" cy="312" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="276" cy="324" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="180" cy="408" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="380" cy="144" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="296" cy="236" r="4" fill="rgb(245, 245, 245)"></circle>
-
-      <!-- left panel distance labels (mono 8px, paper mask, 6-10px off the line's midpoint) -->
-      <rect x="116" y="300" width="40" height="12" rx="2" fill="rgb(236, 236, 236)"></rect>
-      <text x="136" y="308" fill="rgb(235, 108, 54)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">CROSS</text>
-
-      <rect x="204" y="364" width="60" height="12" rx="2" fill="rgb(236, 236, 236)"></rect>
-      <text x="232" y="372" fill="rgb(79, 93, 117)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN A</text>
-
-      <rect x="300" y="180" width="60" height="12" rx="2" fill="rgb(236, 236, 236)"></rect>
-      <text x="328" y="188" fill="rgb(46, 90, 168)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN B</text>
-
-      <!-- left panel group A points (irregular spacing, no shared row/column) -->
-      <circle cx="292" cy="132" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="184" cy="216" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="376" cy="224" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="80" cy="332" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="276" cy="324" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="180" cy="408" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="384" cy="404" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-
-      <!-- left panel group B points (irregular spacing, no shared row/column) -->
-      <circle cx="380" cy="144" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="100" cy="232" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="296" cy="236" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="192" cy="312" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="396" cy="308" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="92" cy="420" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="300" cy="424" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-
-      <!-- left panel header -->
-      <text x="56" y="64" fill="rgb(79, 93, 117)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">SAME CROWD</text>
-      <text x="56" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">cross ≈ within → energy distance ≈ 0</text>
-
-      <!-- ============ RIGHT PANEL: DIFFERENT POPULATIONS ============ -->
-      <rect x="504" y="40" width="416" height="460" rx="8" fill="rgb(236, 236, 236)" stroke="rgba(45, 49, 66, 0.12)" stroke-width="1"></rect>
-
-      <!-- right panel distance lines -->
-      <!-- CROSS A-B (long, spans the empty gap) -->
-      <line x1="592" y1="392" x2="832" y2="204" stroke="rgb(235, 108, 54)" stroke-width="1.2"></line>
-      <!-- WITHIN A -->
-      <line x1="536" y1="392" x2="592" y2="448" stroke="rgb(79, 93, 117)" stroke-width="1" stroke-dasharray="4,3"></line>
-      <!-- WITHIN B -->
-      <line x1="776" y1="148" x2="832" y2="148" stroke="rgb(46, 90, 168)" stroke-width="1" stroke-dasharray="4,3"></line>
-
-      <!-- right panel line-end dots -->
-      <circle cx="592" cy="392" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="832" cy="204" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="536" cy="392" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="592" cy="448" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="776" cy="148" r="4" fill="rgb(245, 245, 245)"></circle>
-      <circle cx="832" cy="148" r="4" fill="rgb(245, 245, 245)"></circle>
-
-      <!-- right panel distance labels (6-10px from each line's midpoint) -->
-      <rect x="688" y="284" width="40" height="12" rx="2" fill="rgb(236, 236, 236)"></rect>
-      <text x="708" y="292" fill="rgb(235, 108, 54)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">CROSS</text>
-
-      <rect x="540" y="408" width="60" height="12" rx="2" fill="rgb(236, 236, 236)"></rect>
-      <text x="568" y="416" fill="rgb(79, 93, 117)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN A</text>
-
-      <rect x="776" y="132" width="60" height="12" rx="2" fill="rgb(236, 236, 236)"></rect>
-      <text x="804" y="140" fill="rgb(46, 90, 168)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN B</text>
-
-      <!-- right panel group A points (lower-left cluster) -->
-      <circle cx="536" cy="336" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="592" cy="336" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="536" cy="392" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="592" cy="392" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="536" cy="448" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="592" cy="448" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <circle cx="648" cy="448" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-
-      <!-- right panel group B points (upper-right cluster) -->
-      <circle cx="776" cy="148" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="832" cy="148" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="888" cy="148" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="832" cy="204" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="888" cy="204" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="832" cy="260" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <circle cx="888" cy="260" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-
-      <!-- right panel header -->
-      <text x="520" y="64" fill="rgb(79, 93, 117)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">DIFFERENT POPULATIONS</text>
-      <text x="520" y="88" fill="rgb(45, 49, 66)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">cross ≫ within → energy distance large</text>
-
-      <!-- ============ LEGEND STRIP (bottom 60px) ============ -->
-      <line x1="40" y1="508" x2="920" y2="508" stroke="rgba(45, 49, 66, 0.12)" stroke-width="0.8"></line>
-      <text x="40" y="524" fill="rgb(79, 93, 117)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">LEGEND</text>
-
-      <circle cx="56" cy="548" r="4" fill="rgba(79, 93, 117, 0.2)" stroke="rgb(79, 93, 117)" stroke-width="1"></circle>
-      <text x="68" y="552" fill="rgb(45, 49, 66)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Group A row</text>
-
-      <circle cx="284" cy="548" r="4" fill="rgba(46, 90, 168, 0.2)" stroke="rgb(46, 90, 168)" stroke-width="1"></circle>
-      <text x="296" y="552" fill="rgb(45, 49, 66)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Group B row</text>
-
-      <line x1="504" y1="548" x2="524" y2="548" stroke="rgb(235, 108, 54)" stroke-width="1.2"></line>
-      <text x="532" y="552" fill="rgb(45, 49, 66)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Cross-distance</text>
-
-      <line x1="712" y1="548" x2="732" y2="548" stroke="rgb(79, 93, 117)" stroke-width="1" stroke-dasharray="4,3"></line>
-      <text x="740" y="552" fill="rgb(45, 49, 66)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Within-distance</text>
-    </svg>
+    <line x1="40" y1="516" x2="920" y2="516" stroke="rgba(45, 49, 66, 0.12)" stroke-width="0.8"></line>
+    <text x="40" y="536" fill="rgb(79, 93, 117)" font-size="8" letter-spacing="0.12em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">LEGEND</text>
+    <circle cx="56" cy="560" r="5" fill="rgb(79, 93, 117)"></circle>
+    <text x="68" y="564" fill="rgb(45, 49, 66)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">GROUP A ROW</text>
+    <rect x="256" y="555" width="10" height="10" fill="rgb(46, 90, 168)"></rect>
+    <text x="276" y="564" fill="rgb(45, 49, 66)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">GROUP B ROW</text>
+    <line x1="472" y1="560" x2="496" y2="560" stroke="rgb(235, 108, 54)" stroke-width="1.2"></line>
+    <text x="504" y="564" fill="rgb(45, 49, 66)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">CROSS-DISTANCE</text>
+    <line x1="704" y1="560" x2="728" y2="560" stroke="rgb(79, 93, 117)" stroke-dasharray="4,3"></line>
+    <text x="736" y="564" fill="rgb(45, 49, 66)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">WITHIN-DISTANCE</text>
+  </svg>

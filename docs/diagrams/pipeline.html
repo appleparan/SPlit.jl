@@ -8,113 +8,86 @@
   <link rel="stylesheet" href="theme.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --font-sans:     Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif;
-    }
-    body {
-      font-family: var(--font-sans);
-      background: var(--paper);
-      color: var(--ink);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .frame { max-width: 1000px; width: 100%; }
-    svg { width: 100%; min-width: 900px; display: block; }
+    body { font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif; background: var(--paper); padding: 2rem; }
+    svg { width: 100%; max-width: 960px; display: block; margin: 0 auto; }
   </style>
 </head>
 <body>
-  <div class="frame">
-    <svg viewBox="0 0 960 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pipeline-title pipeline-desc">
-      <title id="pipeline-title">The SPlit.jl splitting pipeline</title>
-      <desc id="pipeline-desc">Flowchart of datasplit: rows are preprocessed, then either support points are placed and nearby rows are claimed, or kernel herding picks rows directly, and both routes produce the final two-sided split.</desc>
-      <defs>
-        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
-        <marker id="arrow-soft" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--soft)"/></marker>
-      </defs>
+  <svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pipeline-title pipeline-desc">
+    <title id="pipeline-title">The SPlit.jl pipeline offers four row-selection lanes</title>
+    <desc id="pipeline-desc">Data is preprocessed, then one of four equally presented methods chooses n rows: support points followed by nearest-neighbor claiming, kernel herding, twinning, or kernel thinning. Chosen rows form the smaller split side and the remaining rows form the other side.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/></marker>
+    </defs>
+    <rect width="100%" height="100%" fill="var(--paper)"/>
 
-      <rect width="100%" height="100%" fill="var(--paper)"/>
+    <!-- Rounded bus connectors are drawn before all boxes. -->
+    <line x1="144" y1="260" x2="176" y2="260" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <line x1="312" y1="260" x2="336" y2="260" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="336" y1="112" x2="336" y2="400" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="336" y1="112" x2="376" y2="112" stroke="var(--muted)" stroke-width="1.1" marker-end="url(#arrow)"/>
+    <line x1="336" y1="208" x2="376" y2="208" stroke="var(--muted)" stroke-width="1.1" marker-end="url(#arrow)"/>
+    <line x1="336" y1="304" x2="376" y2="304" stroke="var(--muted)" stroke-width="1.1" marker-end="url(#arrow)"/>
+    <line x1="336" y1="400" x2="376" y2="400" stroke="var(--muted)" stroke-width="1.1" marker-end="url(#arrow)"/>
+    <line x1="740" y1="112" x2="784" y2="112" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="740" y1="208" x2="784" y2="208" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="740" y1="304" x2="784" y2="304" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="740" y1="400" x2="784" y2="400" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="784" y1="112" x2="784" y2="400" stroke="var(--muted)" stroke-width="1.1"/>
+    <line x1="784" y1="260" x2="816" y2="260" stroke="var(--muted)" stroke-width="1.1" marker-end="url(#arrow)"/>
 
-      <!-- ================= ARROWS (drawn before nodes) ================= -->
+    <g font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">
+      <rect x="32" y="212" width="112" height="96" rx="6" fill="var(--muted-a10)" stroke="var(--soft)"/>
+      <text x="88" y="244" fill="var(--ink)" font-size="13" font-weight="600" text-anchor="middle">Data</text>
+      <text x="75" y="264" fill="var(--muted)" font-size="9"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">N</tspan></text>
+      <text x="85" y="264" fill="var(--muted)" font-size="9">rows</text>
+      <text x="88" y="282" fill="var(--muted)" font-size="8" text-anchor="middle">numeric + categorical</text>
 
-      <!-- Main lane, y-aligned, plain horizontal lines -->
-      <line x1="160" y1="160" x2="192" y2="160" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <line x1="332" y1="160" x2="364" y2="160" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <line x1="544" y1="160" x2="576" y2="160" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <line x1="776" y1="160" x2="808" y2="160" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="176" y="212" width="136" height="96" rx="6" fill="var(--surface)" stroke="var(--ink)"/>
+      <text x="244" y="242" fill="var(--ink)" font-size="13" font-weight="600" text-anchor="middle">Preprocess</text>
+      <text x="244" y="262" fill="var(--muted)" font-size="8" text-anchor="middle">Helmert encode · drop</text>
+      <text x="244" y="278" fill="var(--muted)" font-size="8" text-anchor="middle">constants · standardize</text>
 
-      <!-- Alternative route: Preprocess -> Kernel herding (drop from bottom, enter left edge) -->
-      <path d="M 262,208 V 344 Q 262,352 270,352 H 440"
-            fill="none" stroke="var(--soft)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-soft)"/>
+      <rect x="352" y="32" width="412" height="456" rx="8" fill="var(--ink-a02)" stroke="var(--accent)" stroke-width="1.2"/>
+      <text x="372" y="60" fill="var(--ink)" font-size="12" font-weight="600">choose</text>
+      <text x="416" y="60" fill="var(--ink)" font-size="12" font-weight="600"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">n</tspan></text>
+      <text x="428" y="60" fill="var(--ink)" font-size="12" font-weight="600">rows — one of four ways</text>
 
-      <!-- Alternative route: Kernel herding -> Split (exit right edge, rise into bottom) -->
-      <path d="M 580,352 H 856 Q 864,352 864,344 V 208"
-            fill="none" stroke="var(--soft)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-soft)"/>
+      <rect x="376" y="76" width="364" height="72" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <text x="392" y="96" fill="var(--muted)" font-size="8" letter-spacing="0.08em">SupportPointSplitter</text>
+      <rect x="392" y="104" width="116" height="24" rx="4" fill="var(--panel)" stroke="var(--ink-a20)"/>
+      <text x="450" y="120" fill="var(--ink)" font-size="9" text-anchor="middle">Support points</text>
+      <line x1="516" y1="116" x2="548" y2="116" stroke="var(--muted)" marker-end="url(#arrow)"/>
+      <rect x="556" y="104" width="164" height="24" rx="4" fill="var(--panel)" stroke="var(--ink-a20)"/>
+      <text x="638" y="120" fill="var(--ink)" font-size="9" text-anchor="middle">nearest-neighbor claim</text>
+      <text x="556" y="142" fill="var(--muted)" font-size="8" text-anchor="middle">ideal locations first, real rows second</text>
 
-      <!-- ================= LANE TAGS ================= -->
-      <text x="40" y="100" fill="var(--muted)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">SupportPointSplitter</text>
-      <text x="40" y="356" fill="var(--muted)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">HerdingSplitter</text>
+      <rect x="376" y="172" width="364" height="72" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <text x="392" y="192" fill="var(--muted)" font-size="8" letter-spacing="0.08em">HerdingSplitter</text>
+      <text x="392" y="214" fill="var(--ink)" font-size="11" font-weight="600">Kernel herding</text>
+      <text x="392" y="232" fill="var(--muted)" font-size="8">pick the row that best fixes the current mismatch, one at a time</text>
 
-      <!-- ================= NODES ================= -->
+      <rect x="376" y="268" width="364" height="72" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <text x="392" y="288" fill="var(--muted)" font-size="8" letter-spacing="0.08em">TwinningSplitter</text>
+      <text x="392" y="310" fill="var(--ink)" font-size="11" font-weight="600">Twinning</text>
+      <text x="392" y="328" fill="var(--muted)" font-size="8">one row from each neighborhood, chained through neighbors</text>
 
-      <!-- 1. Data (input style) -->
-      <rect x="40" y="112" width="120" height="96" rx="6" fill="var(--paper)"/>
-      <rect x="40" y="112" width="120" height="96" rx="6" fill="var(--muted-a10)" stroke="var(--soft)" stroke-width="1"/>
-      <text x="100" y="144" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Data</text>
-      <text x="100" y="160" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">N</tspan><tspan> rows</tspan></text>
-      <text x="100" y="174" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">numeric + categorical</text>
+      <rect x="376" y="364" width="364" height="72" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <text x="392" y="384" fill="var(--muted)" font-size="8" letter-spacing="0.08em">KernelThinningSplitter</text>
+      <text x="392" y="406" fill="var(--ink)" font-size="11" font-weight="600">Kernel thinning</text>
+      <text x="392" y="424" fill="var(--muted)" font-size="8">halve, halve again, keep the best half</text>
 
-      <!-- 2. Preprocess (backend/step style) -->
-      <rect x="192" y="112" width="140" height="96" rx="6" fill="var(--surface)" stroke="var(--ink)" stroke-width="1"/>
-      <text x="262" y="144" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Preprocess</text>
-      <text x="262" y="160" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Helmert encode · drop</text>
-      <text x="262" y="174" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">constants · standardize</text>
+      <rect x="816" y="212" width="112" height="96" rx="48" fill="var(--ink-a03)" stroke="var(--ink-a30)"/>
+      <text x="872" y="238" fill="var(--ink)" font-size="13" font-weight="600" text-anchor="middle">Split</text>
+      <text x="872" y="260" fill="var(--muted)" font-size="8" text-anchor="middle">chosen rows →</text>
+      <text x="872" y="274" fill="var(--muted)" font-size="8" text-anchor="middle">smaller side</text>
+      <text x="872" y="290" fill="var(--muted)" font-size="8" text-anchor="middle">rest → other side</text>
 
-      <!-- 3. Support points (FOCAL) -->
-      <rect x="364" y="112" width="180" height="96" rx="6" fill="var(--paper)"/>
-      <rect x="364" y="112" width="180" height="96" rx="6" fill="var(--accent-a08)" stroke="var(--accent)" stroke-width="1.2"/>
-      <text x="454" y="144" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Support points</text>
-      <text x="454" y="160" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">n</tspan><tspan> = min(ratio, 1 − ratio) · </tspan><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">N</tspan><tspan> ideal locations,</tspan></text>
-      <text x="454" y="174" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">optimized to match the data</text>
-
-      <!-- 4. Nearest-neighbor claim (backend/step style) -->
-      <rect x="576" y="112" width="200" height="96" rx="6" fill="var(--surface)" stroke="var(--ink)" stroke-width="1"/>
-      <text x="676" y="144" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Nearest-neighbor claim</text>
-      <text x="676" y="160" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">each point takes the nearest</text>
-      <text x="676" y="174" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">unclaimed row (k-d tree)</text>
-
-      <!-- 6. Split (end oval) -->
-      <rect x="808" y="112" width="112" height="96" rx="48" fill="var(--paper)"/>
-      <rect x="808" y="112" width="112" height="96" rx="48" fill="var(--ink-a03)" stroke="var(--ink-a30)" stroke-width="1"/>
-      <text x="864" y="136" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Split</text>
-      <text x="864" y="154" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">claimed rows →</text>
-      <text x="864" y="168" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">smaller side · the</text>
-      <text x="864" y="182" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">rest → other side</text>
-
-      <!-- 5. Kernel herding (lower lane, optional/async style) -->
-      <rect x="440" y="304" width="140" height="96" rx="6" fill="var(--paper)"/>
-      <rect x="440" y="304" width="140" height="96" rx="6" fill="var(--ink-a02)" stroke="var(--ink-a20)" stroke-width="1" stroke-dasharray="4,3"/>
-      <text x="510" y="336" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">Kernel herding</text>
-      <text x="510" y="352" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">pick rows one at a</text>
-      <text x="510" y="366" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle">time, directly</text>
-
-      <!-- ================= EDITORIAL ASIDES ================= -->
-
-      <!-- Aside near Support points -->
-      <text x="620" y="56" fill="var(--muted)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">ideal locations first,</text>
-      <text x="620" y="74" fill="var(--muted)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">real rows second</text>
-      <path d="M 560,80 Q 500,96 454,112" fill="none" stroke="var(--ink-a40)" stroke-width="1" stroke-dasharray="4,3"/>
-      <circle cx="454" cy="112" r="2" fill="var(--ink)"/>
-
-      <!-- Aside near Split -->
-      <text x="920" y="440" fill="var(--muted)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">the claimed side becomes the test set</text>
-      <text x="920" y="460" fill="var(--muted)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">when ratio ≤ 0.5</text>
-      <path d="M 900,428 Q 902,310 904,194" fill="none" stroke="var(--ink-a40)" stroke-width="1" stroke-dasharray="4,3"/>
-      <circle cx="904" cy="194" r="2" fill="var(--ink)"/>
-
-    </svg>
-  </div>
+      <text x="920" y="472" fill="var(--muted)" font-size="13" font-style="italic" text-anchor="end">which lane? see Benchmarks</text>
+      <path d="M 816 462 Q 780 452 740 424" fill="none" stroke="var(--ink-a40)" stroke-dasharray="4,3"/>
+      <circle cx="740" cy="424" r="2" fill="var(--ink)"/>
+    </g>
+  </svg>
 </body>
 </html>

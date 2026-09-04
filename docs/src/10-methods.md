@@ -105,17 +105,19 @@ the largest squared displacement of any point falls below `tolerance`.
 The update is a weighted mean of the data rows, each weighted by the
 inverse of its distance to ``\xi_m``, plus a repulsion term divided by the
 same total weight: ``N/n`` times one unit vector per other support point,
-pointing away from it. The figure draws one step for a
-single point ``\xi_m^{(t)}`` (orange): each grey line joins it to a data
-row and its thickness is that row's weight ``1/\|x_l - \xi_m\|``, so near
-rows are drawn heavy and far rows thin; the two black arrows are the unit
-vectors pointing away from the other support points ``\xi_o``, each scaled
-by ``N/n``; the orange arrow is the resulting move to ``\xi_m^{(t+1)}``,
-and the dashed rectangle is the bounding box to which the result is
-clamped.
+pointing away from it. The figure splits one step for a single point
+``\xi_m^{(t)}`` (orange) into three panels of the same scene. *Data pull*:
+each grey line joins the point to a data row and its thickness is that
+row's weight ``1/\|x_l - \xi_m\|``, so near rows are drawn heavy and far
+rows thin, and the × marks the resulting weighted mean. *Repulsion*: one
+arrow per other support point ``\xi_o``, all of equal length, each the unit
+vector pointing away from ``\xi_o`` and scaled by ``N/n``. *Move and
+clamp*: the orange arrow is the sum of both terms, the move to
+``\xi_m^{(t+1)}``, and the dashed rectangle is the bounding box to which
+the result is clamped.
 
-![One MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves to the weighted mean inside the data's bounding box](assets/intuition/mm-update-light.svg)
-![One MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves to the weighted mean inside the data's bounding box](assets/intuition/mm-update-dark.svg)
+![Three panels of one MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves inside the data's bounding box](assets/intuition/mm-update-light.svg)
+![Three panels of one MM step for a single support point: data rows pull with weight one over distance, the other support points each push with a unit vector, and the point moves inside the data's bounding box](assets/intuition/mm-update-dark.svg)
 
 ## Maximum mean discrepancy and the Gaussian kernel
 
@@ -207,6 +209,13 @@ equivalence with MMD²/energy-distance minimization above is claimed, not the
 running sum over selected rows in ``O(N)`` per selection, for a total cost of
 ``O(N^2 + nN)``; the procedure is deterministic for a numeric kernel.
 
+The figure shows one greedy step: three rows already selected (filled)
+all lie in the left cluster, so the data term of the right cluster is
+unmatched and the argmax above lands there (the ringed row).
+
+![Three rows already picked all sit in the left cluster, so the next pick is a row from the right cluster where nothing has been picked yet](assets/intuition/herding-light.svg)
+![Three rows already picked all sit in the left cluster, so the next pick is a row from the right cluster where nothing has been picked yet](assets/intuition/herding-dark.svg)
+
 ## Nearest-neighbor assignment
 
 The last part of step 4 for `SupportPointSplitter` turns optimized
@@ -215,14 +224,15 @@ locations into rows. Each support point, in order, claims its nearest not-yet-cl
 tree, doubling the neighbor count and retrying when every returned neighbor
 is already claimed. The claimed rows form the smaller subset.
 
-In the figure, the hollow circles are support points numbered in claim
-order, grey circles are unclaimed rows, and filled circles are claimed
-rows. Point 3 (orange) finds its nearest row already claimed by point 1
-(dashed line) and takes its second-nearest row instead (solid orange
-arrow).
+The figure shows three turns of the claim side by side. Hollow circles are
+support points numbered in claim order, grey circles are unclaimed rows,
+and filled circles are claimed rows. Points 1 and 2 take their nearest row
+in turns 1 and 2; in turn 3, point 3 (orange) finds its nearest row already
+claimed by point 1 (dashed line) and takes its second-nearest row instead
+(solid orange arrow).
 
-![Support points claiming rows in turn; a point whose nearest row is already claimed takes the next nearest](assets/intuition/nearest-neighbor-light.svg)
-![Support points claiming rows in turn; a point whose nearest row is already claimed takes the next nearest](assets/intuition/nearest-neighbor-dark.svg)
+![Three turns of the claim: two support points take their nearest row, and the third, whose nearest row is already claimed, takes the next nearest](assets/intuition/nearest-neighbor-light.svg)
+![Three turns of the claim: two support points take their nearest row, and the third, whose nearest row is already claimed, takes the next nearest](assets/intuition/nearest-neighbor-dark.svg)
 
 This rounding step has a limitation: when the optimizer's displacement is
 below the spacing between data rows, as is typical in high dimension on
@@ -467,6 +477,15 @@ brute force instead. The procedure is serial and deterministic given the
 data and a non-random `start`; `SplitResult.iterations` is the number of
 groups.
 
+The figure draws Algorithm 1 with ``r = 3``: the × is the centroid,
+``u_1`` (ringed) is the row farthest from it, each dashed hull is one
+group of ``r`` rows, and each arrow runs from ``v_i``, the farthest member
+of a group, to ``u_{i+1}``, the nearest ungrouped row. Filled circles are
+the selected rows ``u_1, \dots, u_4``.
+
+![Twelve rows covered by four small neighborhoods with one row selected from each, chained by arrows from the farthest member of one neighborhood to the start of the next](assets/intuition/twinning-light.svg)
+![Twelve rows covered by four small neighborhoods with one row selected from each, chained by arrows from the farthest member of one neighborhood to the start of the next](assets/intuition/twinning-dark.svg)
+
 **Differences from the paper.** The paper assumes ``1/\gamma = r`` is an
 integer and takes ``n = \lceil \gamma N \rceil``, letting the last group
 absorb the remainder. SPlit.jl keeps the generic rule (``n`` from `ratio`
@@ -537,6 +556,16 @@ data. The cost is ``O(L^2)`` kernel evaluations for the halvings, ``O(N^2)``
 for the data term and ``O(nN)`` for the swap pass, all threaded: the same
 class as herding. The near-linear variant of the papers, Compress++, removes
 the two ``O(N^2)`` terms when ``n \ll N``; it is the next section.
+
+The figure follows the three steps with ``N = 16`` and ``n = 4``, so
+``m = 2``: two rounds of kernel halving produce the ``2^m = 4`` candidates,
+the dashed box is the uniform random subset that joins them, and KT-SWAP
+picks the best of the five and refines it by one swap pass. The inset is
+one step of kernel halving: a pair of rows, one to each half, with the
+probabilistic flip that keeps the halves balanced.
+
+![Rows are halved twice into four candidate subsets, a random subset joins as a baseline, and the best candidate is refined by one swap pass](assets/intuition/kernel-thinning-light.svg)
+![Rows are halved twice into four candidate subsets, a random subset joins as a baseline, and the best candidate is refined by one swap pass](assets/intuition/kernel-thinning-dark.svg)
 
 **Differences from the paper.** The papers thin ``N`` rows to
 ``\lfloor N/2^m \rfloor``; here ``n`` is set by `ratio` (or the caller) and

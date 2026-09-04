@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twinning walks through neighborhoods</title>
+  <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif; background: var(--paper); padding: 2rem; }
+    svg { width: 100%; max-width: 960px; display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="twinning-title twinning-desc">
+    <title id="twinning-title">Twinning selects one row from each chained neighborhood</title>
+    <desc id="twinning-desc">Twelve rows form four neighborhoods of three. Starting at the row farthest from the centroid, each neighborhood selects its starting row, and its farthest member points to the nearest ungrouped row that starts the next neighborhood.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/></marker>
+    </defs>
+    <rect width="100%" height="100%" fill="var(--paper)"/>
+
+    <!-- Neighborhood hulls and chain arrows precede the rows. -->
+    <path d="M 88 428 Q 104 356 156 356 Q 204 336 224 372 Q 184 424 88 428 Z" fill="var(--ink-a02)" stroke="var(--ink-a20)" stroke-dasharray="4,3"/>
+    <path d="M 316 332 Q 328 276 368 252 Q 416 220 440 248 Q 420 308 348 340 Z" fill="var(--ink-a02)" stroke="var(--ink-a20)" stroke-dasharray="4,3"/>
+    <path d="M 524 216 Q 572 208 620 244 Q 660 272 640 308 Q 572 292 532 252 Z" fill="var(--ink-a02)" stroke="var(--ink-a20)" stroke-dasharray="4,3"/>
+    <path d="M 724 296 Q 792 308 852 372 Q 864 408 820 416 Q 764 396 724 344 Z" fill="var(--ink-a02)" stroke="var(--ink-a20)" stroke-dasharray="4,3"/>
+    <line x1="200" y1="360" x2="340" y2="316" stroke="var(--ink-a20)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <line x1="416" y1="252" x2="548" y2="232" stroke="var(--ink-a30)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <line x1="632" y1="284" x2="748" y2="320" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow-accent)"/>
+
+    <rect x="646" y="270" width="84" height="16" rx="2" fill="var(--paper)"/>
+    <text x="688" y="281" fill="var(--accent)" font-size="8" text-anchor="middle" letter-spacing="0.10em">NEXT START</text>
+
+    <g fill="var(--muted-a20)" stroke="var(--muted)">
+      <circle cx="112" cy="408" r="4"/><circle cx="152" cy="388" r="4"/><circle cx="200" cy="360" r="4"/>
+      <circle cx="340" cy="316" r="4"/><circle cx="376" cy="276" r="4"/><circle cx="416" cy="252" r="4"/>
+      <circle cx="548" cy="232" r="4"/><circle cx="588" cy="252" r="4"/><circle cx="632" cy="284" r="4"/>
+      <circle cx="748" cy="320" r="4"/><circle cx="792" cy="356" r="4"/><circle cx="836" cy="392" r="4"/>
+    </g>
+    <g fill="var(--ink)">
+      <circle cx="112" cy="408" r="4"/><circle cx="340" cy="316" r="4"/><circle cx="548" cy="232" r="4"/><circle cx="748" cy="320" r="4"/>
+    </g>
+    <circle cx="112" cy="408" r="10" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+
+    <!-- Exact centroid of the twelve displayed rows is (478.33, 319.67). -->
+    <path d="M 472 314 L 484 326 M 484 314 L 472 326" fill="none" stroke="var(--ink)" stroke-width="1.4"/>
+    <text x="492" y="324" fill="var(--muted)" font-size="9">centroid</text>
+    <g fill="var(--ink)" font-size="10" font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">
+      <text x="92" y="396"><tspan font-style="italic">u</tspan><tspan font-size="7" dy="3">1</tspan></text>
+      <text x="324" y="304"><tspan font-style="italic">u</tspan><tspan font-size="7" dy="3">2</tspan></text>
+      <text x="532" y="220"><tspan font-style="italic">u</tspan><tspan font-size="7" dy="3">3</tspan></text>
+      <text x="732" y="308"><tspan font-style="italic">u</tspan><tspan font-size="7" dy="3">4</tspan></text>
+      <text x="204" y="350"><tspan font-style="italic">v</tspan><tspan font-size="7" dy="3">1</tspan></text>
+    </g>
+    <text x="112" y="444" fill="var(--accent)" font-size="8" text-anchor="middle" letter-spacing="0.08em">FARTHEST</text>
+
+    <text x="480" y="76" fill="var(--muted)" font-size="13" font-style="italic" text-anchor="middle">cover the data with small neighborhoods, take one row from each,</text>
+    <text x="480" y="96" fill="var(--muted)" font-size="13" font-style="italic" text-anchor="middle">walk neighbor to neighbor</text>
+    <path d="M 480 108 Q 500 144 540 208" fill="none" stroke="var(--ink-a40)" stroke-dasharray="4,3"/>
+    <circle cx="540" cy="208" r="2" fill="var(--ink)"/>
+
+    <g letter-spacing="0.06em">
+    <line x1="40" y1="516" x2="920" y2="516" stroke="var(--ink-a12)" stroke-width="0.8"/>
+    <text x="40" y="536" fill="var(--muted)" font-size="8" letter-spacing="0.12em">LEGEND</text>
+    <circle cx="52" cy="560" r="4" fill="var(--muted-a20)" stroke="var(--muted)"/><text x="64" y="564" fill="var(--ink)" font-size="9">DATA ROW</text>
+    <circle cx="176" cy="560" r="4" fill="var(--ink)"/><text x="188" y="564" fill="var(--ink)" font-size="9">SELECTED ROW (ONE PER GROUP)</text>
+    <rect x="412" y="550" width="32" height="20" rx="8" fill="var(--ink-a02)" stroke="var(--ink-a20)" stroke-dasharray="4,3"/><text x="452" y="564" fill="var(--ink)" font-size="9">NEIGHBORHOOD</text>
+    <line x1="600" y1="560" x2="624" y2="560" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow-accent)"/><text x="632" y="564" fill="var(--ink)" font-size="9">NEXT START</text>
+    </g>
+  </svg>
+</body>
+</html>
