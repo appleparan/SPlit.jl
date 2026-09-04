@@ -37,6 +37,14 @@ function methods(N; rng_seed::Int)
       "herding · gaussian",
       HerdingSplitter(kernel = GaussianKernel(), rng = MersenneTwister(rng_seed)),
     ),
+    (
+      "kernel thinning · energy",
+      KernelThinningSplitter(kernel = EnergyKernel(), rng = MersenneTwister(rng_seed)),
+    ),
+    (
+      "kernel thinning · gaussian",
+      KernelThinningSplitter(kernel = GaussianKernel(), rng = MersenneTwister(rng_seed)),
+    ),
   ]
 end
 
@@ -120,10 +128,12 @@ methods_order = [
   "support points · gaussian",
   "herding · energy",
   "herding · gaussian",
+  "kernel thinning · energy",
+  "kernel thinning · gaussian",
   "random",
 ]
-colors = Makie.wong_colors()[1:5]
-markers = [:circle, :rect, :utriangle, :diamond]
+colors = Makie.wong_colors()[1:7]
+markers = [:circle, :rect, :utriangle, :diamond, :star5, :hexagon]
 
 # 8 (dataset, N) cells in the order rows were generated: N = 1,000 first, then N = 10,000
 dataset_names = unique(rows.dataset)
@@ -133,7 +143,7 @@ metric_panels = [(:energy_distance, "Energy distance"), (:mmd, "Gaussian MMD")]
 
 # for each optimized method, its discrepancy relative to the random split's, per cell
 function relative_quality(metric)
-  return map(methods_order[1:4]) do m
+  return map(methods_order[1:6]) do m
     map(cells) do (N, dname)
       sub = filter(r -> r.dataset == dname && r.N == N, rows)
       rand_val = only(filter(r -> r.method == "random", sub)[!, metric])
@@ -149,14 +159,14 @@ for (j, (metric, title)) in enumerate(metric_panels)
     fig[1, j],
     title = title,
     yscale = log10,
-    xticks = (1:8, cell_labels),
+    xticks = (1:length(cells), cell_labels),
     xticklabelsize = 12,
     ylabel = j == 1 ? "relative to random split (lower is better)" : "",
   )
   hlines!(ax, [1.0]; color = :gray50, linestyle = :dash)
   vlines!(ax, [4.5]; color = :gray80)
-  for (m, col, mk, r) in zip(methods_order[1:4], colors, markers, relative_quality(metric))
-    scatter!(ax, 1:8, r; markersize = 14, marker = mk, color = col, label = m)
+  for (m, col, mk, r) in zip(methods_order[1:6], colors, markers, relative_quality(metric))
+    scatter!(ax, 1:length(cells), r; markersize = 14, marker = mk, color = col, label = m)
   end
   j == 2 && axislegend(ax; position = :rt)
 end
@@ -171,7 +181,7 @@ ax2 = Axis(
   ylabel = "seconds (wall)",
   title = "Split time by method and dataset",
 )
-for (m, col) in zip(methods_order[1:4], colors)
+for (m, col) in zip(methods_order[1:6], colors)
   for (di, dname) in enumerate(unique(rows.dataset))
     sub = filter(r -> r.method == m && r.dataset == dname, rows)
     isempty(sub) && continue
@@ -183,7 +193,7 @@ axislegend(ax2; position = :lt)
 save(joinpath(OUT, "time.png"), fig2; px_per_unit = 2)
 
 data2d = datasets(first(sizes()), MersenneTwister(2026))[1][2]
-fig3 = Figure(size = (1300, 300))
+fig3 = Figure(size = (1800, 300))
 for (i, m) in enumerate(methods_order)
   ax = Axis(fig3[1, i], title = m, aspect = DataAspect())
   scatter!(ax, data2d[:, 1], data2d[:, 2]; color = (:gray70, 0.6), markersize = 4)
