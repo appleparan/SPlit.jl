@@ -104,7 +104,7 @@ of `data`'s own distribution, with candidates still drawn from `data`.
   `GaussianKernel`: KT-SPLIT halves a shuffled sequence of rows by
   randomized kernel halving, and KT-SWAP keeps the candidate closest to
   the target measure and refines it by single-row swaps. It carries a
-  high-probability MMD guarantee and selects at most half of the rows.
+  high-probability MMD guarantee; above half of the rows the selection is the complement of a kernel-thinning selection of the other side.
 - `multiplet(splitter, data, k; strategy = :sequential)`: splits `data`
   into `k` distribution-balanced folds instead of one train/test pair,
   using any splitter under the `:sequential`, `:halving`, or `:single`
