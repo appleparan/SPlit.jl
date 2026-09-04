@@ -87,8 +87,16 @@ git, and precompiles it. This one-time step takes a few minutes. Later starts (a
 picking up the already-installed Julia and the precompiled package) take about two seconds.
 
 Julia runs single-threaded inside Python unless `PYTHON_JULIACALL_THREADS` (e.g. `auto`, or a
-number) is set in the environment before the first call. The `n_threads` keyword argument only
-limits parallelism within the threads Julia was started with; it cannot raise that count.
+number) is set in the environment before the first call, together with
+`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`, which `juliacall` requires for more than one thread (it
+makes `Ctrl-C` stop raising `KeyboardInterrupt` in that process). The `n_threads` keyword argument
+only limits parallelism within the threads Julia was started with; it cannot raise that count,
+and `method='twinning'` rejects it. Results do not depend on the thread count. `juliacall` is not
+thread-safe on the Python side, so keep `splitiq` calls on one Python thread and let Julia
+parallelize inside the call; for several processes, start workers with `spawn` and give each a
+large batch, since every process boots its own Julia. The
+[Python page](https://liam.kim/SPlit.jl/stable/30-python/#python-threads) of the SPlit.jl
+documentation has the full guide.
 
 ## Versioning and releases
 

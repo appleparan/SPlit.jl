@@ -89,7 +89,10 @@ uv add splitiq                 # or: uv add "splitiq[pandas]" for DataFrame inpu
 `pip install splitiq` works too; Python 3.12+ is required. Julia itself is
 installed automatically by `juliapkg` on the first call to a `splitiq`
 function if none is found on the system (one-time, a few minutes); see
-[`splitiq/README.md`](splitiq/README.md) for details.
+[`splitiq/README.md`](splitiq/README.md) for details. Julia runs
+single-threaded inside Python unless `PYTHON_JULIACALL_THREADS` (and
+`PYTHON_JULIACALL_HANDLE_SIGNALS=yes`) are set before the first call; the
+[Python guide](docs/src/30-python.md) covers threads and multiprocessing.
 
 ## Quick start
 

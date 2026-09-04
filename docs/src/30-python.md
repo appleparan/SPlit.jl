@@ -46,13 +46,69 @@ splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
 | 0-based numpy arrays of indices | 1-based `Vector{Int}` of indices |
 
 Julia runs single-threaded inside Python unless `PYTHON_JULIACALL_THREADS`
-is set (for example to `auto`) before the first call.
+is set (for example to `auto`) before the first call; see
+[Threads and parallelism](@ref python-threads) below.
 
 The Python package shares its version number with SPlit.jl. Release `vX.Y.Z`
 of `splitiq` pins SPlit.jl at the git tag `vX.Y.Z`, and pushing that tag
 publishes the Python package to PyPI, so both releases come from one tag. The package sources live
 in the `splitiq/` directory of the repository; its own documentation covers
 installation details and the development setup.
+
+## [Threads and parallelism](@id python-threads)
+
+Every threaded loop in SPlit.jl (the support-point sweeps, the herding and
+kernel-thinning sums, and the exact `energydistance`/`mmd`/`splitquality`
+block sums) is available from Python, but the thread count is fixed when
+Julia starts, and Julia starts on the first `splitiq` call. Two environment
+variables control it, and both have to be in the environment before that
+first call:
+
+- `PYTHON_JULIACALL_THREADS`: a number, or `auto` for one thread per core.
+  When it is unset, `juliacall` falls back to `JULIA_NUM_THREADS`, and
+  otherwise to a single thread.
+- `PYTHON_JULIACALL_HANDLE_SIGNALS=yes`: required alongside more than one
+  thread. Without it `juliacall` warns that multithreading may segfault or
+  crash. The trade-off is that Julia takes over signal handling, so `Ctrl-C`
+  no longer raises `KeyboardInterrupt` in that process; see the
+  [PythonCall FAQ](https://juliapy.github.io/PythonCall.jl/stable/faq/#Is-PythonCall/JuliaCall-thread-safe?).
+
+Set them in the shell, or at the top of the script before the first call:
+
+```bash
+PYTHON_JULIACALL_THREADS=auto PYTHON_JULIACALL_HANDLE_SIGNALS=yes python select.py
+```
+
+```python
+import os
+
+os.environ.setdefault('PYTHON_JULIACALL_THREADS', 'auto')
+os.environ.setdefault('PYTHON_JULIACALL_HANDLE_SIGNALS', 'yes')
+
+import numpy as np
+from splitiq import select_rows          # importing does not start Julia
+
+E = np.load('embeddings.npy')
+idx = select_rows(E, 2_000, method='herding', standardize=False)                # every thread
+idx = select_rows(E, 2_000, method='herding', standardize=False, n_threads=2)   # at most two
+```
+
+Once Julia is running, the count cannot change: setting the variable later,
+or in a notebook after the first call, has no effect until the process (or
+the kernel) restarts. The `n_threads` keyword on `datasplit`, `select_rows`,
+`multiplet`, `splitquality`, `compare`, `energydistance`, and `mmd` only
+caps the work split within the threads Julia already has; a value above
+that count adds nothing, and `method='twinning'` rejects it because
+twinning is sequential. Results do not depend on the thread count, only
+the wall time does.
+
+`juliacall` is not thread-safe on the Python side, so do not call `splitiq`
+from several Python threads at once; let Julia's threads do the parallel
+work inside one call. For several processes, each one starts its own Julia
+(about two seconds after the first, precompiled start), so give every
+worker a large batch rather than one call each, and start workers with the
+`spawn` method rather than forking a process in which Julia is already
+running.
 
 ## Weighted samples
 
