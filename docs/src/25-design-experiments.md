@@ -219,9 +219,12 @@ N = 1,000, 32% higher. `kappa = 1,000` cuts the N = 10,000 MM time by
 3.4-3.8x (0.84-1.56s against 2.93-5.88s) at MMD within 6% of the full-data
 sweep on three datasets, and about 21x higher — but still about 2.2x below
 a random subset — on `mixture-2d`. An over-relaxed sweep (adaptive
-extrapolation along the MM direction, one objective evaluation per
-iteration) was tried and rejected: negligible objective gain at 2-3x the
-cost. The damped uniform-weight fixed point of Belhadji, Sharp & Marzouk
+extrapolation along the MM direction, safeguarded by one objective
+evaluation per iteration) was also tried during the design and rejected:
+the objective barely improved while every iteration gained an objective
+evaluation, which costs as much as the sweep itself; the design record
+(`docs/superpowers/specs/2026-09-04-gaussian-mm-update-design.md`) has the
+numbers. The damped uniform-weight fixed point of Belhadji, Sharp & Marzouk
 (2025, eq. 29) diverges on every dataset because its denominator crosses
 zero where the point set fits the data. Full table:
 [`assets/benchmarks/gaussian_update.md`](assets/benchmarks/gaussian_update.md).
