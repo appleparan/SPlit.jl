@@ -1,13 +1,14 @@
 """
 Support-point optimization.
 
-Full-data mode applies the closed-form MM update of Mak & Joseph (2018),
-which decreases the energy-distance objective monotonically. When `kappa` is
-given, the stochastic variant of Joseph & Vakayil (2022) resamples `kappa`
-rows per iteration and stabilizes the update with running averages.
-For `GaussianKernel`, support points minimize the squared MMD by projected
-gradient descent with Armijo backtracking (Gretton et al. 2012 for the
-objective).
+Full-data mode applies the closed-form MM update of Mak & Joseph (2018) for
+`EnergyKernel`, which decreases the energy-distance objective monotonically.
+For `GaussianKernel`, full-data mode minimizes the squared MMD by projected
+gradient descent with Armijo backtracking; in stochastic mode (`kappa` below
+the number of target rows) it instead runs the analogous MM mean-shift
+sweep, which decreases the squared MMD monotonically on full data and, like
+the energy kernel's stochastic mode, resamples `kappa` rows per iteration
+(Joseph & Vakayil 2022) and stabilizes the update with running averages.
 """
 
 using LinearAlgebra
@@ -122,6 +123,97 @@ function _mm_sweep!(
   return nothing
 end
 
+# Kernel-dispatched entry point; the energy body above is unchanged so its
+# results stay bit-identical.
+_mm_sweep!(::EnergyKernel, args...) = _mm_sweep!(args...)
+
+# Gaussian-kernel MM sweep (design record: 2026-09-04-gaussian-mm-update).
+# The data term −k(ξ, x) is concave in ‖ξ − x‖², so its tangent majorizer
+# gives the mean-shift step; the repulsion k(ξ_m, ξ_o) is majorized by its
+# L-smooth quadratic bound with L = 2e^{-3/2}/σ² (the largest Hessian
+# eigenvalue of a Gaussian), split over the two points. Per point m:
+#   A   = Σ_i ŵ_i k(ξ_m, x_i) / (n_sub σ²)             data density
+#   ms  = Σ_i ŵ_i k(ξ_m, x_i) x_i / Σ_i ŵ_i k(ξ_m, x_i)  mean-shift target
+#   rep = Σ_{o≠m} k(ξ_m, ξ_o) (ξ_m − ξ_o) / (n σ²)      linearized repulsion
+#   B   = 2 (n − 1) L / n = 4 (n − 1) e^{-3/2} / (n σ²)
+#   ξ_m ← clamp((A ms + B ξ_m + rep) / (A + B), bounds)
+# The full-data sweep (alpha = 1) never increases the objective. In
+# stochastic mode `alpha` blends A and the data numerator with the running
+# constant exactly as the energy sweep does, so the loop in
+# `support_points` is shared. `current_const[m]` receives A.
+function _mm_sweep!(
+  k::GaussianKernel{Float64},
+  new_points::Matrix{Float64},
+  current_const::Vector{Float64},
+  points::Matrix{Float64},
+  subsample_data::AbstractMatrix{Float64},
+  subsample_weights::AbstractVector{Float64},
+  running_const::Vector{Float64},
+  alpha::Float64,
+  bounds::Matrix{Float64},
+  n_threads::Int,
+)
+  n, p = size(points)
+  n_sub = size(subsample_data, 1)
+  s2 = k.bandwidth^2
+  inv2s2 = 1 / (2 * s2)
+  B = 4 * (n - 1) * exp(-1.5) / (n * s2)
+  chunks = collect(Iterators.partition(1:n, cld(n, max(1, n_threads))))
+  @sync for chunk in chunks
+    Threads.@spawn begin
+      s1 = zeros(p)
+      r1 = zeros(p)
+      for m in chunk
+        s0 = 0.0
+        fill!(s1, 0.0)
+        for i = 1:n_sub
+          d = 0.0
+          for j = 1:p
+            d += (subsample_data[i, j] - points[m, j])^2
+          end
+          w = subsample_weights[i] * exp(-d * inv2s2)
+          s0 += w
+          for j = 1:p
+            s1[j] += w * subsample_data[i, j]
+          end
+        end
+        r0 = 0.0
+        fill!(r1, 0.0)
+        for o = 1:n
+          o == m && continue
+          d = 0.0
+          for j = 1:p
+            d += (points[m, j] - points[o, j])^2
+          end
+          w = exp(-d * inv2s2)
+          r0 += w
+          for j = 1:p
+            r1[j] += w * points[o, j]
+          end
+        end
+        A = s0 / (n_sub * s2)
+        current_const[m] = A
+        denom = (1 - alpha) * running_const[m] + alpha * A + B
+        for j = 1:p
+          ms = s0 > 0 ? s1[j] / s0 : points[m, j]
+          rep = (r0 * points[m, j] - r1[j]) / (n * s2)
+          x = if denom > 0
+            (
+              (1 - alpha) * running_const[m] * points[m, j] +
+              alpha * (A * ms + rep) +
+              B * points[m, j]
+            ) / denom
+          else
+            points[m, j]
+          end
+          new_points[m, j] = clamp(x, bounds[j, 1], bounds[j, 2])
+        end
+      end
+    end
+  end
+  return nothing
+end
+
 # Validate the (weights | target, target_weights) combination and return the
 # target matrix plus its mean-one and sum-one weight vectors. `weights`
 # belongs to the data-as-target case only. On the no-target path, `R` is
@@ -186,11 +278,14 @@ function _draw_subsample(
 end
 
 """
-    support_points(kernel, data, n; kwargs...) -> (points, converged, iterations)
+    support_points(kernel::EnergyKernel, data, n; kwargs...) -> (points, converged, iterations)
 
-Compute `n` support points for `data` (rows are observations) under `kernel`.
-Returns the points, whether the point-movement tolerance was reached, and the
-number of iterations actually used.
+Compute `n` support points for `data` (rows are observations) under the
+energy kernel by the closed-form majorization–minimization (MM) sweep of
+Mak & Joseph (2018). The sweep costs one pass over the data and the point
+set and never increases the objective on full data. Returns the points,
+whether the point-movement tolerance was reached, and the number of
+iterations actually used.
 
 Convergence compares the largest *squared* displacement of any support point
 in one iteration to `tolerance`. In stochastic mode (`kappa !== nothing`),
@@ -226,7 +321,44 @@ so weighting a reference is equivalent to duplicating its rows only up to
 that jitter.
 """
 function support_points(
-  ::EnergyKernel,
+  k::EnergyKernel,
+  data::Matrix{Float64},
+  n::Int;
+  kappa::Union{Nothing,Int} = nothing,
+  max_iterations::Int = 500,
+  tolerance::Float64 = 1e-10,
+  n_threads::Int = Threads.nthreads(),
+  rng::AbstractRNG = Random.default_rng(),
+  verbose::Bool = false,
+  weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
+  _n0_factor::Float64 = 0.2,
+  _subsampling::Symbol = :uniform,
+)
+  return _support_points_mm(
+    k,
+    data,
+    n;
+    kappa,
+    max_iterations,
+    tolerance,
+    n_threads,
+    rng,
+    verbose,
+    weights,
+    target,
+    target_weights,
+    _n0_factor,
+    _subsampling,
+  )
+end
+
+# Shared MM-sweep loop behind `support_points(::EnergyKernel, …)` and the
+# Gaussian kernel's stochastic mode (`support_points(::GaussianKernel, …)`
+# with `kappa` below the number of target rows).
+function _support_points_mm(
+  k::Union{EnergyKernel,GaussianKernel{Float64}},
   data::Matrix{Float64},
   n::Int;
   kappa::Union{Nothing,Int} = nothing,
@@ -289,6 +421,7 @@ function support_points(
     alpha = stochastic ? n0 / (iteration + n0) : 1.0
 
     _mm_sweep!(
+      k,
       new_points,
       current_const,
       points,
@@ -472,25 +605,31 @@ end
 """
     support_points(kernel::GaussianKernel, data, n; kwargs...)
 
-Support points under a Gaussian kernel: minimize the squared MMD between the
-point set and the data by projected gradient descent with Armijo
-backtracking on the projected step (the objective never increases across
-accepted steps). The kernel must be resolved (numeric bandwidth);
-`datasplit` resolves it. The stochastic `kappa` mode is not available for
-this kernel yet.
+Support points under a Gaussian kernel. On full data (`kappa === nothing`,
+or `kappa` at or above the number of target rows), minimize the squared MMD
+between the point set and the data by projected gradient descent with
+Armijo backtracking on the projected step (the objective never increases
+across accepted steps). In stochastic mode (`kappa` below the number of
+target rows), support points instead come from the Gaussian MM sweep
+(mean-shift data term, majorized repulsion, see the Methods page), with the
+energy path's running-average blend and the displacement rule only — no
+line search. The kernel must be resolved (numeric bandwidth); `datasplit`
+resolves it.
 
-The first trial step is scale-aware: `t0 = 0.1 * scale / max(‖∇f‖, eps())`,
-with `scale` the median per-dimension data range and `‖∇f‖` the largest
-gradient row norm, so the initial move is a tenth of the data scale
-regardless of the point count or gradient magnitude (Armijo backtracking and
-the `2t` warm start on later iterations are unchanged). Convergence never
-fires before the second iteration, and then when either the largest squared
-displacement is below `tolerance` or the relative objective decrease
-`|f_{t-1} - f_t| / max(|f_t|, 1e-12)` is below `rtol`. `f` is
-`_mmd_objective`, which omits the constant data self-term and is bounded in
-`[-1, 1]` for a Gaussian kernel, so `rtol` acts as an
-absolute per-iteration tolerance on that bounded objective, not a relative
-tolerance on the (orders-of-magnitude smaller) true MMD².
+The first trial step of the full-data path is scale-aware:
+`t0 = 0.1 * scale / max(‖∇f‖, eps())`, with `scale` the median per-dimension
+data range and `‖∇f‖` the largest gradient row norm, so the initial move is
+a tenth of the data scale regardless of the point count or gradient
+magnitude (Armijo backtracking and the `2t` warm start on later iterations
+are unchanged). Convergence never fires before the second iteration, and
+then when either the largest squared displacement is below `tolerance` or
+the relative objective decrease `|f_{t-1} - f_t| / max(|f_t|, 1e-12)` is
+below `rtol`. `f` is `_mmd_objective`, which omits the constant data
+self-term and is bounded in `[-1, 1]` for a Gaussian kernel, so `rtol` acts
+as an absolute per-iteration tolerance on that bounded objective, not a
+relative tolerance on the (orders-of-magnitude smaller) true MMD². `rtol`
+applies to the full-data path only; in stochastic mode convergence uses
+only the displacement rule, as on the energy path.
 
 `weights` (one non-negative entry per row, `nothing` for uniform) makes the
 points minimize the MMD² to the weighted empirical distribution
@@ -523,11 +662,38 @@ function support_points(
   weights::Union{Nothing,AbstractVector} = nothing,
   target::Union{Nothing,AbstractMatrix} = nothing,
   target_weights::Union{Nothing,AbstractVector} = nothing,
+  _n0_factor::Float64 = 0.2,
+  _subsampling::Symbol = :uniform,
 )
   isresolved(k) ||
     throw(ArgumentError("GaussianKernel bandwidth must be resolved; call resolve first"))
   kappa === nothing ||
-    throw(ArgumentError("stochastic mode (kappa) is not available for GaussianKernel yet"))
+    kappa > 0 ||
+    throw(ArgumentError("kappa must be positive, got $kappa"))
+  _subsampling in (:uniform, :proportional) || throw(
+    ArgumentError("_subsampling must be :uniform or :proportional, got :$_subsampling"),
+  )
+  M = target === nothing ? size(data, 1) : size(target, 1)
+  stochastic = kappa !== nothing && kappa < M
+  if stochastic
+    return _support_points_mm(
+      k,
+      data,
+      n;
+      kappa,
+      max_iterations,
+      tolerance,
+      n_threads,
+      rng,
+      verbose,
+      weights,
+      target,
+      target_weights,
+      _n0_factor,
+      _subsampling,
+    )
+  end
+
   N = size(data, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
   max_iterations > 0 ||

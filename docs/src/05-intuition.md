@@ -431,12 +431,14 @@ what you get when the kernel is "minus the distance" between two points, so
 `EnergyKernel` and `GaussianKernel` are two members of the same family that
 differ only in the ruler.
 
-Because the MM update described above is derived specifically for the energy
-distance, it does not carry over to the Gaussian kernel. The Gaussian
-optimizer instead uses projected gradient descent with backtracking: take a
-step downhill, and if that step did not actually decrease the objective,
-shrink it and try again. This also produces a sequence of accepted steps
-that never makes the objective worse.
+The MM update described above is derived specifically for the energy
+distance, so it does not carry over to the Gaussian kernel unchanged. The
+Gaussian kernel has its own MM sweep instead (a mean-shift data term and a
+majorized repulsion term; see the [Methods](@ref methods) page), which
+`kappa` mode uses. On full data, the optimizer uses projected gradient
+descent with backtracking: take a step downhill, and if that step did not
+actually decrease the objective, shrink it and try again. This also
+produces a sequence of accepted steps that never makes the objective worse.
 
 ```julia
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(5))
@@ -454,8 +456,9 @@ coincide exactly, which happens for example with a single binary categorical
 column. In that case pass a numeric `σ` instead, chosen on the scale of the
 standardized data: a bandwidth far below the spacing between rows makes the
 objective flat, and the optimizer never moves away from its starting sample.
-Also, `kappa`, the stochastic large-data mode described above, is not
-available for `GaussianKernel`.
+`kappa`, the stochastic large-data mode described above, is available for
+`GaussianKernel` too: it runs the Gaussian kernel's own MM sweep on
+subsamples, while full data keeps projected gradient descent.
 
 ## Big datasets: estimators
 

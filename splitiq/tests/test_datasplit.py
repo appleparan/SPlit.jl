@@ -101,6 +101,14 @@ def test_kappa_runs_stochastic_mode() -> None:
     assert len(result.train_indices) + len(result.test_indices) == n
 
 
+def test_gaussian_kernel_accepts_kappa() -> None:
+    data = _data(600, seed=7)
+    result = datasplit(data, ratio=0.2, kernel='gaussian', kappa=150, seed=1, max_iterations=30)
+    assert len(result.test_indices) == 120
+    assert result.bandwidth is not None
+    assert result.bandwidth > 0
+
+
 def test_ratio_outside_unit_interval_raises_value_error() -> None:
     data = _data(50, seed=12)
     with pytest.raises(ValueError, match='ratio'):

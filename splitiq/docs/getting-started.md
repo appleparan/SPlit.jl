@@ -108,7 +108,7 @@ threshold (`exact_threshold`); pass `estimator=` explicitly to control that your
   to `'median'`, resolved from the data, or accepts a fixed positive number.
 - `kappa` bounds the number of rows the optimizer considers per iteration. Set it below the
   number of rows to switch to stochastic majorization-minimization on large datasets;
-  `method='support_points'` only.
+  `method='support_points'` only, with either kernel.
 - `seed` fixes the RNG for reproducible splits (`Random.Xoshiro(seed)` on the Julia side).
   Without a seed, Julia's default RNG is used.
 

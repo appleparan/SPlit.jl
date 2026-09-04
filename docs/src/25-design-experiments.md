@@ -195,3 +195,48 @@ with:
 ```sh
 julia -t auto --project=benchmark benchmark/compress.jl
 ```
+
+## [Gaussian update rule](@id gaussian-update)
+
+`support_points(::GaussianKernel, …)` keeps the projected-gradient optimizer
+with Armijo backtracking on full data, and runs the majorization–minimization
+(MM) sweep (mean-shift data term, majorized repulsion; see
+[Methods](@ref methods)) only in stochastic mode, i.e. when `kappa` is below
+the number of target rows. Measured on the four benchmark datasets at
+N = 1,000 and 10,000, n = 0.2N, `:median` bandwidth, three seeds: an MM
+sweep costs 1.9-6.9x less than an Armijo iteration, but it takes smaller
+steps — every MM run in the table uses its full iteration cap (200 at
+N = 1,000, 100 at N = 10,000). The benchmark script's `mm` arm is a private
+loop that always runs for a fixed number of iterations, so its iteration
+column is the cap by construction, not evidence of non-convergence on its
+own; a separate, earlier run of the same comparison through
+`support_points` (made before the optimizer decision below) did reach the
+same outcome by actually checking the rule — it never satisfied the
+displacement rule within the cap either. Armijo stops early (by its
+relative-decrease rule in that earlier run through `support_points`; the
+table itself records only the iteration counts) on three of the four
+datasets (mixture-2d, normal-10d, t3-3d). On `uniform-5d`, where Armijo also
+runs to its cap, the extra MM iterations do not pay off: MM's selected-row
+MMD is worse than Armijo's at both sizes (N = 1,000: 0.00267 vs 0.00116,
+random 0.0036; N = 10,000: 0.000393 vs 0.000305, random 0.000401). On the
+other three datasets MM's selected-row MMD stays within 8% of Armijo's
+(mixture-2d at N = 1,000, both `normal-10d` cells, `t3-3d` at N = 10,000) or
+up to 53% lower (mixture-2d at N = 10,000); the one exception is `t3-3d` at
+N = 1,000, 32% higher. `kappa = 1,000` cuts the N = 10,000 MM time by
+3.4-3.8x (0.84-1.56s against 2.93-5.88s) at MMD within 6% of the full-data
+sweep on three datasets, and about 21x higher — but still about 2.2x below
+a random subset — on `mixture-2d`. An over-relaxed sweep (adaptive
+extrapolation along the MM direction, safeguarded by one objective
+evaluation per iteration) was also tried during the design and rejected:
+the objective barely improved while every iteration gained an objective
+evaluation, which costs as much as the sweep itself; the design record
+(`docs/superpowers/specs/2026-09-04-gaussian-mm-update-design.md`) has the
+numbers. The damped uniform-weight fixed point of Belhadji, Sharp & Marzouk
+(2025, eq. 29) diverges on every dataset because its denominator crosses
+zero where the point set fits the data. Full table:
+[`assets/benchmarks/gaussian_update.md`](assets/benchmarks/gaussian_update.md).
+Reproduce with:
+
+```sh
+julia -t auto --project=benchmark benchmark/gaussian_update.jl
+```

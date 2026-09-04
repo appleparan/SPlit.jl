@@ -68,15 +68,16 @@ function gaussian_support_points_from(
   G = similar(points)
   f = SPlit._mmd_objective(k, points, data)
   t = 1.0
+  w_hat = ones(size(data, 1))
 
   iteration = 0
   converged = false
   while !converged && iteration < max_iterations
     iteration += 1
-    SPlit._mmd_gradient!(G, k, points, data, n_threads)
+    SPlit._mmd_gradient!(G, k, points, data, w_hat, n_threads)
     t0 = iteration == 1 ? SPlit._first_step(G, bounds) : 2t
     f_prev = f
-    t, f = SPlit._armijo_step!(new_points, points, G, f, t0, k, data, bounds)
+    t, f = SPlit._armijo_step!(new_points, points, G, f, t0, k, data, bounds, nothing)
     t == 0.0 && break
     max_move = 0.0
     @views for m = 1:n

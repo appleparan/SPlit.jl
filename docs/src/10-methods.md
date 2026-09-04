@@ -122,8 +122,9 @@ the result is clamped.
 ## Maximum mean discrepancy and the Gaussian kernel
 
 Under `GaussianKernel`, step 4 minimizes the squared maximum mean
-discrepancy instead, and `support_points` switches from the MM update to
-projected gradient descent. For a kernel ``k`` the squared maximum mean discrepancy (Gretton et al.,
+discrepancy instead, and `support_points` uses projected gradient descent
+on full data and the Gaussian MM sweep described below in stochastic mode.
+For a kernel ``k`` the squared maximum mean discrepancy (Gretton et al.,
 2012) between two samples is
 
 ```math
@@ -172,10 +173,66 @@ constant data self-term and is bounded in ``[-1, 1]`` for a Gaussian kernel,
 so `rtol` acts as an absolute-in-effect tolerance
 rather than a tolerance on the (orders-of-magnitude smaller) true MMD².
 
+With `kappa` below the number of rows, the Gaussian kernel switches to a
+majorization–minimization sweep of the energy sweep's shape
+(`support_points(::GaussianKernel, …)` dispatches on `kappa`; the sweep
+shares the internal loop that also implements `EnergyKernel`'s stochastic
+mode). The data term ``-k(\xi, x)`` is concave in ``\|\xi - x\|^2``, so its
+tangent at the current point is an upper bound whose minimizer is the
+mean-shift step (Fukunaga & Hostetler, 1975): the kernel-weighted mean of
+the data. The repulsion ``k(\xi_i, \xi_j)`` is bounded above by its
+quadratic ``L``-smooth majorizer with ``L = 2e^{-3/2}/\sigma^2``, the
+largest Hessian eigenvalue of a Gaussian, split evenly over the two
+points. Per point, with ``s_0 = \sum_l k(\xi_m, x_l)``,
+``s_1 = \sum_l k(\xi_m, x_l)\,x_l``, ``r_0 = \sum_{j \ne m} k(\xi_m, \xi_j)``,
+``r_1 = \sum_{j \ne m} k(\xi_m, \xi_j)\,\xi_j``,
+
+```math
+A = \frac{s_0}{N\sigma^2}, \quad
+\mathrm{ms} = \frac{s_1}{s_0}, \quad
+\mathrm{rep} = \frac{r_0\,\xi_m - r_1}{n\sigma^2}, \quad
+B = \frac{4(n-1)e^{-3/2}}{n\sigma^2}, \qquad
+\xi_m \leftarrow \operatorname{clamp}\!\left(\frac{A\,\mathrm{ms} + B\,\xi_m + \mathrm{rep}}{A + B}\right).
+```
+
+(In stochastic mode, the only mode in which this sweep runs, ``\kappa``
+takes the place of ``N`` in ``A``: the sums run over the drawn rows.)
+``A + B > 0`` always, the sweep is one pass over the data and the point
+set, and on full data the objective never increases (the majorizer is
+tangent at the current points, so its minimizer cannot be worse). For
+large ``n`` (``B`` approaches ``4e^{-3/2}/\sigma^2 \approx 0.89/\sigma^2``
+and ``A \le 1/\sigma^2``) the attraction weight ``A/(A+B)`` is at most
+about ``0.53``, so a sweep moves a point at most about halfway to its
+mean-shift target; per iteration this descends less than a line search
+would, but an iteration costs a single pass, which is what makes the
+stochastic mode affordable. With
+``\kappa < N`` the sweep runs on a fresh subsample each iteration with the
+running-average blend of the energy path (``n_0 = 0.2n``); `weights` enter
+the data sums as ``\hat w``, and a reference replaces the data rows, exactly
+as for `EnergyKernel`. Convergence is the displacement rule.
+
+Full data keeps the Armijo path instead of this sweep because it measures
+better there: the sweep never reaches the displacement rule within the
+iteration cap and its selected rows are worse on `uniform-5d` at both sizes
+and on `t3-3d` at N = 1,000 (0.000156 vs 0.000118), level or better
+elsewhere. In `kappa` mode, where only the sweep is affordable, the
+selected-row MMD at N = 10,000 is within about 3% of Armijo's on
+`normal-10d` and `t3-3d`, about 29% higher on `uniform-5d` (0.000393 vs
+0.000305), and about 10x higher on `mixture-2d` (5.47e-6 vs 5.6e-7, still
+about 2x below the random subset's 1.23e-5) — while running 3.4-3.8x
+faster than the full-data sweep (see
+[Design experiments](@ref gaussian-update)). The design record
+(`docs/superpowers/specs/2026-09-04-gaussian-mm-update-design.md`) explains
+why the weighted mean-shift map of Belhadji, Sharp & Marzouk (2025) is not
+used as written: it optimizes the subset's weights too, and the package's
+selected subset is uniform.
+
 When `bandwidth = :median`, ``\sigma`` is the median pairwise distance over
 (a sample of) the standardized rows (Gretton et al., 2012), resolved once
-per `datasplit` and stored in `result.method.kernel`. The stochastic
-`kappa` mode is not available for this kernel.
+per `datasplit` and stored in `result.method.kernel`. A bandwidth far below
+the row spacing makes the objective flat: on full data the points barely
+move and Armijo's backtracking stalls at a tiny step; in `kappa` mode the
+displacement rule stops at the initial sample.
 
 ## Kernel herding
 
@@ -350,9 +407,12 @@ columns plus one.
 
 ## References
 
+- Belhadji, A., Sharp, D., & Marzouk, Y. (2025). Weighted quantization using MMD: From mean field to mean shift via gradient flows. arXiv:2502.10600.
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
 - Dwivedi, R., & Mackey, L. (2022). Generalized Kernel Thinning. *ICLR*.
 - Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine Learning Research*, 25(152), 1-77.
+- Fashing, M., & Tomasi, C. (2005). Mean shift is a bound optimization. *IEEE Transactions on Pattern Analysis and Machine Intelligence*, 27(3), 471-474.
+- Fukunaga, K., & Hostetler, L. (1975). The estimation of the gradient of a density function, with applications in pattern recognition. *IEEE Transactions on Information Theory*, 21(1), 32-40.
 - Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *JMLR*, 13, 723-773.
 - Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 531-538.
 - Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 64(2), 166-176.

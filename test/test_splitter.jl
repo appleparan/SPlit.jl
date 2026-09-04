@@ -2,6 +2,7 @@ using Test
 using SPlit
 using Random
 using DataFrames
+using Statistics
 
 @testset "SupportPointSplitter" begin
   @testset "constructor validation" begin
@@ -83,9 +84,34 @@ using DataFrames
 end
 
 @testset "GaussianKernel through datasplit" begin
-  @testset "constructor rejects kappa with GaussianKernel" begin
-    @test_throws ArgumentError SupportPointSplitter(kernel = GaussianKernel(), kappa = 50)
-    @test SupportPointSplitter(kernel = GaussianKernel()).kernel.bandwidth === :median
+  @testset "constructor accepts kappa with GaussianKernel" begin
+    s = SupportPointSplitter(kernel = GaussianKernel(), kappa = 50)
+    @test s.kappa == 50
+    @test s.kernel.bandwidth === :median
+    @test_throws ArgumentError SupportPointSplitter(kernel = GaussianKernel(), kappa = 0)
+  end
+
+  @testset "stochastic Gaussian split runs, stores the bandwidth, beats random under MMD" begin
+    rng = MersenneTwister(75)
+    data = vcat(randn(rng, 600, 2) .- 2, randn(rng, 600, 2) .+ 2)
+    s = SupportPointSplitter(
+      kernel = GaussianKernel(),
+      kappa = 200,
+      max_iterations = 100,
+      rng = MersenneTwister(76),
+    )
+    r = datasplit(s, data)
+    @test r.method.kernel isa GaussianKernel{Float64}
+    @test r.method.kappa == 200
+    @test length(test_indices(r)) == 240
+    q = splitquality(data, r; kernel = r.method.kernel)
+    rand_q = Float64[]
+    for i = 1:20
+      perm = randperm(MersenneTwister(3_000 + i), 1200)
+      fake = SPlit.SplitResult(perm[241:end], perm[1:240], true, 0, s)
+      push!(rand_q, splitquality(data, fake; kernel = r.method.kernel))
+    end
+    @test q < mean(rand_q)
   end
 
   @testset "split works and stores the resolved bandwidth" begin

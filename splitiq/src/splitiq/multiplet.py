@@ -72,7 +72,8 @@ def multiplet(
             or ``'kernel_thinning'``.
         kernel: ``'energy'`` or ``'gaussian'`` (twinning: ``'energy'`` only).
         bandwidth: A positive number, or ``'median'`` (Gaussian kernel only).
-        kappa: Stochastic subsample size (``'support_points'`` only).
+        kappa: Stochastic subsample size (``'support_points'`` only; works
+            with either kernel).
         max_iterations: Maximum optimizer iterations (``'support_points'`` only).
         tolerance: Convergence tolerance (``'support_points'`` only).
         n_threads: Number of threads (not available for twinning).
