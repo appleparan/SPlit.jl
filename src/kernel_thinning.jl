@@ -331,6 +331,17 @@ function kernel_thinning(
   N = size(X, 1)
   0 < n < N || throw(ArgumentError("n must be in 1:$(N - 1), got $n"))
   0 < delta < 1 || throw(ArgumentError("delta must be in (0, 1), got $delta"))
+  if target === nothing
+    target_weights === nothing || throw(ArgumentError("target_weights needs a target"))
+    weights === nothing || _check_weights(weights, N)
+    weights = _uniform_as_nothing(weights)
+  else
+    weights === nothing || throw(
+      ArgumentError("with a target, weight the target (target_weights), not the data"),
+    )
+    target_weights === nothing || _check_weights(target_weights, size(target, 1))
+    target_weights = _uniform_as_nothing(target_weights)
+  end
   if n > N ÷ 2
     rows_c, swaps = kernel_thinning(
       kernel,
@@ -405,7 +416,10 @@ end
 
 # HALVE (paper Ex. 2 and Remark 3): kernel thinning of the block's own rows
 # to ⌊ℓ/2⌋, then the selected half or its complement with equal
-# probability, so each halving is unbiased. Rows keep the block's order.
+# probability, so each halving is unbiased. When ℓ is odd the complement has
+# half + 1 rows; one of them is dropped uniformly at random with `rng` so
+# every row of the block has the same marginal probability of being kept.
+# Rows keep the block's order.
 function _symmetrized_halve(
   kernel::SplitKernel,
   X::Matrix{Float64},
@@ -423,7 +437,8 @@ function _symmetrized_halve(
     local_rows
   else
     other = setdiff(1:ℓ, local_rows)
-    length(other) > half ? other[1:half] : other
+    length(other) > half && deleteat!(other, rand(rng, 1:length(other)))
+    other
   end
   return S[sort(keep)]
 end

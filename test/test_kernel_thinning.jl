@@ -618,3 +618,58 @@ end
     @test sort(reduce(vcat, folds)) == 1:600
   end
 end
+
+@testset "review fixes: symmetric odd halving, uniform weights, target validation" begin
+  X = SPlit.preprocess(randn(MersenneTwister(95), 400, 2))
+  # odd block: across seeds the complement branch drops different rows, so no row is always excluded
+  S = collect(1:201)
+  outs = [
+    SPlit._symmetrized_halve(EnergyKernel(), X, S, 0.1, MersenneTwister(s); n_threads = 2) for s = 1:40
+  ]
+  @test all(o -> length(o) == 100, outs)
+  never_kept = setdiff(S, union(outs...))
+  @test isempty(never_kept)
+  # uniform weights reproduce the unweighted path, including the Compress++ decision
+  mixture = let rng = MersenneTwister(96), N = 6_000
+    c = rand(rng, 1:4, N)
+    centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+    SPlit.preprocess(centers[c, :] .+ randn(rng, N, 2))
+  end
+  @test SPlit._compress_pays_off(6_000, 100)
+  @test SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :auto,
+    weights = ones(6_000),
+    rng = MersenneTwister(1),
+  ) == SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :auto,
+    rng = MersenneTwister(1),
+  )
+  # target arguments are validated before the compress branch
+  @test_throws ArgumentError SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :always,
+    target_weights = ones(10),
+  )
+  @test_throws ArgumentError SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    compress = :always,
+    weights = rand(6_000),
+    target = mixture[1:50, :],
+  )
+  @test_throws ArgumentError SPlit.kernel_thinning(
+    EnergyKernel(),
+    mixture,
+    100;
+    weights = rand(10),
+  )   # wrong length, plain path
+end
