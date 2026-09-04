@@ -124,3 +124,35 @@ result = datasplit(data, ratio=0.2, method='kernel_thinning', kernel='energy', d
 other methods; `kappa`, `max_iterations`, `tolerance`, and `start` raise
 `ValueError` with this method, as they do with `'herding'`. See
 [Kernel thinning](@ref kernel-thinning) for the algorithm.
+
+## Embeddings
+
+`standardize=False` uses a numeric array exactly as given, with no
+Helmert encoding, constant-column removal, or per-column scaling — the
+mode for cosine-normalized embeddings, where standardizing columns would
+distort the angles. It is accepted by `datasplit`, `select_rows`,
+`multiplet`, `splitquality`, and `compare`; a pandas DataFrame raises
+`ValueError` with it, because a DataFrame needs the encoding step.
+
+`compress` (kernel thinning only) picks the Compress++ path: `'auto'`
+(the default) uses it when `n` is a small fraction of the row count and
+the target measure is the data itself, `'always'` and `'never'` force
+either path, and `'always'` with `weights` or `reference` raises
+`ValueError`.
+
+```python
+import numpy as np
+from splitiq import select_rows, energydistance
+
+E = np.random.default_rng(0).standard_normal((5_000, 384))
+E /= np.linalg.norm(E, axis=1, keepdims=True)
+
+idx = select_rows(E, 500, method='herding', kernel='energy', standardize=False)
+few = select_rows(E, 100, method='kernel_thinning', standardize=False)   # compress='auto'
+energydistance(E[idx], E)
+```
+
+The "Skipping preprocessing" section of [Methods](@ref methods) and
+[Compress++](@ref compress) describe what each does;
+[Selecting LLM training data](@ref llm-data-selection) has the workflow and
+the decision table.

@@ -1,7 +1,7 @@
 [project]
 name = "splitiq"
 version = "0.5.2"
-description = "Optimal train/test splitting via support points, backed by SPlit.jl"
+description = "Distribution-preserving subset selection for tabular data and embeddings: train/test splits, k-fold multiplets, and training-data selection, backed by SPlit.jl"
 authors = [
     {name="Jongsu Liam Kim", email="jongsukim8@gmail.com"}
 ]

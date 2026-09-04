@@ -1,10 +1,11 @@
 # Overview
 
-`splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl). It
+`splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl), the
+Julia library for distribution-preserving subset selection on tabular data and embeddings. It
 carries no algorithm code of its own: every call converts its arguments to Julia values, invokes
 the corresponding SPlit.jl function through [juliacall](https://github.com/JuliaPy/PythonCall.jl),
-and converts the result back. The optimizer, the energy-distance and MMD computations, and the
-kernel-herding selection all run inside the embedded Julia process, not in Python.
+and converts the result back. The optimizer, the energy-distance and MMD computations, and every
+selection method all run inside the embedded Julia process, not in Python.
 
 ## Type mapping
 

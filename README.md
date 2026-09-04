@@ -9,19 +9,38 @@
 [![Coverage](https://codecov.io/gh/appleparan/SPlit.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/appleparan/SPlit.jl)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-A Julia implementation of optimal data splitting via support points, based on
-[Joseph and Vakayil (2022)](https://arxiv.org/abs/2012.10945).
+Distribution-preserving subset selection for tabular data and embeddings,
+grown from SPlit ([Joseph and Vakayil, 2022](https://arxiv.org/abs/2012.10945)):
+optimal train/test splits, k-fold multiplets, and training-data selection by
+support points, kernel herding, twinning, and kernel thinning.
 
 ## Overview
 
-SPlit.jl splits a dataset into training and test sets so that both subsets
-represent the original data distribution as closely as possible. It does so
-by computing *support points*, the sample of a given size that minimizes
-the energy distance to the full data (Mak & Joseph, 2018), and mapping each
-support point to its nearest unclaimed data row (Joseph & Vakayil, 2022).
-Unlike random splitting, this makes both the train and test distributions
-close to the population distribution, which improves the reliability of
-model evaluation.
+SPlit.jl chooses rows whose empirical distribution stays as close as possible
+to a target measure, under the energy distance or the maximum mean
+discrepancy. Three choices make up a call:
+
+- **What you get.** `datasplit` returns a train/test partition, `multiplet`
+  returns `k` distribution-balanced folds, and `selectrows` returns just the
+  `n` chosen row indices.
+- **What you match.** The data's own distribution by default; `weights`
+  matches a quality-weighted version of it, `reference` matches a separate
+  target sample while still drawing rows from the data.
+- **How rows are chosen.** `SupportPointSplitter`, `HerdingSplitter`,
+  `TwinningSplitter`, or `KernelThinningSplitter`.
+
+The original method is SPlit: it computes *support points*, the sample of a
+given size that minimizes the energy distance to the full data (Mak & Joseph,
+2018), and maps each support point to its nearest unclaimed data row (Joseph
+& Vakayil, 2022). Unlike random splitting, this makes both the train and test
+distributions close to the population distribution, which improves the
+reliability of model evaluation. The other three splitters select rows
+directly, without the continuous optimization step.
+
+The rows need not be tabular: `standardize = false` passes a numeric matrix
+through unchanged, which is what the
+[LLM data-selection guide](docs/src/40-llm-data-selection.md) uses on
+embedding matrices.
 
 The package also implements the optimal split ratio result of Joseph (2022):
 for a linear model with `p` parameters, the test fraction that minimizes
@@ -53,6 +72,9 @@ train = data[result, :train]
 test = data[result, :test]
 splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
+
+idx = selectrows(HerdingSplitter(), data, 100)          # 100 rows, no partition
+folds = multiplet(TwinningSplitter(), data, 5)          # 5 balanced folds
 ```
 
 ## Python
@@ -69,22 +91,34 @@ train, test = result.apply(X)
 
 ## API reference
 
-### Splitting
+### Splitting, selection, and folds
+
+`datasplit` runs a splitter on a `Matrix`, `DataFrame`, or `Vector` and
+returns a `SplitResult`, whose `train_indices` and `test_indices` (also
+reachable via `data[result, :train]`/`data[result, :test]` indexing or
+`train, test = result` destructuring) partition the input rows;
+`result.selected` names the side (`:test` or `:train`) holding the chosen
+rows. `selectrows(splitter, data, n)` returns just the `n` chosen row
+indices, without building a train/test partition.
+`multiplet(splitter, data, k; strategy = :sequential)` returns `k`
+distribution-balanced folds instead of one train/test pair, under the
+`:sequential`, `:halving`, or `:single` strategy.
+
+All three take the same measure and preprocessing keywords: `weights` (a
+non-negative score per row, so the selection matches the weighted data),
+`reference`/`reference_weights` (make the chosen side approximate a second
+dataset instead of `data`'s own distribution, with candidates still drawn
+from `data`), and `standardize = false` (use a numeric matrix as it is, with
+no encoding, constant-column removal, or scaling — the mode for embeddings;
+see the [LLM data-selection guide](docs/src/40-llm-data-selection.md)).
+
+### Selection methods
 
 `SupportPointSplitter` configures a split: which `SplitKernel` to optimize
 under (`EnergyKernel`, the kernel whose maximum mean discrepancy is the
 energy distance of Mak & Joseph, 2018), the test `ratio`, an optional `kappa`
 for stochastic majorization-minimization on large datasets, iteration and
-tolerance limits, and the `rng` that drives every random choice. `datasplit`
-runs it on a `Matrix`, `DataFrame`, or `Vector` and returns a `SplitResult`,
-whose `train_indices` and `test_indices` (also reachable via `data[result,
-:train]`/`data[result, :test]` indexing or `train, test = result`
-destructuring) partition the input rows; `result.selected` names the side
-(`:test` or `:train`) holding the chosen rows. `selectrows(splitter, data,
-n; reference = ...)` returns just the `n` chosen row indices, without
-building a train/test partition. `datasplit`'s `reference` keyword (and
-`selectrows`'s) makes the chosen side approximate a second dataset instead
-of `data`'s own distribution, with candidates still drawn from `data`.
+tolerance limits, and the `rng` that drives every random choice.
 
 - `GaussianKernel(bandwidth = :median)`: support points minimize the squared
   maximum mean discrepancy (Gretton et al., 2012) via projected gradient
@@ -105,10 +139,10 @@ of `data`'s own distribution, with candidates still drawn from `data`.
   randomized kernel halving, and KT-SWAP keeps the candidate closest to
   the target measure and refines it by single-row swaps. It carries a
   high-probability MMD guarantee; above half of the rows the selection is the complement of a kernel-thinning selection of the other side.
-- `multiplet(splitter, data, k; strategy = :sequential)`: splits `data`
-  into `k` distribution-balanced folds instead of one train/test pair,
-  using any splitter under the `:sequential`, `:halving`, or `:single`
-  strategy.
+  `compress = :auto` (the default) switches to Compress++ (Shetty, Dwivedi
+  & Mackey, 2022) when `n` is a small fraction of `N` and the target
+  measure is the data itself, which removes both `O(N²)` terms;
+  `:always`/`:never` force either path.
 
 ```julia
 herding = HerdingSplitter(kernel = EnergyKernel(), rng = MersenneTwister(2))
@@ -154,13 +188,16 @@ the method/result pair with the lowest energy distance.
 
 See the [Benchmarks](docs/src/20-benchmarks.md)
 page for how the four splitters compare across
-kernels and dataset sizes.
+kernels and dataset sizes, and the
+[LLM data-selection guide](docs/src/40-llm-data-selection.md) for the
+decision table on embedding matrices.
 
 ## Algorithm details
 
 1. Preprocessing. Categorical columns are Helmert-encoded, constant columns
    are dropped, and every remaining column is standardized to mean 0 and
-   variance 1.
+   variance 1. `standardize = false` skips this step and uses the numeric
+   matrix as it is.
 2. Support-point computation. The kernel's majorization-minimization update
    moves a candidate point set, sweep by sweep, to minimize its energy
    distance to the data (Mak & Joseph, 2018). For large `n`, `kappa`
@@ -189,6 +226,8 @@ kernels and dataset sizes.
 8. Dwivedi, R., & Mackey, L. (2022). Generalized Kernel Thinning. *ICLR*.
 
 9. Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine Learning Research*, 25(152), 1-77.
+
+10. Shetty, A., Dwivedi, R., & Mackey, L. (2022). Distribution Compression in Near-Linear Time. *ICLR*.
 
 ## How to cite
 

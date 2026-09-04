@@ -1,7 +1,9 @@
 # splitiq
 
 `splitiq` is a Python wrapper around [SPlit.jl](https://github.com/appleparan/SPlit.jl), a
-Julia package for optimal train/test splitting via support points. All computation runs in
+Julia package for distribution-preserving subset selection on tabular data and embeddings:
+optimal train/test splits, k-fold multiplets, and training-data selection by support points,
+kernel herding, twinning, and kernel thinning. All computation runs in
 Julia through [juliacall](https://github.com/JuliaPy/PythonCall.jl); `splitiq` only converts
 data in and out and translates errors, so its results and guarantees are those of SPlit.jl.
 

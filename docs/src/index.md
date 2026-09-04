@@ -4,19 +4,40 @@ CurrentModule = SPlit
 
 # SPlit.jl
 
-A Julia implementation of optimal data splitting via support points, based on
-[Joseph and Vakayil (2022)](https://arxiv.org/abs/2012.10945).
+Distribution-preserving subset selection for tabular data and embeddings,
+grown from SPlit ([Joseph and Vakayil, 2022](https://arxiv.org/abs/2012.10945)):
+optimal train/test splits, k-fold multiplets, and training-data selection by
+support points, kernel herding, twinning, and kernel thinning.
 
 ## Overview
 
-SPlit.jl splits a dataset into training and test sets so that both subsets
-represent the original data distribution as closely as possible. It does so
-by computing *support points*, the sample of a given size that minimizes
-the energy distance to the full data (Mak & Joseph, 2018), and mapping each
-support point to its nearest unclaimed data row (Joseph & Vakayil, 2022).
-Unlike random splitting, this makes both the train and test distributions
-close to the population distribution, which improves the reliability of
-model evaluation.
+SPlit.jl chooses rows whose empirical distribution stays as close as
+possible to a target measure, under the energy distance or the maximum mean
+discrepancy. Three choices make up a call:
+
+- **What you get.** `datasplit` returns a train/test partition, `multiplet`
+  returns `k` distribution-balanced folds, and `selectrows` returns just the
+  `n` chosen row indices.
+- **What you match.** The data's own distribution by default; `weights`
+  matches a quality-weighted version of it, `reference` matches a separate
+  target sample while still drawing rows from the data.
+- **How rows are chosen.** `SupportPointSplitter`, `HerdingSplitter`,
+  `TwinningSplitter`, or `KernelThinningSplitter` — see
+  [Methods](@ref methods) and [Benchmarks](@ref benchmarks) for how they
+  differ.
+
+The original method is SPlit: it computes *support points*, the sample of a
+given size that minimizes the energy distance to the full data (Mak &
+Joseph, 2018), and maps each support point to its nearest unclaimed data
+row (Joseph & Vakayil, 2022). Unlike random splitting, this makes both the
+train and test distributions close to the population distribution, which
+improves the reliability of model evaluation. The other three splitters
+select rows directly, without the continuous optimization step.
+
+The rows need not be tabular: `standardize = false` passes a numeric matrix
+through unchanged, which is what
+[Selecting LLM training data](@ref llm-data-selection) uses on embedding
+matrices.
 
 The package also implements the optimal split ratio result of Joseph (2022):
 for a linear model with `p` parameters, the test fraction that minimizes
@@ -30,17 +51,24 @@ New to support points? Read [How SPlit works](@ref intuition) first.
 using SPlit, Random
 
 data = randn(MersenneTwister(1), 1_000, 3)
+
+# a train/test split
 splitter = SupportPointSplitter(ratio = 0.2, rng = MersenneTwister(2))
 result = datasplit(splitter, data)
-
 train = data[result, :train]
 test = data[result, :test]
 splitquality(data, result)                 # energy distance, lower is better
 optimal_split_ratio(data[:, 1:2], data[:, 3])
 
+# a selection: 100 rows that stand in for the whole dataset
+idx = selectrows(HerdingSplitter(), data, 100)
+
 target_sample = randn(MersenneTwister(4), 50, 3)
 # rows of data that match target_sample's distribution instead of data's own
 idx = selectrows(SupportPointSplitter(), data, 100; reference = target_sample)
+
+# embeddings: use the rows as they are, with no per-column standardization
+idx = selectrows(HerdingSplitter(), embeddings, 500; standardize = false)
 ```
 
 ## Kernels and splitters
@@ -109,7 +137,8 @@ See the [Reference](@ref reference) section for complete API documentation.
 
 1. Preprocessing. Categorical columns are Helmert-encoded, constant columns
    are dropped, and every remaining column is standardized to mean 0 and
-   variance 1.
+   variance 1. `standardize = false` skips this step and uses the numeric
+   matrix as it is.
 2. Support-point computation. The kernel's majorization-minimization update
    moves a candidate point set, sweep by sweep, to minimize its energy
    distance to the data (Mak & Joseph, 2018). For large `n`, `kappa`

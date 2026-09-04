@@ -348,6 +348,7 @@ columns plus one.
 - Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 64(2), 166-176.
 - Mak, S., & Joseph, V. R. (2018). Support points. *The Annals of Statistics*, 46(6A), 2562-2592.
 - Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
+- Shetty, A., Dwivedi, R., & Mackey, L. (2022). Distribution Compression in Near-Linear Time. *ICLR*.
 - Székely, G. J., & Rizzo, M. L. (2013). Energy statistics: A class of statistics based on distances. *Journal of Statistical Planning and Inference*, 143(8), 1249-1272.
 - Vakayil, A., & Joseph, V. R. (2022). Data Twinning. *Statistical Analysis and Data Mining*, 15(5), 598-610.
 
@@ -534,9 +535,8 @@ empirical measure of the ``L`` rows that entered KT-SPLIT (all ``N`` rows
 when ``N/n`` is a power of two); the KT-SWAP step then targets the full
 data. The cost is ``O(L^2)`` kernel evaluations for the halvings, ``O(N^2)``
 for the data term and ``O(nN)`` for the swap pass, all threaded: the same
-class as herding. The near-linear variant of the papers, Compress++,
-applies to ``n \approx \sqrt N`` root-thinning and is out of scope here; it
-moves to the roadmap's M5.
+class as herding. The near-linear variant of the papers, Compress++, removes
+the two ``O(N^2)`` terms when ``n \ll N``; it is the next section.
 
 **Differences from the paper.** The papers thin ``N`` rows to
 ``\lfloor N/2^m \rfloor``; here ``n`` is set by `ratio` (or the caller) and
@@ -554,3 +554,51 @@ mean-embedding identity ``\mu_N = (n_c/N)\mu_S + ((N-n_c)/N)\mu_C`` gives
 \mathrm{MMD}(S, P_N)``, so the complement is at least as close to the data
 as the thinned set (this identity is only approximate under `weights` or
 `reference`).
+
+## [Compress++](@id compress)
+
+For ``n \ll N`` the ``O(N^2)`` cost of kernel thinning is dominated by the
+first halving of all ``N`` rows and by the data term. Compress++
+(Shetty, Dwivedi & Mackey, 2022) avoids both: it never halves more than
+about ``2^{g+1}\sqrt{N}`` rows at once.
+
+- **Compress.** A random permutation of the rows is split into four
+  consecutive parts, each part is compressed recursively (sequences of
+  at most ``4^g`` rows are returned as they are), the four results are
+  concatenated and halved. The halving is kernel thinning of the block to
+  half its size, and with probability one half its complement is kept
+  instead, so each halving is unbiased for the block's mean embedding.
+  The output has about ``2^g \sqrt N`` rows.
+- **Thin.** Kernel thinning then selects ``n`` rows from the compressed
+  set, with the compressed rows as its data term and swap candidates.
+
+`KernelThinningSplitter(compress = :auto)` runs Compress++ when the
+target measure is the data itself and the estimated cost
+``4^g N (4\log_4 N + 1)`` is below plain kernel thinning's ``1.5 N^2``,
+with ``g = \max(4, \lceil \log_2(2n/\sqrt N) \rceil)`` (the paper's
+experiments use ``g = 4``; the second term keeps the compressed set at
+about ``2n`` rows). At split ratios the rule never fires, so `datasplit`
+is unchanged; it engages through `selectrows` and `multiplet` when ``n``
+is a few percent of ``N`` or less. `:always` and `:never` force either
+path.
+
+**Differences from the paper.** The halving algorithm is kernel thinning
+of the block (split and swap), the failure probability is split evenly
+over the halvings and the final thinning, the four parts may differ in
+size by one row, and ``g`` grows with ``n`` so that any ``n`` can be
+requested. Compress++ is not defined for `weights` or `reference`;
+`:auto` falls back to plain kernel thinning there.
+
+## Skipping preprocessing
+
+`standardize = false` on `datasplit`, `selectrows`, `multiplet`,
+`splitquality`, and `compare` skips step 1 entirely: a numeric matrix (or
+vector, as one column) is used as it is, with no centering, scaling, or
+constant-column removal, and a reference is used the same way. Use it
+when the rows already live in the geometry you want to preserve, such as
+cosine-normalized embeddings, where per-column standardization would
+distort angles. A `DataFrame` needs the encoding of step 1 and is
+rejected with `standardize = false`.
+
+The [LLM data-selection guide](@ref llm-data-selection) is the worked
+workflow for that case.
