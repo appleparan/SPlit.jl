@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="support-points-title support-points-desc" width="960" height="600">
-    <title id="support-points-title">Support point pulled by data, pushed by another support point</title>
-    <desc id="support-points-desc">A schematic point cloud showing one support point sitting too close to a neighboring support point, balanced between an attraction toward nearby data rows and a repulsion away from that neighbor, moving to a next position that still covers a sparse region.</desc>
+    <title id="support-points-title">A support point balances attraction and repulsion</title>
+    <desc id="support-points-desc">One support point is pulled toward a dense cluster of rows and pushed away from the support point it crowds; the two forces add, shown as a parallelogram, and the point moves to the resultant's tip, toward the data but off the neighbor.</desc>
 <style>
-@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'Pretendard';font-style:normal;font-weight:400;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+@font-face{font-family:'STIX Two Text';font-style:italic;font-weight:400;font-display:block;src:url(data:font/woff2;base64,d09GMgABAAAAAAQEABAAAAAAB4AAAAOpAAIhSAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbgQIcNgZgP1NUQVREAEQRCAqDUIMPATYCJAMQCwoABCAFhB4HIAwHGxsGUVRQFpH9TMjmQNetxARiYbQ+JlpO+333kChliue/3+917fPuD5NKypKEA5atRpDkKlE19RW282VJqNjKsrH4huyyWUSzgc+O7D2rC6q32Akd2f+F9LIbEKCh+sA5dRHBiXPfMyxSyw4cBXTCg6VF6dvwfJCDwUHhV6ejQxY8BgWPHptHKZgjiAj7gwVTgBJ0IphwUAH8eEVdG6Bf89mNgH7LThoA/f6w0wzocOgJco+0m0EwgmjGjYkxURhT1uDYJIUqAFFKJ0pEdCKCCYelyWEhLMSFGb661VrmGFAvqwsA52JqLoKUKAHTw2/i/IXqLjBuU2v9Fu1Xo+QoAvlc29iEihhTWIJiD/SxRutEcOfBsBGJaJZgqAzyivqECImAQoclmGAJ7iBgzJjCpgqtvfGB/S+f+qEAiPTMggbGMIo3+Ej6lIaSNtXOiJjhOabwoAjvtG3I+G5i+k5giz4wLKgPIuP7z59/jIzfg9OOAEuXHl7LI+OP6+zDhzP74IyfCjbFmH54N6d39apDkBHRBlevuwZh14IlwEGiEyZFyCHKOlEOO4kn0avLjMfnkdXnbuUcu3UOGX/8+Mxe3HjlN1MIbvajR3DaA+DsTdnRh2eBBw/W7KVD7Yvb0rKl+lh19CiNdYtGfcGk36dQn8LXLS9anqRK6ZLemMC4soRcd5JyFSVy7roYyobo1Ir8/rq65FZ2anGaklv9/hfBA4vcfsH0qbGu7SMtfbJ+nL6OHXHRVbxI858WGUT/n7D/LM/v2aFwkz7F+2keLrjIlj1m4mXM6uMp8iJqixganqTjhtCEnPzGUWmWMuwUEaa0UHlnWWhLek1dQXluBhvxfT5VlLg6qaiwW5dUkHYqPBQmAxDUVtWCXZ37ByPyvo6h2DsQX34GUwC+Xmle+Gfy36KAaJwCyogCYeOyAfkF8Xejj5j8/1s7bfQD6NerT/3/XPGYqBA026a8NRBs1wQTnsCkjWPIdGLDHqdM2XE6Rz1ymgOhOgO7UmSP2JMRV5jKUyCsnXMMzOS1YyysfOx0NLScuFIkSZJM1cGUAldbDpKxVhOrda1bwcLMyYGriZ2FHmmULhRzRUvLwl6tJ6Xl5GTlkCNRIg0dZrqMSDDKwiSRA2I6+JLIrealluRk1L6QPSz3IXk5VXMaZqQzKkWCZKm4RiTLlCyXiowgHelDKutUMcxFqQP5vYTufWO40u5FtU7k379RC5KGi9EwO4z+9HOEt7/L/4ZtJgA=) format('woff2');}
 </style>
     <defs>
       <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgb(180, 188, 204)"></polygon></marker>
@@ -12,87 +13,66 @@
 
     <rect width="100%" height="100%" fill="rgb(38, 43, 43)"></rect>
 
-    <!-- ============ FORCE ARROWS (drawn before points) ============ -->
+    <!--
+      Vector check (SVG coordinates, +y downward):
+      attraction F=(432,296) -> (282,288) = (-150,-8);
+      repulsion F=(432,296) -> (506,266) = (+74,-30);
+      sum F=(432,296) -> (356,258) = (-76,-38).
+    -->
 
-    <!-- ATTRACTION: solid muted, toward the cluster -->
-    <line x1="333" y1="315" x2="256" y2="260" stroke="rgb(180, 188, 204)" stroke-width="1.4" marker-end="url(#arrow)"></line>
-
-    <!-- REPULSION: dashed muted, straight away from S_dense -->
-    <line x1="348" y1="321" x2="404" y2="332" stroke="rgb(180, 188, 204)" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arrow)"></line>
-
-    <!-- NEXT POSITION: accent, resultant -->
-    <line x1="342" y1="312" x2="352" y2="268" stroke="rgb(242, 138, 90)" stroke-width="1.8" marker-end="url(#arrow-accent)"></line>
-
-    <!-- ============ DATA ROWS — dense cluster (left-center) ============ -->
-    <g fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1">
-      <circle cx="120" cy="160" r="4"></circle>
-      <circle cx="160" cy="140" r="4"></circle>
-      <circle cx="210" cy="130" r="4"></circle>
-      <circle cx="260" cy="160" r="4"></circle>
-      <circle cx="300" cy="200" r="4"></circle>
-      <circle cx="110" cy="220" r="4"></circle>
-      <circle cx="150" cy="200" r="4"></circle>
-      <circle cx="200" cy="190" r="4"></circle>
-      <circle cx="240" cy="220" r="4"></circle>
-      <circle cx="280" cy="250" r="4"></circle>
-      <circle cx="130" cy="270" r="4"></circle>
-      <circle cx="170" cy="250" r="4"></circle>
-      <circle cx="210" cy="260" r="4"></circle>
-      <circle cx="250" cy="290" r="4"></circle>
-      <circle cx="290" cy="300" r="4"></circle>
-      <circle cx="170" cy="300" r="4"></circle>
+    <!-- Axis, parallelogram, vectors, asides, labels, and marks are drawn in that order. -->
+    <g fill="none">
+      <line x1="352" y1="328" x2="432" y2="296" stroke="rgba(232, 234, 240, 0.3)" stroke-dasharray="4,3"></line>
+      <line x1="282" y1="288" x2="356" y2="258" stroke="rgba(232, 234, 240, 0.2)" stroke-dasharray="3,3"></line>
+      <line x1="506" y1="266" x2="356" y2="258" stroke="rgba(232, 234, 240, 0.2)" stroke-dasharray="3,3"></line>
+      <line x1="432" y1="296" x2="282" y2="288" stroke="rgb(180, 188, 204)" stroke-width="1.6" marker-end="url(#arrow)"></line>
+      <line x1="432" y1="296" x2="506" y2="266" stroke="rgb(180, 188, 204)" stroke-width="1.6" stroke-dasharray="4,3" marker-end="url(#arrow)"></line>
+      <line x1="432" y1="296" x2="356" y2="258" stroke="rgb(242, 138, 90)" stroke-width="2" marker-end="url(#arrow-accent)"></line>
     </g>
 
-    <!-- ============ DATA ROWS — sparse spread (right / bottom-right) ============ -->
-    <g fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1">
-      <circle cx="560" cy="120" r="4"></circle>
-      <circle cx="660" cy="160" r="4"></circle>
-      <circle cx="760" cy="120" r="4"></circle>
-      <circle cx="860" cy="180" r="4"></circle>
-      <circle cx="600" cy="320" r="4"></circle>
-      <circle cx="700" cy="380" r="4"></circle>
-      <circle cx="820" cy="300" r="4"></circle>
-      <circle cx="880" cy="420" r="4"></circle>
-      <circle cx="520" cy="460" r="4"></circle>
-      <circle cx="680" cy="480" r="4"></circle>
+    <text x="80" y="104" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">pulled toward the rows —</text>
+    <text x="80" y="124" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">ice-cream trucks go where people are</text>
+    <path d="M 262 132 Q 272 208 290 274" fill="none" stroke="rgba(232, 234, 240, 0.4)" stroke-dasharray="4,3"></path>
+    <circle cx="290" cy="276" r="2" fill="rgb(232, 234, 240)"></circle>
+    <text x="880" y="104" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" text-anchor="end" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">pushed off the neighbor it crowds —</text>
+    <text x="880" y="124" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" text-anchor="end" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">but not where another truck already is</text>
+    <path d="M 700 132 Q 604 200 514 256" fill="none" stroke="rgba(232, 234, 240, 0.4)" stroke-dasharray="4,3"></path>
+    <circle cx="514" cy="258" r="2" fill="rgb(232, 234, 240)"></circle>
+
+    <!-- Opaque arrow-label masks keep six pixels clear of strokes. -->
+    <rect x="244" y="307" width="112" height="18" rx="2" fill="rgb(38, 43, 43)"></rect>
+    <text x="300" y="319" fill="rgb(180, 188, 204)" font-size="9" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">ATTRACTION</text>
+    <rect x="434" y="293" width="112" height="18" rx="2" fill="rgb(38, 43, 43)"></rect>
+    <text x="490" y="305" fill="rgb(180, 188, 204)" font-size="9" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">REPULSION</text>
+    <rect x="300" y="227" width="112" height="18" rx="2" fill="rgb(38, 43, 43)"></rect>
+    <text x="356" y="239" fill="rgb(242, 138, 90)" font-size="9" text-anchor="middle" letter-spacing="0.10em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">NEXT POSITION</text>
+    <text x="352" y="350" fill="rgb(232, 234, 240)" font-size="9" text-anchor="middle" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">S</tspan></text>
+    <text x="444" y="314" fill="rgb(242, 138, 90)" font-size="9" text-anchor="start" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">F</tspan></text>
+
+    <!-- Seven dense rows, then four sparse rows. -->
+    <g fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)">
+      <circle cx="160" cy="240" r="4"></circle><circle cx="216" cy="200" r="4"></circle><circle cx="296" cy="224" r="4"></circle>
+      <circle cx="176" cy="320" r="4"></circle><circle cx="256" cy="296" r="4"></circle><circle cx="312" cy="336" r="4"></circle><circle cx="224" cy="384" r="4"></circle>
+      <circle cx="720" cy="200" r="4"></circle><circle cx="840" cy="260" r="4"></circle><circle cx="760" cy="420" r="4"></circle><circle cx="880" cy="380" r="4"></circle>
     </g>
 
-    <!-- ============ SUPPORT POINTS ============ -->
+    <circle cx="352" cy="328" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+    <circle cx="800" cy="320" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+    <circle cx="432" cy="296" r="6" fill="rgba(242, 138, 90, 0.12)" stroke="rgb(242, 138, 90)" stroke-width="1.2"></circle>
+    <circle cx="356" cy="258" r="6" fill="rgb(38, 43, 43)" stroke="rgb(242, 138, 90)" stroke-width="1.2" stroke-dasharray="3,2"></circle>
 
-    <!-- S_dense: inside the lower part of the cluster -->
-    <circle cx="232" cy="300" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
-    <!-- S_right -->
-    <circle cx="760" cy="220" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
-    <!-- S_bottom -->
-    <circle cx="560" cy="440" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
-
-    <!-- focal support point F (current position) -->
-    <circle cx="340" cy="320" r="6" fill="rgba(242, 138, 90, 0.12)" stroke="rgb(242, 138, 90)" stroke-width="1.2"></circle>
-
-    <!-- next position (dashed-outline accent circle) -->
-    <circle cx="352" cy="268" r="6" fill="rgb(38, 43, 43)" stroke="rgb(242, 138, 90)" stroke-width="1.2" stroke-dasharray="3,2"></circle>
-
-    <!-- ============ EDITORIAL ASIDE ============ -->
-    <text x="912" y="76" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">enough repulsion to still</text>
-    <text x="912" y="96" fill="rgb(180, 188, 204)" font-size="13" font-style="italic" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="end">cover where the data is sparse</text>
-    <path d="M 860 104 Q 820 150 764 232" fill="none" stroke="rgba(232, 234, 240, 0.4)" stroke-width="1" stroke-dasharray="4,3"></path>
-    <circle cx="764" cy="236" r="2" fill="rgb(232, 234, 240)"></circle>
-
-    <!-- ============ LEGEND ============ -->
     <line x1="40" y1="516" x2="920" y2="516" stroke="rgba(232, 234, 240, 0.12)" stroke-width="0.8"></line>
-
-    <circle cx="52" cy="540" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)" stroke-width="1"></circle>
-    <text x="64" y="544" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">DATA ROW</text>
-
-    <circle cx="196" cy="540" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
-    <text x="210" y="544" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">SUPPORT POINT</text>
-
-    <line x1="360" y1="540" x2="384" y2="540" stroke="rgb(180, 188, 204)" stroke-width="1.2" marker-end="url(#arrow)"></line>
-    <text x="392" y="544" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">ATTRACTION</text>
-
-    <line x1="516" y1="540" x2="540" y2="540" stroke="rgb(180, 188, 204)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"></line>
-    <text x="548" y="544" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">REPULSION</text>
-
-    <line x1="672" y1="540" x2="696" y2="540" stroke="rgb(242, 138, 90)" stroke-width="1.6" marker-end="url(#arrow-accent)"></line>
-    <text x="704" y="544" fill="rgb(180, 188, 204)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.10em">NEXT POSITION</text>
+    <text x="40" y="536" fill="rgb(180, 188, 204)" font-size="8" letter-spacing="0.12em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">LEGEND</text>
+    <circle cx="52" cy="560" r="4" fill="rgba(180, 188, 204, 0.22)" stroke="rgb(180, 188, 204)"></circle>
+    <text x="64" y="564" fill="rgb(232, 234, 240)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">DATA ROW</text>
+    <circle cx="168" cy="560" r="6" fill="rgb(38, 43, 43)" stroke="rgb(232, 234, 240)" stroke-width="1.2"></circle>
+    <text x="182" y="564" fill="rgb(232, 234, 240)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">SUPPORT POINT</text>
+    <circle cx="324" cy="560" r="6" fill="rgba(242, 138, 90, 0.12)" stroke="rgb(242, 138, 90)" stroke-width="1.2"></circle>
+    <text x="338" y="564" fill="rgb(232, 234, 240)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">FOCAL POINT</text>
+    <line x1="452" y1="560" x2="476" y2="560" stroke="rgb(180, 188, 204)" stroke-width="1.4" marker-end="url(#arrow)"></line>
+    <text x="484" y="564" fill="rgb(232, 234, 240)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">ATTRACTION</text>
+    <line x1="600" y1="560" x2="624" y2="560" stroke="rgb(180, 188, 204)" stroke-width="1.4" stroke-dasharray="4,3" marker-end="url(#arrow)"></line>
+    <text x="632" y="564" fill="rgb(232, 234, 240)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">REPULSION</text>
+    <circle cx="764" cy="560" r="6" fill="rgb(38, 43, 43)" stroke="rgb(242, 138, 90)" stroke-width="1.2" stroke-dasharray="3,2"></circle>
+    <text x="778" y="564" fill="rgb(232, 234, 240)" font-size="9" letter-spacing="0.08em" font-family="Pretendard, Helvetica, &quot;Helvetica Neue&quot;, &quot;Nimbus Sans&quot;, Arial, sans-serif">NEXT POSITION</text>
   </svg>
