@@ -270,7 +270,8 @@ rows of a random permutation are split by `m` rounds of kernel halving into
 `2^m` candidate subsets of size `n` (KT-SPLIT), and KT-SWAP keeps the candidate
 (or a uniform random baseline) with the smallest MMD² to the target measure
 and refines it by one pass of best single-row swaps over all `N` rows. `delta`
-is the failure probability `δ` of the paper's guarantees (`δ_i = δ/L`);
+is the failure probability `δ` of the kernel-thinning guarantees: the
+papers' `δ_i = δ/L`, applied as `δ_i/m` at every halving step;
 `weights`, `target`, `target_weights` define the target measure as in
 [`herd`](@ref) and act on KT-SWAP only. Cost: `O(L²)` kernel evaluations for
 KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP, all threaded.
@@ -326,16 +327,17 @@ Split by generalized kernel thinning with the target kernel (Dwivedi & Mackey
 2022; kernel halving from Dwivedi & Mackey 2024): the smaller side is chosen by
 [`kernel_thinning`](@ref), so it minimizes the MMD² (energy distance for
 `EnergyKernel`) to the data without continuous optimization or a
-nearest-neighbor step, with the papers' `O(√(log n / n))` MMD guarantee for
-the KT-SPLIT candidates and a KT-SWAP result never worse than a uniform
+nearest-neighbor step, with the papers' high-probability MMD guarantee of
+order `√(log n / n)` for the KT-SPLIT candidates and a KT-SWAP result never worse than a uniform
 random subset. Cost is `O(N²)` kernel evaluations like `HerdingSplitter`;
 near-linear time needs Compress++, which is not implemented.
 
 - `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`
   bandwidth is resolved at `datasplit` time and stored in `result.method`.
 - `ratio`: fraction of rows assigned to the test set, in (0, 1).
-- `delta`: the failure probability `δ` of the kernel-thinning guarantees
-  (`δ_i = δ/L` per halving step); the papers' experiments use `0.5`.
+- `delta`: the failure probability `δ` of the kernel-thinning guarantees:
+  the papers' `δ_i = δ/L`, applied as `δ_i/m` at every halving step (the
+  experiments use `δ = 0.5`).
 - `rng`: the input shuffle, the halving coin flips, and the baseline draw.
 
 `SplitResult.converged` is always `true`; `iterations` is the number of
