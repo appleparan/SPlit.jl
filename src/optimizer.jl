@@ -282,8 +282,8 @@ end
 
 Compute `n` support points for `data` (rows are observations) under `kernel`,
 by the majorization–minimization (MM) sweep of that kernel: the closed-form
-update of Mak & Joseph (2018) for `EnergyKernel`. Both sweeps cost one pass
-over the data and the point set, and neither increases the objective on full
+update of Mak & Joseph (2018) for `EnergyKernel`. The sweep costs one pass
+over the data and the point set and never increases the objective on full
 data. Returns the points, whether the point-movement tolerance was reached,
 and the number of iterations actually used.
 

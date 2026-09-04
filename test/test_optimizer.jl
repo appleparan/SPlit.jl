@@ -271,20 +271,21 @@ end
     @test SPlit._mmd_objective(k, pts, data) < SPlit._mmd_objective(k, init, data)
   end
 
-  @testset "stochastic mode is the MM sweep: kappa < N never calls the line search" begin
+  @testset "kappa < N takes the stochastic path: results differ from the full-data run" begin
     data = randn(MersenneTwister(150), 300, 2)
-    # An unresolvable line search would report converged = false at iteration 1;
-    # the MM sweep always produces a step, so a 5-iteration run reports 5.
-    _, conv, iters = SPlit.support_points(
+    # Same rng ⇒ same initial points; only the stochastic path then draws a
+    # subsample per iteration and runs the MM sweep, so the results differ.
+    full, _, _ =
+      SPlit.support_points(k, data, 20; max_iterations = 5, rng = MersenneTwister(151))
+    sto, _, _ = SPlit.support_points(
       k,
       data,
       20;
       kappa = 50,
       max_iterations = 5,
-      tolerance = 1e-30,
       rng = MersenneTwister(151),
     )
-    @test conv == false && iters == 5
+    @test sto != full
   end
 end
 
