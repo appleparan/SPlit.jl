@@ -99,6 +99,12 @@ of `data`'s own distribution, with candidates still drawn from `data`.
 - `TwinningSplitter`: partitions by sequential nearest-neighbor twinning
   (Vakayil & Joseph, 2022) under the energy distance, with no kernel or
   optimizer options. It is deterministic by default.
+- `KernelThinningSplitter`: generalized kernel thinning with the target
+  kernel (Dwivedi & Mackey, 2022, 2024) under `EnergyKernel` or
+  `GaussianKernel`: KT-SPLIT halves a shuffled sequence of rows by
+  randomized kernel halving, and KT-SWAP keeps the candidate closest to
+  the target measure and refines it by single-row swaps. It carries a
+  high-probability MMD guarantee and selects at most half of the rows.
 - `multiplet(splitter, data, k; strategy = :sequential)`: splits `data`
   into `k` distribution-balanced folds instead of one train/test pair,
   using any splitter under the `:sequential`, `:halving`, or `:single`
@@ -138,8 +144,8 @@ intercept).
 ### Comparison
 
 `compare(methods, data)` runs several splitter configurations
-(any splitter: `SupportPointSplitter`, `HerdingSplitter`, or
-`TwinningSplitter`) on the same data and scores
+(any splitter: `SupportPointSplitter`, `HerdingSplitter`,
+`TwinningSplitter`, or `KernelThinningSplitter`) on the same data and scores
 each with `splitquality`, returning a
 `SplitComparison` (convertible to a `DataFrame`); `best(comparison)` returns
 the method/result pair with the lowest energy distance.
@@ -179,6 +185,10 @@ kernels and dataset sizes.
 6. Rahimi, A., & Recht, B. (2007). Random Features for Large-Scale Kernel Machines. *NIPS*, 20.
 
 7. Vakayil, A., & Joseph, V. R. (2022). Data Twinning. *Statistical Analysis and Data Mining*, 15(5), 598-610.
+
+8. Dwivedi, R., & Mackey, L. (2022). Generalized Kernel Thinning. *ICLR*.
+
+9. Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine Learning Research*, 25(152), 1-77.
 
 ## How to cite
 

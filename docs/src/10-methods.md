@@ -341,6 +341,8 @@ columns plus one.
 ## References
 
 - Chen, Y., Welling, M., & Smola, A. (2010). Super-Samples from Kernel Herding. *UAI*, 109-116.
+- Dwivedi, R., & Mackey, L. (2022). Generalized Kernel Thinning. *ICLR*.
+- Dwivedi, R., & Mackey, L. (2024). Kernel Thinning. *Journal of Machine Learning Research*, 25(152), 1-77.
 - Gretton, A., Borgwardt, K. M., Rasch, M. J., Schölkopf, B., & Smola, A. (2012). A Kernel Two-Sample Test. *JMLR*, 13, 723-773.
 - Joseph, V. R. (2022). Optimal Ratio for Data Splitting. *Statistical Analysis and Data Mining*, 15(4), 531-538.
 - Joseph, V. R., & Vakayil, A. (2022). SPlit: An Optimal Method for Data Splitting. *Technometrics*, 64(2), 166-176.
@@ -492,3 +494,54 @@ Section 5), with sizes differing by at most one:
 The paper judges multiplets by the largest energy distance between any
 fold and the whole data; the tests check that it is below the
 random-partition average for all three strategies.
+
+## [Kernel thinning](@id kernel-thinning)
+
+`KernelThinningSplitter` (Dwivedi & Mackey, 2022, 2024) selects rows
+directly, like herding, but by a randomized halving scheme with a
+non-asymptotic MMD guarantee. It replaces steps 3 and 4 of the procedure
+and keeps the kernel of step 2: with the target kernel ``k`` (the energy
+kernel by default), the split kernel of the papers is ``k`` itself
+("target kernel thinning").
+
+1. **Kernel halving.** Rows are visited two at a time in a random order.
+   For the pair ``(x, x')`` let ``f = k(x, \cdot) - k(x', \cdot)``,
+   ``b^2 = \|f\|_k^2 = k(x,x) + k(x',x') - 2k(x,x')``, and
+   ``\alpha = \sum_{z \in S_2} f(z) - \sum_{z \in S_1} f(z)`` over the two
+   halves built so far. One row goes to each half; the assignment is
+   swapped with probability ``\min(1, \tfrac12 (1 - \alpha/a)_+)``, where
+   the threshold ``a`` is updated from ``b`` and a running parameter
+   ``\sigma`` so that the halving stays balanced with probability at
+   least ``1 - \delta_{\mathrm{step}}``, for a per-step failure
+   probability ``\delta_{\mathrm{step}}`` fixed by the caller.
+2. **KT-SPLIT.** With ``m = \lfloor \log_2 (N/n) \rfloor``, the first
+   ``L = n 2^m`` rows of the shuffle are halved ``m`` times, giving ``2^m``
+   candidate subsets of size ``n``; every halving at every level shares
+   the same ``\delta_{\mathrm{step}} = \delta / (mL)``, the papers'
+   per-point ``\delta_i = \delta/L`` (`delta`, default ``0.5``) applied as
+   ``\delta_i/m`` at each of the ``m`` levels.
+3. **KT-SWAP.** A uniform random subset of size ``n`` joins the
+   candidates; the one with the smallest
+   ``\frac{1}{n^2}\sum_{a,b \in S} k(a,b) - \frac{2}{n}\sum_{a \in S} d(a)``
+   (the MMD² to the target measure up to a constant, with
+   ``d(a) = \sum_l \bar v_l k(a, r_l)`` the data term of step 4 of kernel
+   herding) is refined by one pass over its positions, each replaced by
+   the row outside the subset that lowers the objective most, if any.
+
+The result is never worse than the random baseline, and each KT-SPLIT
+candidate carries the papers' ``O(\sqrt{\log n / n})`` MMD bound. The cost
+is ``O(L^2)`` kernel evaluations for the halvings, ``O(N^2)`` for the data
+term and ``O(nN)`` for the swap pass, all threaded: the same class as
+herding. The near-linear variant of the papers, Compress++, applies to
+``n \approx \sqrt N`` root-thinning and is out of scope here; it moves to
+the roadmap's M5.
+
+**Differences from the paper.** The papers thin ``N`` rows to
+``\lfloor N/2^m \rfloor``; here ``n`` is set by `ratio` (or the caller) and
+the ``N - L`` rows left out of KT-SPLIT still enter KT-SWAP as candidates
+and through the target measure; the two agree when ``N/n`` is a power of
+two. Swap candidates exclude rows already selected, so the split is a set
+of distinct rows. `weights` and `reference` change the KT-SWAP objective
+only (the target measure ``P_w`` or ``P_R`` of the sections above); the
+halvings always run on the unweighted candidate rows. `selectrows` with
+``n > N/2`` is an error, since the procedure halves.

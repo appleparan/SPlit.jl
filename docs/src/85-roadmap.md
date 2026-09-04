@@ -43,6 +43,7 @@ State of the exported API at v0.5.2.
 | Reference (target) distribution | done | `reference`/`reference_weights` on `selectrows`, `datasplit`, `splitquality`, `compare`; see [Methods](@ref reference-distribution). |
 | `selectrows` (selection without a partition) | done | Returns the chosen row indices; `datasplit` builds on it. |
 | `TwinningSplitter` | done | Sequential nearest-neighbor twinning (Vakayil & Joseph, 2022); energy distance objective, no kernel or optimizer options; deterministic with `start = :farthest`. |
+| `KernelThinningSplitter` | done | Target-kernel KT (Dwivedi & Mackey, 2022, 2024): kernel halving, KT-SPLIT, KT-SWAP; energy or Gaussian kernel; `O(N²)` like herding. |
 | k-fold splitting (`multiplet`) | done | Strategies S1/S2/S3 of the twinning paper; S1/S2 work with every splitter. |
 | High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. |
 
@@ -138,10 +139,11 @@ Twinning takes no `weights`/`reference` (not defined by the paper);
 
 ### M4: kernel thinning backend
 
-Planned, depends on M1 for weighted MMD. Add
-`KernelThinningSplitter <: AbstractSplitter` (KT-SPLIT + KT-SWAP, Dwivedi
-& Mackey, 2024), with Compress++ (Shetty, Dwivedi & Mackey, 2022) as an
-optional wrapper. Reuses the existing `GaussianKernel` type.
+Done (2026-09-04): added `KernelThinningSplitter <: AbstractSplitter`
+implementing generalized kernel thinning with the target kernel (Dwivedi
+& Mackey, 2022, 2024): kernel halving, KT-SPLIT, and KT-SWAP against the
+target measure, under `EnergyKernel` or `GaussianKernel`. Compress++ is
+not included: it applies to `n ≈ √N` root-thinning and moves to M5.
 
 - Output size is a power of two; document how arbitrary `n` is handled.
 - Tests: on a Gaussian mixture, MMD is significantly below a uniform
@@ -163,6 +165,8 @@ Planned, depends on M1-M4.
   N, p, weighted?, target?) for which method to use.
 - Extend [Methods](@ref methods) with the new methods in the existing
   format.
+- Compress++ (Shetty, Dwivedi & Mackey, 2022) for `selectrows` with
+  `n ≪ N`, on top of `kernel_thinning`.
 
 ### M6: MMD gradient-flow update (exploratory)
 
@@ -235,3 +239,4 @@ a baseline.
   volumes and pages); kernel herding added.
 - 2026-09-03: M2 (reference distribution) and `selectrows` done.
 - 2026-09-03: M3 (twinning and multiplets) done; high-dimensional nearest-neighbor question resolved.
+- 2026-09-04: M4 (kernel thinning) done; Compress++ moved to M5.
