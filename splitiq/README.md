@@ -56,10 +56,10 @@ train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[
 
 | Function | Description |
 | --- | --- |
-| `datasplit(data, ratio=0.2, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, weights, reference, reference_weights)` | Split `data` into train/test sets whose distributions match closely; returns a `SplitResult`. |
-| `select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, weights, reference, reference_weights)` | The indices of the `n` rows of `data` the splitter chose, without building a train/test partition. |
+| `datasplit(data, ratio=0.2, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, weights, reference, reference_weights)` | Split `data` into train/test sets whose distributions match closely; returns a `SplitResult`. |
+| `select_rows(data, n, *, method, kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, weights, reference, reference_weights)` | The indices of the `n` rows of `data` the splitter chose, without building a train/test partition. |
 | `SplitResult` | `train_indices`, `test_indices` (0-based numpy arrays), `converged`, `iterations`, `method`, `kernel`, `bandwidth`, `ratio`, `selected` (`'test'`/`'train'`, the side holding the chosen rows); `.apply(data)` returns `(train, test)`; supports `train_idx, test_idx = result`. |
-| `multiplet(data, k, *, strategy='sequential', method='twinning', kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, weights, reference, reference_weights)` | Split `data` into `k` distribution-balanced folds under `strategy` (`'sequential'`, `'halving'`, or `'single'`); returns a list of index arrays. |
+| `multiplet(data, k, *, strategy='sequential', method='twinning', kernel, bandwidth, kappa, max_iterations, tolerance, n_threads, seed, start, delta=0.5, weights, reference, reference_weights)` | Split `data` into `k` distribution-balanced folds under `strategy` (`'sequential'`, `'halving'`, or `'single'`); returns a list of index arrays. |
 | `splitquality(data, result, *, kernel, bandwidth, estimator, exact_threshold, seed, n_threads)` | Discrepancy between the train and test rows of `data`; lower is better. |
 | `energydistance(x, y, *, estimator, seed, n_threads)` | Energy distance between two samples. |
 | `mmd(x, y, kernel='gaussian', *, bandwidth, estimator, seed, n_threads)` | Squared maximum mean discrepancy between two samples. |
@@ -68,7 +68,8 @@ train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[
 
 `method='support_points'` runs the Mak & Joseph (2018) / Joseph & Vakayil (2022) optimizer;
 `method='herding'` runs greedy kernel herding; `method='twinning'` runs sequential
-nearest-neighbor twinning (Vakayil & Joseph, 2022). Indices are 0-based. A Julia
+nearest-neighbor twinning (Vakayil & Joseph, 2022); `method='kernel_thinning'` runs generalized
+kernel thinning (Dwivedi & Mackey, 2022/2024). Indices are 0-based. A Julia
 `ArgumentError` surfaces as a Python `ValueError`; other Julia errors propagate as
 `juliacall.JuliaError`. See the docstrings under `src/splitiq/` for the full argument
 reference, or build the API reference locally with `make docs`.

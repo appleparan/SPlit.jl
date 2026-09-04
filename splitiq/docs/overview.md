@@ -28,10 +28,11 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 `datasplit` returns a frozen `SplitResult` dataclass:
 
 - `train_indices`, `test_indices`: 0-based numpy `int64` arrays partitioning the input rows.
-- `converged`: whether the optimizer's stopping rule fired (always `True` for kernel herding,
-  which has no iterative convergence criterion).
-- `iterations`: number of optimizer iterations (kernel herding: number of greedy selections).
-- `method`: `'support_points'`, `'herding'`, or `'twinning'`.
+- `converged`: whether the optimizer's stopping rule fired (always `True` for kernel herding
+  and kernel thinning, which have no iterative convergence criterion).
+- `iterations`: number of optimizer iterations (kernel herding: number of greedy selections;
+  kernel thinning: number of KT-SWAP replacements).
+- `method`: `'support_points'`, `'herding'`, `'twinning'`, or `'kernel_thinning'`.
 - `kernel`: `'energy'` or `'gaussian'`.
 - `bandwidth`: the resolved Gaussian bandwidth, or `None` for the energy kernel.
 - `ratio`: the requested test-set fraction.

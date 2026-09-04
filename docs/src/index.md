@@ -76,7 +76,19 @@ result = datasplit(TwinningSplitter(), data)          # deterministic, energy di
 folds = multiplet(TwinningSplitter(), data, 5)        # 5 folds, sizes within one row
 ```
 
-See [Benchmarks](@ref benchmarks) for how the three splitters compare across
+`KernelThinningSplitter` (Dwivedi & Mackey, 2022, 2024) also selects rows
+directly: KT-SPLIT halves a shuffled sequence of rows into candidate
+subsets by randomized kernel halving, and KT-SWAP keeps the candidate
+closest to the target measure and refines it by single-row swaps, with a
+high-probability MMD guarantee neither `HerdingSplitter` nor
+`TwinningSplitter` has:
+
+```julia
+kt = KernelThinningSplitter(kernel = EnergyKernel(), rng = MersenneTwister(4))
+result = datasplit(kt, data)
+```
+
+See [Benchmarks](@ref benchmarks) for how the four splitters compare across
 kernels and dataset sizes.
 
 ## Quality diagnostics

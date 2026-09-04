@@ -25,11 +25,12 @@ if TYPE_CHECKING:
 _DEFAULT_KAPPA = None
 _DEFAULT_MAX_ITERATIONS = 500
 _DEFAULT_TOLERANCE = 1e-10
+_DEFAULT_DELTA = 0.5
 
-SplitMethod = Literal['support_points', 'herding', 'twinning']
+SplitMethod = Literal['support_points', 'herding', 'twinning', 'kernel_thinning']
 SplitKernelName = Literal['energy', 'gaussian']
 StartRule = Literal['farthest', 'random'] | int
-_METHODS = ('support_points', 'herding', 'twinning')
+_METHODS = ('support_points', 'herding', 'twinning', 'kernel_thinning')
 
 
 @dataclass(frozen=True)
@@ -40,11 +41,13 @@ class SplitResult:
         train_indices: 0-based row indices assigned to the train set.
         test_indices: 0-based row indices assigned to the test set.
         converged: Whether the optimizer's stopping rule fired. Always
-            ``True`` for kernel herding, which has no iterative convergence
-            criterion.
+            ``True`` for kernel herding and kernel thinning, which have no
+            iterative convergence criterion.
         iterations: Number of optimizer iterations run (kernel herding:
-            number of greedy selections).
-        method: ``'support_points'``, ``'herding'``, or ``'twinning'``.
+            number of greedy selections; kernel thinning: number of
+            KT-SWAP replacements).
+        method: ``'support_points'``, ``'herding'``, ``'twinning'``, or
+            ``'kernel_thinning'``.
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: Resolved Gaussian bandwidth, or ``None`` for the energy
             kernel.
@@ -103,6 +106,7 @@ def datasplit(
     n_threads: int | None = None,
     seed: int | None = None,
     start: StartRule | None = None,
+    delta: float = 0.5,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -114,9 +118,13 @@ def datasplit(
             pandas DataFrame.
         ratio: Fraction of rows assigned to the test set, in (0, 1).
         method: ``'support_points'`` (Mak & Joseph 2018; Joseph & Vakayil
-            2022) or ``'herding'`` (greedy kernel herding), or ``'twinning'``
+            2022) or ``'herding'`` (greedy kernel herding), ``'twinning'``
             (sequential nearest-neighbor twinning, Vakayil & Joseph 2022;
-            energy kernel only, deterministic by default).
+            energy kernel only, deterministic by default), or
+            ``'kernel_thinning'`` (generalized kernel thinning, Dwivedi &
+            Mackey 2022/2024; energy or Gaussian kernel; above one half the
+            selection is the complement of a kernel-thinning selection of
+            the other side).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
@@ -135,6 +143,9 @@ def datasplit(
             (drawn with `seed`), or a 0-based row index. ``None`` (the
             default) means ``'farthest'`` for ``method='twinning'``; any
             explicit value with another method raises ``ValueError``.
+        delta: Failure probability of the kernel-thinning guarantees
+            (``method='kernel_thinning'`` only; the papers use ``0.5``).
+            Any other value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Makes the split target the weighted empirical
             distribution of the rows; the selected subset itself is
@@ -158,13 +169,17 @@ def datasplit(
             `start` is set for a `method` other than ``'twinning'``, if
             `method` is ``'twinning'`` and `kernel` is not ``'energy'`` or
             `kappa`/`max_iterations`/`tolerance`/`n_threads` are set away
-            from their defaults (twinning has no such options), if Julia
+            from their defaults (twinning has no such options), if `delta`
+            is set away from its default for a `method` other than
+            ``'kernel_thinning'``, if `method` is ``'kernel_thinning'`` and
+            `kappa`/`max_iterations`/`tolerance` are set away from their
+            defaults (kernel thinning has no such options), if Julia
             rejects the arguments (e.g. `ratio`
-            outside (0, 1), `reference` with a different number of columns
-            than `data`, `weights` combined with `reference`, or
-            `reference_weights` without `reference`), or if `weights` has
-            the wrong length, a negative or non-finite entry, or sums to
-            zero.
+            outside (0, 1), `delta` outside (0, 1), `reference` with a
+            different number of columns than `data`, `weights` combined
+            with `reference`, or `reference_weights` without `reference`),
+            or if `weights` has the wrong length, a negative or non-finite
+            entry, or sums to zero.
     """
     if method not in _METHODS:
         msg = f'method must be one of {_METHODS}, got {method!r}'
@@ -189,6 +204,7 @@ def datasplit(
         n_threads,
         rng,
         start,
+        delta,
     )
     with _translate_error():
         result = jl.datasplit(
@@ -214,6 +230,7 @@ def select_rows(
     n_threads: int | None = None,
     seed: int | None = None,
     start: StartRule | None = None,
+    delta: float = 0.5,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -229,9 +246,13 @@ def select_rows(
             pandas DataFrame.
         n: Number of rows to select, in ``1:len(data)``.
         method: ``'support_points'`` (Mak & Joseph 2018; Joseph & Vakayil
-            2022) or ``'herding'`` (greedy kernel herding), or ``'twinning'``
+            2022) or ``'herding'`` (greedy kernel herding), ``'twinning'``
             (sequential nearest-neighbor twinning, Vakayil & Joseph 2022;
-            energy kernel only, deterministic by default).
+            energy kernel only, deterministic by default), or
+            ``'kernel_thinning'`` (generalized kernel thinning, Dwivedi &
+            Mackey 2022/2024; energy or Gaussian kernel; above one half the
+            selection is the complement of a kernel-thinning selection of
+            the other side).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
@@ -250,6 +271,9 @@ def select_rows(
             (drawn with `seed`), or a 0-based row index. ``None`` (the
             default) means ``'farthest'`` for ``method='twinning'``; any
             explicit value with another method raises ``ValueError``.
+        delta: Failure probability of the kernel-thinning guarantees
+            (``method='kernel_thinning'`` only; the papers use ``0.5``).
+            Any other value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` for uniform
             weights. Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or
@@ -263,7 +287,8 @@ def select_rows(
         A 0-based numpy array of `n` row indices, in selection order
         (support-point order for ``method='support_points'``, greedy order
         for ``method='herding'``, twin-group formation order for
-        ``method='twinning'``).
+        ``method='twinning'``, coreset position order for
+        ``method='kernel_thinning'``).
 
     Raises:
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
@@ -272,10 +297,14 @@ def select_rows(
             `start` is set for a `method` other than ``'twinning'``, if
             `method` is ``'twinning'`` and `kernel` is not ``'energy'`` or
             `kappa`/`max_iterations`/`tolerance`/`n_threads` are set away
-            from their defaults (twinning has no such options), or if
-            Julia rejects the arguments (e.g. `n` out of range, `reference`
-            with a different number of columns than
-            `data`, `weights` combined with `reference`, or
+            from their defaults (twinning has no such options), if `delta`
+            is set away from its default for a `method` other than
+            ``'kernel_thinning'``, if `method` is ``'kernel_thinning'`` and
+            `kappa`/`max_iterations`/`tolerance` are set away from their
+            defaults (kernel thinning has no such options), or if
+            Julia rejects the arguments (e.g. `n` out of range, `delta`
+            outside (0, 1), `reference` with a different number of columns
+            than `data`, `weights` combined with `reference`, or
             `reference_weights` without `reference`).
     """
     if method not in _METHODS:
@@ -292,7 +321,18 @@ def select_rows(
     # `ratio` only matters for the train/test partition `datasplit` builds;
     # `selectrows` never reads it.
     splitter = _build_splitter(
-        jl, method, kernel, kernel_obj, 0.5, kappa, max_iterations, tolerance, n_threads, rng, start
+        jl,
+        method,
+        kernel,
+        kernel_obj,
+        0.5,
+        kappa,
+        max_iterations,
+        tolerance,
+        n_threads,
+        rng,
+        start,
+        delta,
     )
     with _translate_error():
         indices = jl.selectrows(
@@ -317,17 +357,19 @@ def _build_splitter(
     n_threads: int | None,
     rng: JuliaValue | None,
     start: StartRule | None,
+    delta: float,
 ) -> JuliaValue:
     """Build the Julia splitter for `method`.
 
-    One of ``SupportPointSplitter``, ``HerdingSplitter``, or
-    ``TwinningSplitter``.
+    One of ``SupportPointSplitter``, ``HerdingSplitter``, ``TwinningSplitter``,
+    or ``KernelThinningSplitter``.
 
     Assumes `method` is already known to be one of ``_METHODS``.
 
     Args:
         jl: The Julia ``Main`` handle from :func:`splitiq._julia.julia`.
-        method: ``'support_points'``, ``'herding'``, or ``'twinning'``.
+        method: ``'support_points'``, ``'herding'``, ``'twinning'``, or
+            ``'kernel_thinning'``.
         kernel: The kernel name (``'energy'`` or ``'gaussian'``) that built
             `kernel_obj`; used to validate `method='twinning'`, which only
             supports the energy kernel.
@@ -343,21 +385,31 @@ def _build_splitter(
         start: Twinning's starting row (``method='twinning'`` only), or
             ``None`` to use ``'farthest'``; must stay ``None`` for every
             other `method`.
+        delta: Kernel thinning's failure probability (``method=
+            'kernel_thinning'`` only); must stay at its default for every
+            other `method`.
 
     Returns:
-        A Julia ``SupportPointSplitter``, ``HerdingSplitter``, or
-        ``TwinningSplitter`` value.
+        A Julia ``SupportPointSplitter``, ``HerdingSplitter``,
+        ``TwinningSplitter``, or ``KernelThinningSplitter`` value.
 
     Raises:
         ValueError: If `method` is ``'herding'`` and `kappa`/
             `max_iterations`/`tolerance` are set away from their defaults
             (herding has no such options), if `start` is not ``None`` for a
             `method` other than ``'twinning'``, if `method` is
-            ``'twinning'`` and any of its unsupported options is set, or if
-            Julia rejects the arguments (e.g. `ratio` outside (0, 1)).
+            ``'twinning'`` and any of its unsupported options is set, if
+            `delta` is not at its default for a `method` other than
+            ``'kernel_thinning'``, if `method` is ``'kernel_thinning'`` and
+            `kappa`/`max_iterations`/`tolerance` are set away from their
+            defaults, or if Julia rejects the arguments (e.g. `ratio`
+            outside (0, 1)).
     """
     if start is not None and method != 'twinning':
         msg = "'start' is a twinning option; use method='twinning'"
+        raise ValueError(msg)
+    if delta != _DEFAULT_DELTA and method != 'kernel_thinning':
+        msg = "'delta' is a kernel-thinning option; use method='kernel_thinning'"
         raise ValueError(msg)
     if method == 'twinning':
         return _build_twinning_splitter(
@@ -370,6 +422,10 @@ def _build_splitter(
             n_threads,
             rng,
             'farthest' if start is None else start,
+        )
+    if method == 'kernel_thinning':
+        return _build_kernel_thinning_splitter(
+            jl, kernel_obj, ratio, kappa, max_iterations, tolerance, n_threads, rng, delta
         )
     splitter_kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
     if method == 'herding':
@@ -447,6 +503,53 @@ def _build_twinning_splitter(
         return jl.TwinningSplitter(**kwargs)
 
 
+def _build_kernel_thinning_splitter(
+    jl: JuliaValue,
+    kernel_obj: JuliaValue,
+    ratio: float,
+    kappa: int | None,
+    max_iterations: int,
+    tolerance: float,
+    n_threads: int | None,
+    rng: JuliaValue | None,
+    delta: float,
+) -> JuliaValue:
+    """Build a Julia ``KernelThinningSplitter``; it has no optimizer options.
+
+    Args:
+        jl: The Julia ``Main`` handle from :func:`splitiq._julia.julia`.
+        kernel_obj: A Julia ``SplitKernel`` value (energy or Gaussian).
+        ratio: Fraction of rows assigned to the test set.
+        kappa: Must be ``None``.
+        max_iterations: Must be the default.
+        tolerance: Must be the default.
+        n_threads: Number of threads, or ``None`` to omit the keyword.
+        rng: A Julia RNG value, or ``None`` to omit the keyword.
+        delta: Failure probability of the kernel-thinning guarantees, in (0, 1).
+
+    Returns:
+        A Julia ``KernelThinningSplitter`` value.
+
+    Raises:
+        ValueError: If an optimizer option is set, or if Julia rejects the
+            arguments (e.g. `delta` outside (0, 1)).
+    """
+    if (
+        kappa != _DEFAULT_KAPPA
+        or max_iterations != _DEFAULT_MAX_ITERATIONS
+        or tolerance != _DEFAULT_TOLERANCE
+    ):
+        msg = (
+            "kernel thinning has no 'kappa'/'max_iterations'/'tolerance' options; "
+            'leave them at their defaults'
+        )
+        raise ValueError(msg)
+    kwargs = _splitter_kwargs(kernel_obj, ratio, n_threads, rng)
+    kwargs['delta'] = float(delta)
+    with _translate_error():
+        return jl.KernelThinningSplitter(**kwargs)
+
+
 def _to_julia_start(jl: JuliaValue, start: StartRule) -> JuliaValue:
     """Convert `start` to the Julia keyword value (Symbol, or 1-based row index).
 
@@ -477,7 +580,7 @@ def _to_julia_start(jl: JuliaValue, start: StartRule) -> JuliaValue:
 def _splitter_kwargs(
     kernel_obj: JuliaValue, ratio: float, n_threads: int | None, rng: JuliaValue | None
 ) -> dict[str, JuliaValue]:
-    """Build the keyword arguments shared by both splitter constructors.
+    """Build the keyword arguments shared by every kernel-based splitter constructor.
 
     Args:
         kernel_obj: A Julia ``SplitKernel`` value.
@@ -486,7 +589,8 @@ def _splitter_kwargs(
         rng: A Julia RNG value, or ``None`` to omit the keyword.
 
     Returns:
-        Keyword arguments for ``SupportPointSplitter``/``HerdingSplitter``.
+        Keyword arguments for ``SupportPointSplitter``, ``HerdingSplitter``,
+        or ``KernelThinningSplitter``.
     """
     kwargs: dict[str, JuliaValue] = {'kernel': kernel_obj, 'ratio': ratio}
     if n_threads is not None:

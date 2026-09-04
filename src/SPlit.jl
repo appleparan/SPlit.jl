@@ -10,6 +10,7 @@ include("splitter.jl")
 include("herding.jl")
 include("twinning.jl")
 include("multiplet.jl")
+include("kernel_thinning.jl")
 include("quality.jl")
 include("ratio.jl")
 include("comparison.jl")
@@ -17,7 +18,12 @@ include("comparison.jl")
 export SplitKernel, EnergyKernel, GaussianKernel
 export DiscrepancyEstimator, Exact, Subsample, RandomSlices, RandomFeatures
 export AbstractSplitter,
-  SupportPointSplitter, HerdingSplitter, TwinningSplitter, SplitResult, datasplit
+  SupportPointSplitter,
+  HerdingSplitter,
+  TwinningSplitter,
+  KernelThinningSplitter,
+  SplitResult,
+  datasplit
 export selectrows
 export multiplet
 export train_indices, test_indices

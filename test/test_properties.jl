@@ -154,4 +154,26 @@ using Statistics
       @test worst(folds) < mean(random_worst)
     end
   end
+
+  @testset "kernel-thinning splits beat random splits under energy distance and MMD" begin
+    mixture = let rng = MersenneTwister(400), N = 400
+      c = rand(rng, 1:4, N)
+      centers = [-3.0 -3.0; 3.0 -3.0; -3.0 3.0; 3.0 3.0]
+      centers[c, :] .+ randn(rng, N, 2)
+    end
+    for (seed, data) in ((401, mixture), (402, randn(MersenneTwister(402), 400, 4)))
+      for kernel in (EnergyKernel(), GaussianKernel(1.0))
+        s = KernelThinningSplitter(kernel = kernel, rng = MersenneTwister(seed))
+        r = datasplit(s, data)
+        q = splitquality(data, r; kernel)
+        n_test = length(test_indices(r))
+        random_qs = map(1:25) do i
+          perm = randperm(MersenneTwister(1_000 * seed + i), size(data, 1))
+          fake = SPlit.SplitResult(perm[(n_test+1):end], perm[1:n_test], true, 0, s)
+          splitquality(data, fake; kernel)
+        end
+        @test q < mean(random_qs)
+      end
+    end
+  end
 end

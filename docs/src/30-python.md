@@ -105,3 +105,22 @@ folds = multiplet(data, 5)                        # method='twinning', strategy=
 ```
 
 See [Methods](@ref twinning) for the algorithm and the three strategies.
+
+## Kernel thinning
+
+`method='kernel_thinning'` selects `KernelThinningSplitter`; `delta` sets
+the failure probability of the kernel-thinning guarantees and is only
+valid with this method (default `0.5`):
+
+```python
+import numpy as np
+from splitiq import datasplit
+
+data = np.random.default_rng(0).standard_normal((10_000, 5))
+result = datasplit(data, ratio=0.2, method='kernel_thinning', kernel='energy', delta=0.5, seed=7)
+```
+
+`kernel='gaussian'` (with `bandwidth`) and `n_threads` apply as with the
+other methods; `kappa`, `max_iterations`, `tolerance`, and `start` raise
+`ValueError` with this method, as they do with `'herding'`. See
+[Kernel thinning](@ref kernel-thinning) for the algorithm.

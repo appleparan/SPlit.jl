@@ -108,6 +108,26 @@ function _data_term(
   return d
 end
 
+# Data term of every row of `X` against the target measure: the data
+# itself, the weighted data, or a (weighted) reference. Validation happens in
+# `_resolve_target`; the four `_data_term` methods do the work.
+function _target_data_term(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  weights,
+  target,
+  target_weights,
+  n_threads::Int,
+)
+  R, _, v_bar = _resolve_target(X, weights, target, target_weights)
+  if target === nothing
+    return v_bar === nothing ? _data_term(kernel, X, n_threads) :
+           _data_term(kernel, X, v_bar, n_threads)
+  end
+  return v_bar === nothing ? _data_term(kernel, X, R, n_threads) :
+         _data_term(kernel, X, R, v_bar, n_threads)
+end
+
 """
     herd(kernel, X, n; weights = nothing, target = nothing, target_weights = nothing,
          n_threads = Threads.nthreads()) -> Vector{Int}
@@ -156,14 +176,7 @@ function herd(
   N = size(X, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
 
-  R, _, v_bar = _resolve_target(X, weights, target, target_weights)
-  d = if target === nothing
-    v_bar === nothing ? _data_term(kernel, X, n_threads) :
-    _data_term(kernel, X, v_bar, n_threads)
-  else
-    v_bar === nothing ? _data_term(kernel, X, R, n_threads) :
-    _data_term(kernel, X, R, v_bar, n_threads)
-  end
+  d = _target_data_term(kernel, X, weights, target, target_weights, n_threads)
   c = zeros(N)
   used = falses(N)
   selected = Vector{Int}(undef, n)

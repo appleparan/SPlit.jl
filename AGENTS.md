@@ -101,6 +101,13 @@ output-matching tests. The design record is
   (measured, see Design experiments). `multiplet(:single)` is
   twinning-only; `:sequential`/`:halving` call `selectrows` on any
   splitter and re-fit preprocessing per run.
+- `KernelThinningSplitter`: KT-SPLIT runs on the first `n·2^m` rows of a
+  shuffle (all rows when `N/n` is a power of two); `weights`/`reference`
+  act on the KT-SWAP objective only; `delta` is the papers' δ; swap
+  candidates exclude selected rows; `n > N ÷ 2` returns the complement of
+  a kernel-thinning selection of `N − n` rows; cost is the herding class
+  `O(N²)`; threaded sums use fixed 1,024-row chunks so results do not
+  depend on `n_threads`.
 
 ## Workflow
 

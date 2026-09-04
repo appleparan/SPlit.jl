@@ -210,7 +210,9 @@ end
 
 Indices of the `n` rows of `data` the splitter chooses, in selection order
 (support-point order for `SupportPointSplitter`, greedy order for
-`HerdingSplitter`), without building a train/test partition. The chosen
+`HerdingSplitter`, formation order for `TwinningSplitter`, coreset position
+order for `KernelThinningSplitter`), without building a train/test
+partition. The chosen
 rows approximate the data's own distribution (weighted by `weights`) or,
 when `reference` is given, the distribution of `reference` (weighted by
 `reference_weights`): preprocessing is then fit on `reference` and applied
