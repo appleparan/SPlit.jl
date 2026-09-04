@@ -126,7 +126,7 @@ def test_standardize_by_variable_fit_stats_and_reapply() -> None:
     for v in range(p):
         block = zs[:, v * length : (v + 1) * length]
         assert block.mean() == pytest.approx(0.0, abs=1e-8)
-        assert block.std() == pytest.approx(1.0, abs=1e-8)
+        assert block.std(ddof=1) == pytest.approx(1.0, abs=1e-8)
 
     # Applying the same fit elsewhere must match a manual computation.
     subset = z[:5]
@@ -137,6 +137,20 @@ def test_standardize_by_variable_fit_stats_and_reapply() -> None:
         sl = slice(v * length, (v + 1) * length)
         expected = (subset[:, sl] - means[v]) / stds[v]
         assert np.allclose(zs_subset[:, sl], expected)
+
+
+def test_standardize_by_variable_constant_variable_is_zero_block_no_nan() -> None:
+    """A zero-variance variable falls back to scale 1.0 and standardizes to all zeros."""
+    length, p = 4, 2
+    z = np.zeros((6, length * p))
+    z[:, length:] = np.arange(6 * length).reshape(6, length)  # variable 1 varies normally
+
+    zs, (_means, stds) = tsw.standardize_by_variable(z, length, p)
+
+    constant_block = zs[:, 0:length]
+    assert np.array_equal(constant_block, np.zeros_like(constant_block))
+    assert not np.isnan(zs).any()
+    assert stds[0] == 1.0
 
 
 def test_lag1_autocorrelation_constant_is_zero() -> None:
@@ -172,6 +186,16 @@ def test_two_regime_series_bit_identical_for_same_seed() -> None:
     x2, labels2 = tsw.two_regime_series(np.random.default_rng(42), 8, 6, p=2)
     assert np.array_equal(x1, x2)
     assert np.array_equal(np.asarray(labels1), np.asarray(labels2))
+
+
+def test_two_regime_series_invalid_p_raises() -> None:
+    with pytest.raises(ValueError, match='p'):
+        tsw.two_regime_series(np.random.default_rng(0), 4, 5, p=0)
+
+
+def test_two_regime_series_mu_shorter_than_p_raises() -> None:
+    with pytest.raises(ValueError, match='mu'):
+        tsw.two_regime_series(np.random.default_rng(0), 4, 5, p=4, mu=(1.0, 0.7, 1.3))
 
 
 def test_select_rows_smoke_on_windows() -> None:

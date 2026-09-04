@@ -12,7 +12,8 @@ against uniform random baselines on a synthetic two-regime series. It shows:
 - that a random split of a time series interleaves train and test in time, so
   `datasplit` on windows measures interpolation, not forecasting;
 - contrast 1: what happens when the window length is shorter than the series'
-  dependence length (the selector's advantage over random should vanish).
+  dependence length (the selector's advantage over random should vanish),
+  averaged over several independently generated datasets.
 
 Run from the `splitiq/` directory:
 
@@ -166,7 +167,7 @@ def standardize_by_variable(
         for v in range(p):
             block = z[:, v * length : (v + 1) * length]
             means[v] = block.mean()
-            std = block.std()
+            std = block.std(ddof=1)
             stds[v] = std if std > 0.0 else 1.0
         fit = (means, stds)
     means, stds = fit
@@ -235,7 +236,7 @@ def two_regime_series(
         share_a: Fraction of windows assigned to regime A.
         stay_a: Regime A's Markov-chain stay probability.
         stay_b: Regime B's Markov-chain stay probability.
-        mu: Per-variable base amplitude. Reused cyclically if shorter than `p`.
+        mu: Per-variable base amplitude, one entry per variable.
         sigma: Noise standard deviation.
 
     Returns:
@@ -243,7 +244,8 @@ def two_regime_series(
         array of `'A'`/`'B'` regime labels, one per window.
 
     Raises:
-        ValueError: If `m` or `length` is not positive.
+        ValueError: If `m`, `length`, or `p` is not positive, or if `mu` has
+            fewer than `p` entries.
     """
     if m <= 0:
         message = 'm must be positive'
@@ -251,7 +253,13 @@ def two_regime_series(
     if length <= 0:
         message = 'length must be positive'
         raise ValueError(message)
+    if p <= 0:
+        message = 'p must be positive'
+        raise ValueError(message)
     mu_arr = np.asarray(mu, dtype=float)
+    if mu_arr.size < p:
+        message = 'mu must have at least p entries'
+        raise ValueError(message)
     is_a = rng.random(m) < share_a
     x = np.empty((m * length, p), dtype=float)
     labels = np.empty(m, dtype='<U1')
@@ -268,7 +276,7 @@ def two_regime_series(
         eps = rng.standard_normal((length, p))
         window = np.empty((length, p), dtype=float)
         for v in range(p):
-            mu_v = mu_arr[v % mu_arr.size]
+            mu_v = mu_arr[v]
             window[:, v] = s * amplitude * mu_v + sigma * eps[:, v]
         x[i * length : (i + 1) * length, :] = window
     return x, labels
@@ -437,7 +445,6 @@ class ComparisonResult:
     """Output of `_demo_selector_comparison`, for reuse in later sections."""
 
     twinning_selection: np.ndarray
-    random_energy_mean: float
 
 
 def _demo_selector_comparison(
@@ -464,7 +471,6 @@ def _demo_selector_comparison(
 
     random_metrics = _random_baseline(zs, labels, length, p, n, share_a, range(1, 21))
     rows.append(_row_from_metrics('random (20 draws)', random_metrics))
-    random_energy_mean, _sd = _mean_sd([mm.energy_distance for mm in random_metrics])
 
     full_lag1 = float(np.mean([lag1_autocorrelation(zs[i], length, p) for i in range(m)]))
     rows.append(['full set', '0.0000', '0.0000', f'{full_lag1:.4f}'])
@@ -483,7 +489,7 @@ def _demo_selector_comparison(
     if twinning_selection is None:  # pragma: no cover - defensive
         message = 'twinning selection was not computed'
         raise RuntimeError(message)
-    return ComparisonResult(twinning_selection, random_energy_mean)
+    return ComparisonResult(twinning_selection)
 
 
 def _demo_datasplit_and_recovery(
@@ -505,42 +511,63 @@ def _demo_datasplit_and_recovery(
 
 
 def _demo_contrast_1(
-    x: np.ndarray,
-    labels: np.ndarray,
-    zs_full: np.ndarray,
+    m: int,
     length: int,
     p: int,
     n: int,
     share_a: float,
-    random_energy_mean: float,
+    data_seeds: int,
     sections: list[str],
 ) -> None:
-    rows = []
-    for length_short in (1, 2, 4, 8, 16, 32):
-        if length_short > length:
-            continue
-        z_short, _starts_short = windows(x, length_short, length)
-        zs_short, _fit = standardize_by_variable(z_short, length_short, p)
-        sel = select_rows(zs_short, n, method='twinning', standardize=False)
-        # Evaluate in the shared full-length standardized space: the short
-        # and full windowings share the same window index (both use
-        # stride=length, one window per segment), so `sel` indexes zs_full too.
-        energy = float(energydistance(zs_full[sel], zs_full))
-        regime_error = float(abs(np.mean(labels[sel] == 'A') - share_a))
-        ratio = energy / random_energy_mean if random_energy_mean > 0.0 else float('nan')
-        rows.append([str(length_short), f'{energy:.4f}', f'{ratio:.4f}', f'{regime_error:.4f}'])
+    # Twinning is deterministic, so run-to-run noise in the ratio to random
+    # comes from the dataset, not the selector: average over `data_seeds`
+    # independently generated datasets rather than judging L_short on a
+    # single series (the main section's `zs` is left untouched).
+    length_shorts = [
+        length_short for length_short in (1, 2, 4, 8, 16, 32) if length_short <= length
+    ]
+    ratios: list[list[float]] = [[] for _ in length_shorts]
+    regime_errors: list[list[float]] = [[] for _ in length_shorts]
 
-    table = _markdown_table(
-        [
-            'L_short',
-            'energy distance to full set',
-            'ratio to random mean',
-            'regime-proportion error',
-        ],
-        rows,
-    )
+    for d in range(1, data_seeds + 1):
+        rng_d = np.random.default_rng(500 + d)
+        x_d, labels_d = two_regime_series(rng_d, m, length, p=p, share_a=share_a)
+        z_d, _starts_d = windows(x_d, length, length)
+        zs_d, _fit_d = standardize_by_variable(z_d, length, p)
+
+        random_energies = []
+        for k in range(1, 21):
+            rng_k = np.random.default_rng(1000 + 100 * d + k)
+            sel_k = rng_k.choice(m, size=n, replace=False)
+            random_energies.append(float(energydistance(zs_d[sel_k], zs_d)))
+        random_energy_mean_d = float(np.mean(random_energies))
+
+        for i, length_short in enumerate(length_shorts):
+            # Same segment starts as the full-length windowing (stride=length).
+            z_short, _starts_short = windows(x_d, length_short, length)
+            zs_short, _fit = standardize_by_variable(z_short, length_short, p)
+            sel = select_rows(zs_short, n, method='twinning', standardize=False)
+            # Evaluate in this dataset's full-length standardized space.
+            energy = float(energydistance(zs_d[sel], zs_d))
+            ratio = energy / random_energy_mean_d if random_energy_mean_d > 0.0 else float('nan')
+            regime_error = float(abs(np.mean(labels_d[sel] == 'A') - share_a))
+            ratios[i].append(ratio)
+            regime_errors[i].append(regime_error)
+
+    rows = []
+    for length_short, ratio_values, regime_values in zip(
+        length_shorts, ratios, regime_errors, strict=True
+    ):
+        ratio_mean, ratio_sd = _mean_sd(ratio_values)
+        regime_mean, regime_sd = _mean_sd(regime_values)
+        rows.append([str(length_short), _fmt(ratio_mean, ratio_sd), _fmt(regime_mean, regime_sd)])
+
+    table = _markdown_table(['L_short', 'ratio to random mean', 'regime-proportion error'], rows)
     _print_and_collect(
-        'Contrast 1: representation length below the dependence length', table, sections
+        'Contrast 1: representation length below the dependence length '
+        f'(mean +/- sd over {data_seeds} data seeds)',
+        table,
+        sections,
     )
 
 
@@ -584,7 +611,8 @@ def main() -> None:
     print('\n' + '=' * 78)
     print('Contrast 1')
     print('=' * 78)
-    _demo_contrast_1(x, labels, zs, length, p, n, share_a, comparison.random_energy_mean, sections)
+    data_seeds = 2 if args.quick else 5
+    _demo_contrast_1(m, length, p, n, share_a, data_seeds, sections)
 
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
