@@ -6,8 +6,9 @@ flattening each window into one row. That preserves the distribution of
 windows and nothing beyond the window length. Past a few hundred columns
 the selectors' advantage over random shrinks and compilation time grows, so
 long windows need a different representation. The numbers on this page
-come from `examples/time_series_windows.jl` and its Python counterpart,
-`splitiq/examples/time_series_windows.py`.
+come from `examples/time_series_windows.jl`; its Python counterpart,
+`splitiq/examples/time_series_windows.py`, runs the same workflow with its
+own random stream and without the `L*p` dimension ladder.
 
 ## Point level and window level
 
@@ -19,7 +20,11 @@ alternating one, say, built so every per-variable mean and variance line up.
 
 On the example's two-regime series (`M = 1000` windows, `L = 32`, `p = 3`),
 the energy distance between regime A and regime B is 0.00175 at the point
-level and 0.529 once each window is flattened and standardized. The
+level and 0.529 once each window is flattened and standardized. The null
+scale — the energy distance between two random halves of regime A alone —
+is 0.000271 at the point level and 0.0724 at the window level: the
+point-level A-vs-B distance stays within an order of magnitude of its null,
+while the window-level A-vs-B distance is about seven times its null. The
 difference the regimes carry is invisible until a whole window becomes the
 unit of comparison.
 
@@ -137,14 +142,15 @@ over 5 independently generated datasets:
 
 | L_short | ratio to random | regime-proportion error |
 |---:|---:|---:|
-| 1 | 0.895 | 0.028 |
-| 2 | 0.896 | 0.024 |
-| 4 | 0.854 | 0.01 |
-| 8 | 0.872 | 0.01 |
-| 16 | 0.656 | 0.008 |
-| 32 | 0.565 | 0.006 |
+| 1 | 0.895 ± 0.0964 | 0.028 ± 0.0164 |
+| 2 | 0.896 ± 0.201 | 0.024 ± 0.00894 |
+| 4 | 0.854 ± 0.0793 | 0.01 ± 0.00707 |
+| 8 | 0.872 ± 0.159 | 0.01 ± 0.01 |
+| 16 | 0.656 ± 0.0738 | 0.008 ± 0.011 |
+| 32 | 0.565 ± 0.034 | 0.006 ± 0.00894 |
 
-The advantage over random barely moves until `L_short` passes the series'
+For `L_short` ≤ 8 the ratios differ by less than one sd of each other; the
+drop appears only at 16 and 32, once `L_short` passes the series'
 dependence length, about 16 here (mean Markov-chain run length
 ``1/(1-0.94)``). Choose `L` at least as long as the autocorrelation decay
 lag, or the seasonal period, of the series you are windowing.
@@ -157,24 +163,30 @@ Flattening trades window length for column count: `L*p` columns per row.
 
 | L·p | method | compile s | run s | ratio to random |
 |---:|---|---:|---:|---:|
-| 24 | twinning | 0.0001 | 0.017 | 0.378 |
-| 24 | support points | 0.16 | 0.16 | 0.918 |
-| 192 | twinning | 0.6 | 0.066 | 0.595 |
-| 192 | support points | 0.97 | 0.84 | 0.863 |
-| 1536 | twinning | 22 | 0.2 | 0.817 |
-| 1536 | support points | 33 | 12 | 1.05 |
-| 3072 | twinning | 110 | 0.76 | 0.893 |
-| 3072 | support points | 44 | 63 | 0.966 |
+| 24 | twinning | 0.51 | 0.032 | 0.378 |
+| 24 | support points | 0.16 | 0.15 | 0.918 |
+| 192 | twinning | 0.63 | 0.03 | 0.595 |
+| 192 | support points | 0.92 | 0.92 | 0.863 |
+| 1536 | twinning | 21 | 0.22 | 0.817 |
+| 1536 | support points | 34 | 13 | 1.05 |
+| 3072 | twinning | 110 | 0.58 | 0.893 |
+| 3072 | support points | 44 | 48 | 0.966 |
 
-"Compile seconds" is the first call at that column count — the
-width-specific compilation of `TwinningSplitter`'s brute-force search and
-`select_nearest`'s k-d tree, both `NearestNeighbors.jl` structures built
-over static vectors of the row width. Both selectors lose their edge over
-random as `L*p` grows: twinning's ratio rises from 0.38 at 24 columns
-to 0.89 at 3,072, and support points reach parity with random by 1,536. At `L*p = 6,144` the first call did not finish within 7 minutes, and
-at 12,288 the compiler failed with a memory error. This is a measured limit
-of the current release, from the width-specific compilation cost of the
-static-vector nearest-neighbor structures, not a design choice.
+"Compile seconds" is the first call of that splitter at that width in this
+process, on a throwaway 60-row matrix. It is the width-specific compilation
+of the static-vector nearest-neighbor structures (`NearestNeighbors.jl`)
+behind `TwinningSplitter`'s brute-force search and `select_nearest`'s k-d
+tree. Twinning is warmed up first, and the support-point warm-up at the
+same width reuses whatever static-vector code is already compiled, so the
+two compile columns are not independent measurements. This ladder is measured before the `L_short` sweep in
+"Choosing L" above, so no ladder width here has already been compiled by
+that sweep. Both selectors lose their edge over random as `L*p` grows:
+twinning's ratio rises from 0.38 at 24 columns to 0.89 at 3,072, and
+support points reach parity with random by 1,536. At `L*p = 6,144` the
+first call did not finish within 7 minutes, and at 12,288 the compiler
+failed with a memory error. This is a measured limit of the current
+release, from the width-specific compilation cost of the static-vector
+nearest-neighbor structures, not a design choice.
 
 Past a few hundred columns, do not flatten. Options, roughly in order of
 effort:
