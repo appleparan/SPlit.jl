@@ -102,8 +102,8 @@ threshold (`exact_threshold`); pass `estimator=` explicitly to control that your
   (`'farthest'` when omitted, `'random'`, or a 0-based row index).
 - `method='kernel_thinning'` runs generalized kernel thinning (Dwivedi & Mackey 2022, 2024) with
   the energy or Gaussian kernel: kernel halving into candidate subsets, then a swap pass over the
-  whole data; `delta` is the papers' failure probability (default `0.5`). It selects at most half
-  of the rows.
+  whole data; `delta` is the papers' failure probability (default `0.5`). Above one half the
+  selection is the complement of a kernel-thinning selection of the other side.
 - `kernel='energy'` (default) or `kernel='gaussian'`; the Gaussian kernel's bandwidth defaults
   to `'median'`, resolved from the data, or accepts a fixed positive number.
 - `kappa` bounds the number of rows the optimizer considers per iteration. Set it below the

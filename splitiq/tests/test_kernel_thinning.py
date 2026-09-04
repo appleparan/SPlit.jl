@@ -48,8 +48,16 @@ def test_select_rows_delta_and_multiplet() -> None:
     assert len(set(idx.tolist())) == 60
     folds = multiplet(data, 4, method='kernel_thinning', seed=7)
     assert sorted(np.concatenate(folds).tolist()) == list(range(300))
-    with pytest.raises(ValueError, match='half'):
-        select_rows(data, 200, method='kernel_thinning')  # more than half
+    # more than half: the complement of a kernel-thinning selection of the other side
+    idx200 = select_rows(data, 200, method='kernel_thinning', seed=9)
+    assert len(set(idx200.tolist())) == 200
+
+
+def test_kernel_thinning_ratio_half_regression() -> None:
+    data = _data(10, 203)
+    result = datasplit(data, ratio=0.5, method='kernel_thinning', seed=11)
+    all_indices = [*result.train_indices.tolist(), *result.test_indices.tolist()]
+    assert sorted(all_indices) == list(range(203))
 
 
 def test_kernel_thinning_option_errors() -> None:

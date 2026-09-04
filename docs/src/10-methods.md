@@ -543,5 +543,12 @@ and through the target measure; the two agree when ``N/n`` is a power of
 two. Swap candidates exclude rows already selected, so the split is a set
 of distinct rows. `weights` and `reference` change the KT-SWAP objective
 only (the target measure ``P_w`` or ``P_R`` of the sections above); the
-halvings always run on the unweighted candidate rows. `selectrows` with
-``n > N/2`` is an error, since the procedure halves.
+halvings always run on the unweighted candidate rows. For ``n > N/2``,
+`selectrows` returns the complement of a kernel-thinning selection of the
+``N - n`` rows not chosen: the two halves of kernel halving are symmetric,
+and for a subset ``S`` of size ``n_c \le N/2`` with complement ``C``, the
+mean-embedding identity ``\mu_N = (n_c/N)\mu_S + ((N-n_c)/N)\mu_C`` gives
+``\mathrm{MMD}(C, P_N) = (n_c/(N-n_c)) \cdot \mathrm{MMD}(S, P_N) \le
+\mathrm{MMD}(S, P_N)``, so the complement is at least as close to the data
+as the thinned set (this identity is only approximate under `weights` or
+`reference`).

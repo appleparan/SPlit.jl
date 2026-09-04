@@ -121,8 +121,9 @@ def datasplit(
             (sequential nearest-neighbor twinning, Vakayil & Joseph 2022;
             energy kernel only, deterministic by default), or
             ``'kernel_thinning'`` (generalized kernel thinning, Dwivedi &
-            Mackey 2022/2024; energy or Gaussian kernel; selects at most
-            half of the rows).
+            Mackey 2022/2024; energy or Gaussian kernel; above one half the
+            selection is the complement of a kernel-thinning selection of
+            the other side).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.
@@ -248,8 +249,9 @@ def select_rows(
             (sequential nearest-neighbor twinning, Vakayil & Joseph 2022;
             energy kernel only, deterministic by default), or
             ``'kernel_thinning'`` (generalized kernel thinning, Dwivedi &
-            Mackey 2022/2024; energy or Gaussian kernel; selects at most
-            half of the rows).
+            Mackey 2022/2024; energy or Gaussian kernel; above one half the
+            selection is the complement of a kernel-thinning selection of
+            the other side).
         kernel: ``'energy'`` or ``'gaussian'``.
         bandwidth: A positive number, or ``'median'`` to resolve it from the
             data. Only meaningful when `kernel` is ``'gaussian'``.

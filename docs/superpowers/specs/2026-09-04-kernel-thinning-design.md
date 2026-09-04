@@ -51,8 +51,12 @@ the KT-SPLIT input sequence; the remaining `N − L` rows take part only in
 KT-SWAP (as swap candidates and through the target measure). When `N / n` is
 a power of two and `N` is divisible by `n`, `L = N` and every row enters
 KT-SPLIT, which is the papers' setting. `n > N/2` (possible only through
-`selectrows`) is an `ArgumentError`: kernel thinning halves, so it selects at
-most half of the rows. The shuffle is required by the papers (the input
+`selectrows`) returns the complement of a kernel-thinning selection of the
+`N - n` rows not chosen, run with the same `rng` order, `delta`, and target
+measure (final review, 2026-09-04: the original design made this an
+`ArgumentError`, but `datasplit(ratio = 0.5)` then failed whenever
+`N ≡ 3 (mod 4)`, e.g. `N = 203`, because `round(Int, 0.5 * 203) = 102 >
+N ÷ 2 = 101` under Julia's round-half-to-even). The shuffle is required by the papers (the input
 sequence must be oblivious to the algorithm's randomness) and makes the
 excluded rows a uniform random subset.
 
@@ -222,7 +226,8 @@ raise `ValueError` as for herding; `n_threads` and `kernel`/`bandwidth` apply.
   - `KernelThinningSplitter`: construction/validation/`show`; `datasplit`
     partition and sizes for `ratio = 0.2` (`m = 2`, `L = 0.8N`) and
     `ratio = 0.25` (`L = N`); `ratio > 0.5` puts the selected rows in train;
-    `selectrows` equals the selected side and rejects `n > N/2`;
+    `selectrows` equals the selected side and returns the complement for
+    `n > N/2` (final review, 2026-09-04: see the note above);
     reproducibility with `rng`; DataFrame and vector inputs; both kernels;
     `compare` with a mixed list; uniform `weights` reproduce the unweighted
     selection exactly; concentrated `weights` and a sub-population

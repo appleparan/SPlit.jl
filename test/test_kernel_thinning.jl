@@ -198,7 +198,11 @@ end
     @test (rows, swaps) ==
           SPlit.kernel_thinning(EnergyKernel(), X, 96; rng = MersenneTwister(30))
     @test rows != SPlit.kernel_thinning(EnergyKernel(), X, 96; rng = MersenneTwister(31))[1]
-    @test_throws ArgumentError SPlit.kernel_thinning(EnergyKernel(), X, 241)   # > N ÷ 2
+    rows300, _ = SPlit.kernel_thinning(EnergyKernel(), X, 300; rng = MersenneTwister(34))
+    rows180, _ = SPlit.kernel_thinning(EnergyKernel(), X, 180; rng = MersenneTwister(34))
+    @test length(rows300) == 300 && allunique(rows300)   # n > N ÷ 2: the complement of N - n
+    @test sort(rows300) == sort(setdiff(1:480, rows180))
+    @test_throws ArgumentError SPlit.kernel_thinning(EnergyKernel(), X, 480)   # n = N
     @test_throws ArgumentError SPlit.kernel_thinning(EnergyKernel(), X, 0)
     @test_throws ArgumentError SPlit.kernel_thinning(EnergyKernel(), X, 96; delta = 0.0)
     @test_throws ArgumentError SPlit.kernel_thinning(GaussianKernel(), X, 96)   # unresolved kernel
@@ -290,7 +294,15 @@ end
       data,
       60,
     )
-    @test_throws ArgumentError selectrows(KernelThinningSplitter(), data, 101)
+    selected = selectrows(KernelThinningSplitter(rng = MersenneTwister(60)), data, 150)
+    @test length(selected) == 150 && allunique(selected)   # n > N ÷ 2: the complement rule
+  end
+
+  @testset "ratio = 0.5 regression: N ≡ 3 (mod 4)" begin
+    data203 = randn(MersenneTwister(62), 203, 2)
+    r = datasplit(KernelThinningSplitter(ratio = 0.5, rng = MersenneTwister(61)), data203)
+    @test sort(vcat(train_indices(r), test_indices(r))) == 1:203
+    @test length(test_indices(r)) == 102
   end
 
   @testset "reproducible with rng; DataFrame and vector inputs; compare" begin

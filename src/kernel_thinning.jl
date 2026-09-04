@@ -18,8 +18,8 @@ const _KH_CHUNK = 1_024
 # `get_swap_params`). `b = 0` (identical rows) leaves σ unchanged and
 # returns a = 0, which callers treat as "no swap".
 function _swap_params(σ::Float64, b::Float64, δ::Float64)
-  b == 0.0 && return 0.0, σ
   a = max(b * σ * sqrt(2 * log(2 / δ)), b^2)
+  a == 0.0 && return 0.0, σ
   σ2 = σ^2 + b^2 * max(0.0, 1 + (b^2 - 2a) * σ^2 / a^2)
   return a, sqrt(σ2)
 end
@@ -264,18 +264,21 @@ end
                     target_weights = nothing, n_threads = Threads.nthreads(),
                     rng = Random.default_rng()) -> (rows, swaps)
 
-Select `n ≤ N/2` rows of `X` by generalized kernel thinning with the target
-kernel (Dwivedi & Mackey 2022): with `m = ⌊log₂(N/n)⌋`, the first `L = n·2^m`
-rows of a random permutation are split by `m` rounds of kernel halving into
-`2^m` candidate subsets of size `n` (KT-SPLIT), and KT-SWAP keeps the candidate
-(or a uniform random baseline) with the smallest MMD² to the target measure
-and refines it by one pass of best single-row swaps over all `N` rows. `delta`
-is the failure probability `δ` of the kernel-thinning guarantees: the
-papers' `δ_i = δ/L`, applied as `δ_i/m` at every halving step;
-`weights`, `target`, `target_weights` define the target measure as in
-[`herd`](@ref) and act on KT-SWAP only. Cost: `O(L²)` kernel evaluations for
-KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP, all threaded.
-Deterministic given `rng` and independent of `n_threads`.
+Select `n` rows of `X` by generalized kernel thinning with the target kernel
+(Dwivedi & Mackey 2022). For `n ≤ N/2`: with `m = ⌊log₂(N/n)⌋`, the first
+`L = n·2^m` rows of a random permutation are split by `m` rounds of kernel
+halving into `2^m` candidate subsets of size `n` (KT-SPLIT), and KT-SWAP
+keeps the candidate (or a uniform random baseline) with the smallest MMD²
+to the target measure and refines it by one pass of best single-row swaps
+over all `N` rows. For `n > N/2`, the result is the complement of a
+kernel-thinning selection of the `N - n` rows not chosen (same `rng` order,
+`delta`, and target measure; see "Differences from the paper" for why this
+is a reasonable rule). `delta` is the failure probability `δ` of the
+kernel-thinning guarantees: the papers' `δ_i = δ/L`, applied as `δ_i/m` at
+every halving step; `weights`, `target`, `target_weights` define the target
+measure as in [`herd`](@ref) and act on KT-SWAP only. Cost: `O(L²)` kernel
+evaluations for KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP,
+all threaded. Deterministic given `rng` and independent of `n_threads`.
 
 # Differences from the paper
 
@@ -284,7 +287,14 @@ to `⌊N/2^m⌋`; here `n` is given and only `L = n·2^m` shuffled rows enter
 KT-SPLIT, the rest take part through KT-SWAP (equal to the paper when
 `N/n = 2^m`). Swap candidates exclude rows already in the coreset so the
 result is a set of distinct rows. `weights`/`target` change only the
-KT-SWAP objective. Compress++ is not implemented.
+KT-SWAP objective. For `n > N/2` the two halves of kernel halving are
+symmetric: for a subset `S` of size `n_c = N - n` with complement `C`, the
+mean-embedding identity `μ_N = (n_c/N) μ_S + ((N - n_c)/N) μ_C` gives
+`MMD(C, P_N) = (n_c/(N - n_c)) · MMD(S, P_N) ≤ MMD(S, P_N)` when
+`n_c ≤ N/2`, so the complement is at least as close to the data as the
+thinned set; for a weighted or reference target this identity does not
+hold exactly, and the rule is applied the same way regardless. Compress++
+is not implemented.
 """
 function kernel_thinning(
   kernel::SplitKernel,
@@ -300,12 +310,22 @@ function kernel_thinning(
   isresolved(kernel) ||
     throw(ArgumentError("kernel parameters must be resolved; call resolve first"))
   N = size(X, 1)
-  0 < n <= N ÷ 2 || throw(
-    ArgumentError(
-      "kernel thinning selects at most half of the rows: n must be in 1:$(N ÷ 2), got $n",
-    ),
-  )
+  0 < n < N || throw(ArgumentError("n must be in 1:$(N - 1), got $n"))
   0 < delta < 1 || throw(ArgumentError("delta must be in (0, 1), got $delta"))
+  if n > N ÷ 2
+    rows_c, swaps = kernel_thinning(
+      kernel,
+      X,
+      N - n;
+      delta,
+      weights,
+      target,
+      target_weights,
+      n_threads,
+      rng,
+    )
+    return setdiff(1:N, rows_c), swaps
+  end
   d = _target_data_term(kernel, X, weights, target, target_weights, n_threads)
   m = 0
   while n * 2^(m + 1) <= N
@@ -334,7 +354,9 @@ near-linear time needs Compress++, which is not implemented.
 
 - `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`
   bandwidth is resolved at `datasplit` time and stored in `result.method`.
-- `ratio`: fraction of rows assigned to the test set, in (0, 1).
+- `ratio`: fraction of rows assigned to the test set, in (0, 1); above one
+  half the selection is the complement of a kernel-thinning selection of
+  the other side (see [`kernel_thinning`](@ref)).
 - `delta`: the failure probability `δ` of the kernel-thinning guarantees:
   the papers' `δ_i = δ/L`, applied as `δ_i/m` at every halving step (the
   experiments use `δ = 0.5`).
