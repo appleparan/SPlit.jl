@@ -73,7 +73,7 @@ function gaussian_support_points_from(
   converged = false
   while !converged && iteration < max_iterations
     iteration += 1
-    SPlit._mmd_gradient!(G, k, points, data, n_threads)
+    SPlit._mmd_gradient!(G, k, points, data, ones(size(data, 1)), n_threads)
     t0 = iteration == 1 ? SPlit._first_step(G, bounds) : 2t
     f_prev = f
     t, f = SPlit._armijo_step!(new_points, points, G, f, t0, k, data, bounds)
