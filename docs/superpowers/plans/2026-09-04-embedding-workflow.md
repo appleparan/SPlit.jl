@@ -632,6 +632,64 @@ def test_compress_options() -> None:
 
 ---
 
+### Task 5b: Python `compare` wrapper (parity gap found by the Codex review)
+
+**Files:**
+
+- Modify: `splitiq/src/splitiq/quality.py` (or a new `splitiq/src/splitiq/comparison.py`), `splitiq/src/splitiq/__init__.py`
+- Create: `splitiq/tests/test_compare.py`
+- Modify: `splitiq/docs/getting-started.md`, `splitiq/docs/overview.md`, `splitiq/README.md`
+
+**Interfaces:**
+
+- Consumes: Julia `compare(methods::Vector{<:AbstractSplitter}, data; kernel, rng, weights, reference, reference_weights, standardize, kwargs...) -> SplitComparison` with fields `methods`, `results`, `qualities`, `kernel`; `best(c)`; `_build_splitter`, `_to_split_result`, `build_kernel`, `build_rng`, `to_julia_data`, `to_weights`, `_weights_kwarg`, `_reference_kwargs` from splitiq.
+- Produces:
+
+```python
+@dataclass(frozen=True)
+class SplitComparison:
+    """Outcome of `compare`: one `SplitResult` and one quality per method spec, index-aligned."""
+    results: tuple[SplitResult, ...]
+    qualities: tuple[float, ...]
+    kernel: SplitKernelName          # the scoring kernel
+
+    def best(self) -> tuple[int, SplitResult]:
+        """Index and result of the lowest discrepancy."""
+
+def compare(
+    data: DataLike,
+    methods: Sequence[SplitMethod | Mapping[str, object]],
+    *,
+    ratio: float = 0.2,
+    kernel: SplitKernelName = 'energy',        # scoring kernel, like Julia's `kernel`
+    bandwidth: float | Literal['median'] = 'median',
+    seed: int | None = None,
+    n_threads: int | None = None,
+    weights: DataLike | None = None,
+    reference: DataLike | None = None,
+    reference_weights: DataLike | None = None,
+    standardize: bool = True,
+) -> SplitComparison
+```
+
+  Each entry of `methods` is a method name (`'support_points'`, `'herding'`, `'twinning'`,
+  `'kernel_thinning'`, built with default options) or a mapping with a required `'method'` key and
+  any of the per-method keywords `datasplit` accepts (`kernel`, `bandwidth`, `kappa`,
+  `max_iterations`, `tolerance`, `start`, `delta`, `compress`); `ratio`, `seed`, and `n_threads` are
+  shared by every splitter (a fresh `Random.Xoshiro(seed)` per splitter so each gets the same
+  stream, as Julia users would do with `MersenneTwister(seed)` each). The splitters are collected
+  into a Julia `Vector{AbstractSplitter}` (e.g. `jl.Vector[jl.AbstractSplitter](list_of_splitters)`
+  — verify the juliacall spelling that works, or `jl.seval("v -> AbstractSplitter[x for x in
+  v]")(list)`), and the call is `jl.compare(splitters, julia_data; kernel=scoring_kernel_obj,
+  **rng/weights/reference/standardize kwargs)`. Results convert through `_to_split_result` with each
+  spec's method/kernel names; qualities are `float(q)` for `q in c.qualities`. Julia
+  `ArgumentError`s surface as `ValueError`.
+
+- [ ] **Step 1: Write the failing tests** (`splitiq/tests/test_compare.py`): two names → two results with sorted partitions and finite qualities; `best()` returns the argmin; a mapping spec with `{'method': 'kernel_thinning', 'compress': 'never'}` works; qualities equal `splitquality(data, result, kernel=...)` for each result (same scoring kernel); `standardize=False` on cosine-normalized rows changes the qualities vs `True`; `weights` and `reference` forwarded (a reference concentrates the selection as in `test_reference.py`); errors: unknown method name, mapping without `'method'`, `weights` together with `reference`.
+- [ ] **Step 2:** run to see `ImportError`; **Step 3:** implement; export `compare` and `SplitComparison` in `__init__.py` (keep `__all__` sorted); **Step 4:** `make test && make lint && make typecheck && make format && make docs`; **Step 5:** docs — getting-started "Comparing splitters" subsection with a three-line example, overview `SplitComparison` paragraph, README API row; **Step 6:** commit `feat(splitiq): Add compare and SplitComparison`.
+
+---
+
 ### Task 6: The example
 
 **Files:**
