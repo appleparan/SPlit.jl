@@ -135,7 +135,8 @@ def datasplit(
             data. Only meaningful when `kernel` is ``'gaussian'``.
         kappa: Absolute per-iteration subsample size for stochastic
             optimization (``method='support_points'`` only); ``None`` uses
-            all rows every iteration.
+            all rows every iteration. Works with either kernel; the
+            Gaussian kernel runs its MM sweep in this mode.
         max_iterations: Maximum optimizer iterations (``method=
             'support_points'`` only).
         tolerance: Convergence tolerance on the largest squared displacement
@@ -280,7 +281,8 @@ def select_rows(
             data. Only meaningful when `kernel` is ``'gaussian'``.
         kappa: Absolute per-iteration subsample size for stochastic
             optimization (``method='support_points'`` only); ``None`` uses
-            all rows every iteration.
+            all rows every iteration. Works with either kernel; the
+            Gaussian kernel runs its MM sweep in this mode.
         max_iterations: Maximum optimizer iterations (``method=
             'support_points'`` only).
         tolerance: Convergence tolerance on the largest squared displacement
