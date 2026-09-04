@@ -124,7 +124,7 @@ end
     @test G4 == G
   end
 
-  @testset "objective is non-increasing along accepted steps" begin
+  @testset "objective is non-increasing along full-data sweeps" begin
     data = randn(MersenneTwister(62), 150, 2)
     traj =
       SPlit._mmd_trajectory(k, data, 15; max_iterations = 40, rng = MersenneTwister(63))
@@ -174,9 +174,9 @@ end
 
   @testset "argument validation" begin
     data = randn(MersenneTwister(66), 30, 2)
-    @test_throws ArgumentError SPlit.support_points(k, data, 5; kappa = 10)
     @test_throws ArgumentError SPlit.support_points(GaussianKernel(), data, 5)
     @test_throws ArgumentError SPlit.support_points(k, data, 0)
+    @test_throws ArgumentError SPlit.support_points(k, data, 5; kappa = 0)
   end
 
   @testset "does not stop at the initial sample on high-dimensional data" begin
@@ -192,17 +192,69 @@ end
     @test traj[end] < traj[1]
   end
 
-  @testset "relative-decrease rule stops a flat objective honestly" begin
+  @testset "a flat objective stops by the displacement rule" begin
     data = randn(MersenneTwister(143), 200, 2)
     _, conv, iters = SPlit.support_points(
-      GaussianKernel(1.0),
+      GaussianKernel(1e-3),   # far below the row spacing: nothing moves
       data,
       20;
-      max_iterations = 300,
-      rtol = 1e-3,
+      max_iterations = 50,
       rng = MersenneTwister(144),
     )
-    @test conv && 2 <= iters < 300
+    @test conv == true
+    @test iters < 50
+  end
+
+  @testset "stochastic mode: runs, reproducible, full-data when kappa ≥ N" begin
+    data = randn(MersenneTwister(145), 400, 2)
+    a, _, ia = SPlit.support_points(
+      k,
+      data,
+      20;
+      kappa = 80,
+      max_iterations = 60,
+      rng = MersenneTwister(146),
+    )
+    b, _, _ = SPlit.support_points(
+      k,
+      data,
+      20;
+      kappa = 80,
+      max_iterations = 60,
+      rng = MersenneTwister(146),
+    )
+    @test a == b && size(a) == (20, 2) && 1 <= ia <= 60
+    for j = 1:2
+      lo, hi = extrema(view(data, :, j))
+      @test all(lo .<= a[:, j] .<= hi)
+    end
+    full, cf, _ =
+      SPlit.support_points(k, data, 20; max_iterations = 30, rng = MersenneTwister(147))
+    big, cb, _ = SPlit.support_points(
+      k,
+      data,
+      20;
+      kappa = 400,
+      max_iterations = 30,
+      rng = MersenneTwister(147),
+    )
+    @test full == big && cf == cb
+  end
+
+  @testset "stochastic mode beats the initial sample under MMD" begin
+    rng = MersenneTwister(148)
+    data = vcat(randn(rng, 300, 2) .- 3, randn(rng, 300, 2) .+ 3)
+    init =
+      SPlit._initial_points(MersenneTwister(149), copy(data), 30, SPlit._data_bounds(data))
+    pts, _, _ = SPlit.support_points(
+      k,
+      data,
+      30;
+      kappa = 100,
+      max_iterations = 100,
+      rng = MersenneTwister(149),
+    )
+    @test SPlit._mmd_objective(k, pts, data) < SPlit._mmd_objective(k, init, data)
   end
 end
 

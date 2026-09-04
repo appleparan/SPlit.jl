@@ -36,10 +36,7 @@ points and mapped to data rows by sequential nearest-neighbor selection.
   support point in one iteration is below this value. In stochastic mode
   the running-average weight decays with the iteration count, so
   convergence there partly reflects that step-size decay rather than the
-  objective flattening out. For `GaussianKernel`, convergence never fires
-  before the second iteration, and also triggers when the relative
-  objective decrease falls below an internal `rtol = 1e-8` (not exposed
-  here).
+  objective flattening out.
 - `rng`: source of all randomness (initialization, jitter, stochastic
   subsampling); pass a seeded RNG for reproducible splits.
 - `verbose`: print per-iteration progress.
@@ -75,8 +72,6 @@ function SupportPointSplitter(;
   kappa === nothing ||
     kappa > 0 ||
     throw(ArgumentError("kappa must be positive, got $kappa"))
-  (kernel isa GaussianKernel && kappa !== nothing) &&
-    throw(ArgumentError("stochastic mode (kappa) is not available for GaussianKernel yet"))
   max_iterations > 0 ||
     throw(ArgumentError("max_iterations must be positive, got $max_iterations"))
   tolerance > 0 || throw(ArgumentError("tolerance must be positive, got $tolerance"))
