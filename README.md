@@ -22,6 +22,16 @@ version number: `SPlit.jl` for Julia, registered in the General registry as
 `SPlit`, and [`splitiq`](splitiq/README.md) for Python, a thin `juliacall`
 wrapper in which every computation still runs in Julia.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/intuition/split-overview-dark.svg">
+  <img alt="The same 240 rows split three ways: all rows, a random 20% test draw that lands unevenly across the clusters, and the SPlit test rows spread through every cluster in proportion" src="docs/src/assets/intuition/split-overview-light.svg">
+</picture>
+
+The figure is a real run on 240 two-dimensional rows: a random 20% test draw
+lands unevenly across the three clusters, while the rows `datasplit` holds out
+follow the shape of the data, and the energy distance between the two sides
+drops by more than an order of magnitude.
+
 ## Overview
 
 SPlit.jl chooses rows whose empirical distribution stays as close as possible
