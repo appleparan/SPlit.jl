@@ -85,8 +85,13 @@ uses for the energy distance; `kernelvalue` is used as is.
 ### KT-SPLIT (GKT Alg. 1a as `m` rounds of kernel halving)
 
 Level `j = 1, …, m` halves each of the `2^{j−1}` sequences of level `j − 1`
-with `δ_step(j) = δ · 2^{j−1} / (m · L)` (Alg. 1a's `δ_{⌊|S|/2⌋} · 2^{j−1}/m`
-with `δ_i = δ / L`, KT 2024 Remark 4). The KT paper (Sec. 5.2) states that
+with the per-step failure probability `δ_step = δ / (m · L)` (Alg. 1a uses
+`δ_i / m` at the step that consumes input point `i`; with the paper's
+known-size choice `δ_i = δ / L`, KT 2024 Remark 4, this is constant across
+levels). Kernel halving computes `α` as `Σ_{z∈S₂} f(z) − Σ_{z∈S₁} f(z)` with
+`f = k(x,·) − k(x′,·)`, which is Alg. 2's `Σ_{j≤2i−2} f(x_j) − 2Σ_{z∈S₁} f(z)`
+rewritten. The sums use a fixed chunk size (1,024 rows) whose partial sums
+are added in order, so the result does not depend on `n_threads`. The KT paper (Sec. 5.2) states that
 KT-SPLIT equals repeated kernel halving, which is how it is implemented
 here: it is simpler than the interleaved online form and gives the same
 candidates given the same coin flips. Output: `2^m` candidate index vectors
