@@ -68,6 +68,19 @@ COLLECT_JS = """
       }
     }
   }
+  // Text that inherits its face from the page CSS (`body { font-family }`)
+  // would lose it in the standalone SVG, so pin the computed face, weight and
+  // style as attributes wherever the source did not set them explicitly.
+  for (const el of svg.querySelectorAll('text')) {
+    const cs = getComputedStyle(el);
+    if (!el.hasAttribute('font-family')) el.setAttribute('font-family', cs.fontFamily);
+    if (!el.hasAttribute('font-weight') && cs.fontWeight !== '400') {
+      el.setAttribute('font-weight', cs.fontWeight);
+    }
+    if (!el.hasAttribute('font-style') && cs.fontStyle !== 'normal') {
+      el.setAttribute('font-style', cs.fontStyle);
+    }
+  }
   const usage = [];
   const walker = document.createTreeWalker(svg, NodeFilter.SHOW_TEXT);
   while (walker.nextNode()) {
