@@ -1,3 +1,7 @@
+[default]
+# catch22 paper title: "CAnonical Time-series CHaracteristics"
+extend-ignore-re = ["CAnonical Time-series CHaracteristics"]
+
 [default.extend-words]
 # "Mak" is a surname (Simon Mak, co-author of the SPlit paper), not a typo.
 Mak = "Mak"
