@@ -47,7 +47,8 @@ State of the exported API at v0.5.2.
 | Skipping preprocessing (`standardize = false`) | done | `datasplit`, `selectrows`, `multiplet`, `splitquality`, `compare`: the numeric matrix is used unchanged, with no encoding, constant-column removal, or standardization; `DataFrame` input is rejected. See [Methods](@ref methods). |
 | Compress++ | done | `KernelThinningSplitter(compress = :auto)` (Shetty, Dwivedi & Mackey, 2022): near-linear kernel thinning for `n ≪ N` against the data's own measure; see [Methods](@ref compress). |
 | LLM data-selection workflow | done | Embedding matrices end to end: the example under `examples/` and the [decision table](@ref llm-data-selection). |
-| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. |
+| Time-series windows | done (example and docs) | Flatten fixed-length windows into rows (variable-major), standardize per variable, and select with `standardize = false`; see [Time-series windows](@ref time-series). Measured on a synthetic two-regime series: window-level selection separates regimes that point-level statistics cannot, twinning/herding/kernel thinning beat random once `L` reaches the dependence length, and support points do not at `L*p` in the hundreds. Grouped selection (windows from the same event) and rolling-origin selection are not implemented. |
+| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. The [time-series contrast](@ref time-series) adds a second data point: twinning's ratio to random rises from 0.38 at 24 columns to 0.89 at 3,072, support points reach parity with random by 1,536, and the static-vector nearest-neighbor structures fail to compile at 12,288 columns. |
 
 ## Design principles
 
@@ -224,6 +225,20 @@ iteration and the package's selected subset is uniform.
   selections track the weighted corpus better than the unweighted ones do.
   Left open pending downstream results; if it underperforms, alternatives
   include stratified selection by quality quantile.
+- Nearest-neighbor structures above a few thousand columns. Twinning's
+  brute-force search and `select_nearest`'s k-d tree are both
+  NearestNeighbors.jl structures over static vectors of the row width;
+  first-call compilation at that width grows with column count and failed
+  outright at `L*p = 12,288` in the [time-series example](@ref time-series).
+  A plain-matrix brute force (no static vectors) would remove the
+  compile-time ceiling, at the cost of the static-vector speed for the
+  column counts where compilation currently succeeds. Not started.
+- Grouped and rolling-origin selection for time series. Not implemented:
+  there is no constraint to keep windows from the same event or recording
+  together, and no dedicated support for rolling-origin windows, where
+  representing each origin as a flattened window is the wrong
+  representation. The [time-series page](@ref time-series) documents the
+  origin-level state-vector workaround as a substitute.
 
 ## References
 
@@ -259,6 +274,15 @@ iteration and the package's selected subset is uniform.
 14. Liu, W., Zeng, W., He, K., Jiang, Y., & He, J. (2024). What makes good
     data for alignment? A comprehensive study of automatic data selection
     in instruction tuning (Deita). *ICLR*.
+15. Combes, F., Fraiman, R., & Ghattas, B. (2022). Time Series Sampling.
+    *Engineering Proceedings*, 18(1), 32.
+16. Lubba, C. H., Sethi, S. S., Knaute, P., Schultz, S. R., Fulcher, B. D.,
+    & Jones, N. S. (2019). catch22: CAnonical Time-series CHaracteristics.
+    *Data Mining and Knowledge Discovery*, 33(6), 1821-1852.
+17. Yue, Z., Wang, Y., Duan, J., Yang, T., Huang, C., Tong, Y., & Xu, B.
+    (2022). TS2Vec: Towards Universal Representation of Time Series.
+    *Proceedings of the AAAI Conference on Artificial Intelligence*, 36(8),
+    8980-8987.
 
 ## Changelog
 
@@ -273,3 +297,8 @@ iteration and the package's selected subset is uniform.
   done; both remaining open questions resolved.
 - 2026-09-04: M6 (Gaussian MM sweep in `kappa` mode, `kappa` for
   `GaussianKernel`) done.
+- 2026-09-05: time-series window flattening example and docs page done;
+  high-dimensional data row updated with the `L*p` dimension-ladder
+  measurement; two open questions added (nearest-neighbor structures above
+  a few thousand columns, grouped and rolling-origin selection);
+  references 15-17 added.
