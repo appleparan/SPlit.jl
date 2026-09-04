@@ -38,6 +38,7 @@ def multiplet(
     n_threads: int | None = None,
     seed: int | None = None,
     start: StartRule | None = None,
+    delta: float = 0.5,
     weights: DataLike | None = None,
     reference: DataLike | None = None,
     reference_weights: DataLike | None = None,
@@ -58,8 +59,8 @@ def multiplet(
             the rest, and so on), ``'halving'`` (split every part in half
             repeatedly; `k` must be a power of two), or ``'single'`` (one
             twinning run, folds by neighbor rank; twinning only).
-        method: ``'twinning'`` (default), ``'support_points'``, or
-            ``'herding'``.
+        method: ``'twinning'`` (default), ``'support_points'``, ``'herding'``,
+            or ``'kernel_thinning'``.
         kernel: ``'energy'`` or ``'gaussian'`` (twinning: ``'energy'`` only).
         bandwidth: A positive number, or ``'median'`` (Gaussian kernel only).
         kappa: Stochastic subsample size (``'support_points'`` only).
@@ -71,6 +72,9 @@ def multiplet(
             0-based row index. ``None`` (the default) means ``'farthest'``
             for ``method='twinning'``; any explicit value with another
             method raises ``ValueError``.
+        delta: Failure probability of the kernel-thinning guarantees
+            (``method='kernel_thinning'`` only; the papers use ``0.5``).
+            Any other value with another method raises ``ValueError``.
         weights: One non-negative entry per row, or ``None`` (not available
             for twinning). Cannot be combined with `reference`.
         reference: A dataset of the same kind and columns as `data`, or
@@ -104,7 +108,18 @@ def multiplet(
     rng = build_rng(jl, seed)
     # `ratio` is never read by `multiplet`.
     splitter = _build_splitter(
-        jl, method, kernel, kernel_obj, 0.5, kappa, max_iterations, tolerance, n_threads, rng, start
+        jl,
+        method,
+        kernel,
+        kernel_obj,
+        0.5,
+        kappa,
+        max_iterations,
+        tolerance,
+        n_threads,
+        rng,
+        start,
+        delta,
     )
     with _translate_error():
         folds = jl.multiplet(

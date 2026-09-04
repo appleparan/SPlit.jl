@@ -31,7 +31,7 @@ kernel-herding selection all run inside the embedded Julia process, not in Pytho
 - `converged`: whether the optimizer's stopping rule fired (always `True` for kernel herding,
   which has no iterative convergence criterion).
 - `iterations`: number of optimizer iterations (kernel herding: number of greedy selections).
-- `method`: `'support_points'`, `'herding'`, or `'twinning'`.
+- `method`: `'support_points'`, `'herding'`, `'twinning'`, or `'kernel_thinning'`.
 - `kernel`: `'energy'` or `'gaussian'`.
 - `bandwidth`: the resolved Gaussian bandwidth, or `None` for the energy kernel.
 - `ratio`: the requested test-set fraction.
