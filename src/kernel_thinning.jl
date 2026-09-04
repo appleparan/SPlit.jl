@@ -317,3 +317,90 @@ function kernel_thinning(
   baseline = sample(rng, 1:N, n; replace = false)
   return _kt_swap(kernel, Xt, candidates, baseline, d, n_threads)
 end
+
+"""
+    KernelThinningSplitter(; kernel = EnergyKernel(), ratio = 0.2, delta = 0.5,
+                             n_threads = Threads.nthreads(), rng = Random.default_rng())
+
+Split by generalized kernel thinning with the target kernel (Dwivedi & Mackey
+2022; kernel halving from Dwivedi & Mackey 2024): the smaller side is chosen by
+[`kernel_thinning`](@ref), so it minimizes the MMD² (energy distance for
+`EnergyKernel`) to the data without continuous optimization or a
+nearest-neighbor step, with the papers' `O(√(log n / n))` MMD guarantee for
+the KT-SPLIT candidates and a KT-SWAP result never worse than a uniform
+random subset. Cost is `O(N²)` kernel evaluations like `HerdingSplitter`;
+near-linear time needs Compress++, which is not implemented.
+
+- `kernel`: `EnergyKernel()` (default) or `GaussianKernel(σ)`; a `:median`
+  bandwidth is resolved at `datasplit` time and stored in `result.method`.
+- `ratio`: fraction of rows assigned to the test set, in (0, 1).
+- `delta`: the failure probability `δ` of the kernel-thinning guarantees
+  (`δ_i = δ/L` per halving step); the papers' experiments use `0.5`.
+- `rng`: the input shuffle, the halving coin flips, and the baseline draw.
+
+`SplitResult.converged` is always `true`; `iterations` is the number of
+KT-SWAP replacements. `weights` and `reference` act on the KT-SWAP objective
+only (see [`kernel_thinning`](@ref) for the differences from the paper).
+
+# Examples
+
+```julia
+data = randn(MersenneTwister(1), 1_000, 5)
+result = datasplit(KernelThinningSplitter(rng = MersenneTwister(2)), data)
+```
+"""
+struct KernelThinningSplitter{K<:SplitKernel,R<:AbstractRNG} <: AbstractSplitter
+  kernel::K
+  ratio::Float64
+  delta::Float64
+  n_threads::Int
+  rng::R
+end
+
+function KernelThinningSplitter(;
+  kernel::SplitKernel = EnergyKernel(),
+  ratio::Real = 0.2,
+  delta::Real = 0.5,
+  n_threads::Int = Threads.nthreads(),
+  rng::AbstractRNG = Random.default_rng(),
+)
+  ratio = Float64(ratio)
+  delta = Float64(delta)
+  0 < ratio < 1 || throw(ArgumentError("ratio must be in (0, 1), got $ratio"))
+  0 < delta < 1 || throw(ArgumentError("delta must be in (0, 1), got $delta"))
+  n_threads > 0 || throw(ArgumentError("n_threads must be positive, got $n_threads"))
+  return KernelThinningSplitter(kernel, ratio, delta, n_threads, rng)
+end
+
+_with_kernel(s::KernelThinningSplitter, kernel) =
+  KernelThinningSplitter(kernel, s.ratio, s.delta, s.n_threads, s.rng)
+
+function _select_rows(
+  s::KernelThinningSplitter,
+  kernel,
+  X,
+  n;
+  weights,
+  target,
+  target_weights,
+)
+  rows, swaps = kernel_thinning(
+    kernel,
+    X,
+    n;
+    delta = s.delta,
+    weights,
+    target,
+    target_weights,
+    n_threads = s.n_threads,
+    rng = s.rng,
+  )
+  return rows, true, swaps
+end
+
+function Base.show(io::IO, s::KernelThinningSplitter)
+  print(
+    io,
+    "KernelThinningSplitter(kernel=$(s.kernel), ratio=$(s.ratio), delta=$(s.delta))",
+  )
+end

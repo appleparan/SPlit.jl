@@ -247,3 +247,102 @@ end
     )
   end
 end
+
+@testset "KernelThinningSplitter" begin
+  @testset "construction, validation, show" begin
+    s = KernelThinningSplitter()
+    @test s isa AbstractSplitter
+    @test s.kernel isa EnergyKernel && s.ratio == 0.2 && s.delta == 0.5
+    @test KernelThinningSplitter(
+      kernel = GaussianKernel(),
+      ratio = 1 // 4,
+      delta = 0.1,
+    ).delta == 0.1
+    @test_throws ArgumentError KernelThinningSplitter(ratio = 0.0)
+    @test_throws ArgumentError KernelThinningSplitter(delta = 1.0)
+    @test_throws ArgumentError KernelThinningSplitter(n_threads = 0)
+    @test occursin(
+      "KernelThinningSplitter(kernel=EnergyKernel(), ratio=0.2, delta=0.5)",
+      sprint(show, s),
+    )
+  end
+
+  @testset "datasplit: partition, sizes, report, both kernels" begin
+    data = randn(MersenneTwister(50), 300, 3)
+    for kernel in (EnergyKernel(), GaussianKernel())
+      r =
+        datasplit(KernelThinningSplitter(kernel = kernel, rng = MersenneTwister(51)), data)
+      @test length(test_indices(r)) == 60 && length(train_indices(r)) == 240
+      @test sort(vcat(train_indices(r), test_indices(r))) == 1:300
+      @test r.converged && r.iterations >= 0 && r.selected === :test
+      @test SPlit.isresolved(r.method.kernel)
+    end
+    r25 = datasplit(KernelThinningSplitter(ratio = 0.25, rng = MersenneTwister(52)), data)
+    @test length(test_indices(r25)) == 75
+  end
+
+  @testset "ratio > 0.5 puts the selected rows in train; selectrows agrees" begin
+    data = randn(MersenneTwister(53), 200, 2)
+    r = datasplit(KernelThinningSplitter(ratio = 0.7, rng = MersenneTwister(54)), data)
+    @test length(test_indices(r)) == 140 && r.selected === :train
+    @test train_indices(r) == selectrows(
+      KernelThinningSplitter(ratio = 0.7, rng = MersenneTwister(54)),
+      data,
+      60,
+    )
+    @test_throws ArgumentError selectrows(KernelThinningSplitter(), data, 101)
+  end
+
+  @testset "reproducible with rng; DataFrame and vector inputs; compare" begin
+    data = randn(MersenneTwister(55), 240, 2)
+    a = datasplit(KernelThinningSplitter(rng = MersenneTwister(1)), data)
+    b = datasplit(KernelThinningSplitter(rng = MersenneTwister(1)), data)
+    @test test_indices(a) == test_indices(b)
+    df = DataFrame(x = randn(MersenneTwister(56), 90), g = repeat(["a", "b", "c"], 30))
+    @test length(
+      test_indices(datasplit(KernelThinningSplitter(rng = MersenneTwister(2)), df)),
+    ) == 18
+    @test length(
+      test_indices(
+        datasplit(
+          KernelThinningSplitter(rng = MersenneTwister(3)),
+          randn(MersenneTwister(57), 50),
+        ),
+      ),
+    ) == 10
+    c = compare(
+      [
+        KernelThinningSplitter(rng = MersenneTwister(4)),
+        HerdingSplitter(kernel = EnergyKernel()),
+      ],
+      data,
+    )
+    @test DataFrame(c).method == ["KernelThinningSplitter", "HerdingSplitter"]
+    @test all(isfinite, c.qualities)
+  end
+
+  @testset "weights and reference through datasplit and selectrows" begin
+    data = randn(MersenneTwister(58), 300, 2)
+    s = KernelThinningSplitter(rng = MersenneTwister(5))
+    @test test_indices(datasplit(s, data; weights = ones(300))) ==
+          test_indices(datasplit(KernelThinningSplitter(rng = MersenneTwister(5)), data))
+    heavy = data[:, 1] .> 0
+    plain = selectrows(KernelThinningSplitter(rng = MersenneTwister(6)), data, 60)
+    weighted = selectrows(
+      KernelThinningSplitter(rng = MersenneTwister(6)),
+      data,
+      60;
+      weights = ifelse.(heavy, 20.0, 1.0),
+    )
+    targeted = selectrows(
+      KernelThinningSplitter(rng = MersenneTwister(6)),
+      data,
+      60;
+      reference = data[heavy, :],
+    )
+    @test count(heavy[weighted]) > count(heavy[plain])
+    @test count(heavy[targeted]) > count(heavy[plain])
+    folds = multiplet(KernelThinningSplitter(rng = MersenneTwister(7)), data, 4)
+    @test sort(reduce(vcat, folds)) == 1:300
+  end
+end
