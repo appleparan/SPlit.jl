@@ -211,3 +211,19 @@ end
   @test r.selected === :test
   @test sort(r.test_indices) == sort(selectrows(s, data, 24))
 end
+
+@testset "_target_data_term matches the four data terms" begin
+  X = SPlit.preprocess(randn(MersenneTwister(300), 60, 2))
+  R = X[1:20, :]
+  w = rand(MersenneTwister(301), 60)
+  v = rand(MersenneTwister(302), 20)
+  k = GaussianKernel(1.0)
+  @test SPlit._target_data_term(k, X, nothing, nothing, nothing, 2) ==
+        SPlit._data_term(k, X, 2)
+  @test SPlit._target_data_term(k, X, w, nothing, nothing, 2) ==
+        SPlit._data_term(k, X, w ./ sum(w), 2)
+  @test SPlit._target_data_term(k, X, nothing, R, nothing, 2) ==
+        SPlit._data_term(k, X, R, 2)
+  @test SPlit._target_data_term(k, X, nothing, R, v, 2) ==
+        SPlit._data_term(k, X, R, v ./ sum(v), 2)
+end

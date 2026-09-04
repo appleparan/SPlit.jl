@@ -100,3 +100,220 @@ function _kernel_halving(
   end
   return S1, S2
 end
+
+# KT-SPLIT (Dwivedi & Mackey 2022, Alg. 1a) as `m` rounds of kernel halving
+# (KT 2024, Sec. 5.2): level j halves each of the 2^(j−1) sequences of level
+# j − 1 with per-step failure probability δ/(m·L). Candidates are returned in
+# level order (S₁ before S₂).
+function _kt_split(
+  kernel::SplitKernel,
+  Xt::Matrix{Float64},
+  seq::Vector{Int},
+  m::Int,
+  δ::Float64,
+  rng::AbstractRNG;
+  n_threads::Int = Threads.nthreads(),
+)
+  δ_step = δ / (m * length(seq))
+  level = [seq]
+  for _ = 1:m
+    next = Vector{Vector{Int}}()
+    for s in level
+      S1, S2 = _kernel_halving(kernel, Xt, s, δ_step, rng; n_threads)
+      push!(next, S1)
+      push!(next, S2)
+    end
+    level = next
+  end
+  return level
+end
+
+# Threaded map over 1:N in fixed chunks; `f(y)` writes nothing shared.
+function _chunked_foreach(f, N::Int, n_threads::Int)
+  chunks = collect(Iterators.partition(1:N, _KH_CHUNK))
+  if n_threads == 1 || length(chunks) == 1
+    for chunk in chunks, y in chunk
+      f(y)
+    end
+  else
+    @sync for chunk in chunks
+      Threads.@spawn for y in chunk
+        f(y)
+      end
+    end
+  end
+  return nothing
+end
+
+# Σ_{a,b∈S} k(a, b), threaded over a.
+function _self_kernel_sum(
+  kernel::SplitKernel,
+  Xt::Matrix{Float64},
+  S::Vector{Int},
+  n_threads::Int,
+)
+  rowsum = zeros(length(S))
+  _chunked_foreach(length(S), n_threads) do i
+    s = 0.0
+    @views xa = Xt[:, S[i]]
+    @views for b in S
+      s += kernelvalue(kernel, xa, Xt[:, b])
+    end
+    rowsum[i] = s
+  end
+  return sum(rowsum)
+end
+
+# c[y] = Σ_{a∈S} k(y, a) for every row y, threaded over y.
+function _coreset_sums(
+  kernel::SplitKernel,
+  Xt::Matrix{Float64},
+  S::Vector{Int},
+  N::Int,
+  n_threads::Int,
+)
+  c = zeros(N)
+  _chunked_foreach(N, n_threads) do y
+    s = 0.0
+    @views xy = Xt[:, y]
+    @views for a in S
+      s += kernelvalue(kernel, xy, Xt[:, a])
+    end
+    c[y] = s
+  end
+  return c
+end
+
+"""
+    _kt_swap(kernel, Xt, candidates, baseline, d, n_threads) -> (rows, swaps)
+
+KT-SWAP (Dwivedi & Mackey 2022, Alg. 1b) with the target measure encoded in
+the data term `d` (`d[z] = Σ_l v̄_l k(z, r_l)`). Keeps the candidate (the
+`baseline` included) with the smallest `(1/n²) Σ_{a,b∈S} k(a,b) − (2/n) Σ_{a∈S} d(a)`,
+then makes one pass over its positions, replacing each row by the row of the
+data outside the coreset that lowers the objective most (only if it lowers
+it; ties to the lowest row index). Returns the refined coreset in position
+order and the number of replacements.
+"""
+function _kt_swap(
+  kernel::SplitKernel,
+  Xt::Matrix{Float64},
+  candidates::Vector{Vector{Int}},
+  baseline::Vector{Int},
+  d::Vector{Float64},
+  n_threads::Int,
+)
+  N = size(Xt, 2)
+  n = length(baseline)
+  all(c -> length(c) == n, candidates) ||
+    throw(ArgumentError("every candidate must have the baseline's size $n"))
+  cands = vcat(candidates, [baseline])
+  objective(S) = _self_kernel_sum(kernel, Xt, S, n_threads) / n^2 - 2 * sum(@view d[S]) / n
+  best = argmin(map(objective, cands))
+  S = copy(cands[best])
+  inS = falses(N)
+  inS[S] .= true
+  c = _coreset_sums(kernel, Xt, S, N, n_threads)
+  kdiag = [(@views kernelvalue(kernel, Xt[:, y], Xt[:, y])) for y = 1:N]
+  swaps = 0
+  chunks = collect(Iterators.partition(1:N, _KH_CHUNK))
+  best_z = zeros(Int, length(chunks))
+  best_Δ = zeros(length(chunks))
+  for i = 1:n
+    s = S[i]
+    @views xs = Xt[:, s]
+    base = -(kdiag[s] + 2 * (c[s] - kdiag[s])) / n^2 + 2 * d[s] / n
+    fill!(best_z, 0)
+    fill!(best_Δ, 0.0)
+    scan(ci) = begin
+      bz, bΔ = 0, 0.0
+      @views for z in chunks[ci]
+        inS[z] && continue
+        Δ =
+          (kdiag[z] + 2 * (c[z] - kernelvalue(kernel, Xt[:, z], xs))) / n^2 - 2 * d[z] / n + base
+        if Δ < bΔ
+          bz, bΔ = z, Δ
+        end
+      end
+      best_z[ci], best_Δ[ci] = bz, bΔ
+    end
+    if n_threads == 1 || length(chunks) == 1
+      foreach(scan, eachindex(chunks))
+    else
+      @sync for ci in eachindex(chunks)
+        Threads.@spawn scan(ci)
+      end
+    end
+    ci = argmin(best_Δ)                       # first chunk with the smallest Δ → lowest row index among ties
+    best_Δ[ci] < 0.0 || continue
+    z = best_z[ci]
+    @views xz = Xt[:, z]
+    _chunked_foreach(N, n_threads) do y
+      @views c[y] += kernelvalue(kernel, Xt[:, y], xz) - kernelvalue(kernel, Xt[:, y], xs)
+    end
+    S[i] = z
+    inS[s] = false
+    inS[z] = true
+    swaps += 1
+  end
+  return S, swaps
+end
+
+"""
+    kernel_thinning(kernel, X, n; delta = 0.5, weights = nothing, target = nothing,
+                    target_weights = nothing, n_threads = Threads.nthreads(),
+                    rng = Random.default_rng()) -> (rows, swaps)
+
+Select `n ≤ N/2` rows of `X` by generalized kernel thinning with the target
+kernel (Dwivedi & Mackey 2022): with `m = ⌊log₂(N/n)⌋`, the first `L = n·2^m`
+rows of a random permutation are split by `m` rounds of kernel halving into
+`2^m` candidate subsets of size `n` (KT-SPLIT), and KT-SWAP keeps the candidate
+(or a uniform random baseline) with the smallest MMD² to the target measure
+and refines it by one pass of best single-row swaps over all `N` rows. `delta`
+is the failure probability `δ` of the paper's guarantees (`δ_i = δ/L`);
+`weights`, `target`, `target_weights` define the target measure as in
+[`herd`](@ref) and act on KT-SWAP only. Cost: `O(L²)` kernel evaluations for
+KT-SPLIT, `O(N²)` for the data term, `O(nN)` for KT-SWAP, all threaded.
+Deterministic given `rng` and independent of `n_threads`.
+
+# Differences from the paper
+
+Target-kernel thinning is used (no square-root kernel). The papers thin `N`
+to `⌊N/2^m⌋`; here `n` is given and only `L = n·2^m` shuffled rows enter
+KT-SPLIT, the rest take part through KT-SWAP (equal to the paper when
+`N/n = 2^m`). Swap candidates exclude rows already in the coreset so the
+result is a set of distinct rows. `weights`/`target` change only the
+KT-SWAP objective. Compress++ is not implemented.
+"""
+function kernel_thinning(
+  kernel::SplitKernel,
+  X::Matrix{Float64},
+  n::Int;
+  delta::Real = 0.5,
+  weights::Union{Nothing,AbstractVector} = nothing,
+  target::Union{Nothing,AbstractMatrix} = nothing,
+  target_weights::Union{Nothing,AbstractVector} = nothing,
+  n_threads::Int = Threads.nthreads(),
+  rng::AbstractRNG = Random.default_rng(),
+)
+  isresolved(kernel) ||
+    throw(ArgumentError("kernel parameters must be resolved; call resolve first"))
+  N = size(X, 1)
+  0 < n <= N ÷ 2 || throw(
+    ArgumentError(
+      "kernel thinning selects at most half of the rows: n must be in 1:$(N ÷ 2), got $n",
+    ),
+  )
+  0 < delta < 1 || throw(ArgumentError("delta must be in (0, 1), got $delta"))
+  d = _target_data_term(kernel, X, weights, target, target_weights, n_threads)
+  m = 0
+  while n * 2^(m + 1) <= N
+    m += 1
+  end
+  L = n * 2^m
+  seq = randperm(rng, N)[1:L]
+  Xt = permutedims(X)
+  candidates = _kt_split(kernel, Xt, seq, m, Float64(delta), rng; n_threads)
+  baseline = sample(rng, 1:N, n; replace = false)
+  return _kt_swap(kernel, Xt, candidates, baseline, d, n_threads)
+end
