@@ -820,3 +820,127 @@ end
     )
   end
 end
+
+@testset "Gaussian MM sweep" begin
+  k = GaussianKernel(1.0)
+
+  # One full-data sweep from the current points, alpha = 1.
+  function sweep(k, points, data, w_hat; n_threads = 1)
+    n = size(points, 1)
+    new_points = similar(points)
+    current_const = zeros(n)
+    running_const = zeros(n)
+    SPlit._mm_sweep!(
+      k,
+      new_points,
+      current_const,
+      points,
+      data,
+      w_hat,
+      running_const,
+      1.0,
+      SPlit._data_bounds(data),
+      n_threads,
+    )
+    return new_points, current_const
+  end
+
+  @testset "one sweep never increases the objective" begin
+    for seed = 1:5
+      rng = MersenneTwister(500 + seed)
+      data = randn(rng, 120, 3)
+      points = data[rand(rng, 1:120, 12), :] .+ 0.05 .* randn(rng, 12, 3)
+      new_points, _ = sweep(k, points, data, ones(120))
+      @test SPlit._mmd_objective(k, new_points, data) <=
+            SPlit._mmd_objective(k, points, data) + 1e-12
+      w = rand(rng, 120) .^ 2
+      w_hat = SPlit._mean_one_weights(w)
+      w_bar = w ./ sum(w)
+      new_w, _ = sweep(k, points, data, w_hat)
+      @test SPlit._mmd_objective(k, new_w, data, w_bar) <=
+            SPlit._mmd_objective(k, points, data, w_bar) + 1e-12
+    end
+  end
+
+  @testset "current_const holds the data density A = Σ ŵ k / (N σ²)" begin
+    rng = MersenneTwister(510)
+    data = randn(rng, 50, 2)
+    points = randn(rng, 4, 2)
+    _, c = sweep(k, points, data, ones(50))
+    for m = 1:4
+      expected =
+        sum(SPlit.kernelvalue(k, view(points, m, :), view(data, l, :)) for l = 1:50) / 50
+      @test isapprox(c[m], expected; rtol = 1e-12)
+    end
+  end
+
+  @testset "threaded sweep equals serial sweep bit for bit" begin
+    rng = MersenneTwister(520)
+    data = randn(rng, 200, 4)
+    points = randn(rng, 17, 4)
+    a, ca = sweep(k, points, data, ones(200); n_threads = 1)
+    b, cb = sweep(k, points, data, ones(200); n_threads = 4)
+    @test a == b && ca == cb
+  end
+
+  @testset "weights as duplication counts equal duplicated rows" begin
+    rng = MersenneTwister(530)
+    base = randn(rng, 40, 2)
+    counts = rand(rng, 1:3, 40)
+    dup = vcat([repeat(base[i:i, :], counts[i]) for i = 1:40]...)
+    points = randn(rng, 6, 2)
+    a, _ = sweep(k, points, base, SPlit._mean_one_weights(Float64.(counts)))
+    b, _ = sweep(k, points, dup, ones(size(dup, 1)))
+    @test isapprox(a, b; rtol = 1e-10)
+  end
+
+  @testset "points stay inside the bounding box" begin
+    rng = MersenneTwister(540)
+    data = rand(rng, 80, 2)
+    points = rand(rng, 5, 2) .* 4 .- 2      # start outside [0, 1]²
+    new_points, _ = sweep(k, points, data, ones(80))
+    @test all(0 .<= new_points .<= 1)
+  end
+
+  @testset "a fixed point of the sweep is a stationary point of the objective" begin
+    rng = MersenneTwister(550)
+    data = randn(rng, 60, 2)
+    points = data[1:4, :] .+ 0.1 .* randn(rng, 4, 2)
+    G0 = similar(points)
+    SPlit._mmd_gradient!(G0, k, points, data, ones(60), 1)
+    for _ = 1:500
+      points, _ = sweep(k, points, data, ones(60))
+    end
+    again, _ = sweep(k, points, data, ones(60))
+    @test maximum(abs, again .- points) < 1e-9
+    G = similar(points)
+    SPlit._mmd_gradient!(G, k, points, data, ones(60), 1)
+    @test maximum(abs, G) < 1e-6 * maximum(abs, G0)
+  end
+
+  @testset "energy wrapper forwards to the energy sweep" begin
+    rng = MersenneTwister(560)
+    data = randn(rng, 50, 2)
+    points = randn(rng, 5, 2)
+    n = 5
+    a = similar(points)
+    b = similar(points)
+    ca = zeros(n)
+    cb = zeros(n)
+    bounds = SPlit._data_bounds(data)
+    SPlit._mm_sweep!(a, ca, points, data, ones(50), zeros(n), 1.0, bounds, 1)
+    SPlit._mm_sweep!(
+      EnergyKernel(),
+      b,
+      cb,
+      points,
+      data,
+      ones(50),
+      zeros(n),
+      1.0,
+      bounds,
+      1,
+    )
+    @test a == b && ca == cb
+  end
+end

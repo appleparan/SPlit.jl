@@ -122,6 +122,97 @@ function _mm_sweep!(
   return nothing
 end
 
+# Kernel-dispatched entry point; the energy body above is unchanged so its
+# results stay bit-identical.
+_mm_sweep!(::EnergyKernel, args...) = _mm_sweep!(args...)
+
+# Gaussian-kernel MM sweep (design record: 2026-09-04-gaussian-mm-update).
+# The data term −k(ξ, x) is concave in ‖ξ − x‖², so its tangent majorizer
+# gives the mean-shift step; the repulsion k(ξ_m, ξ_o) is majorized by its
+# L-smooth quadratic bound with L = 2e^{-3/2}/σ² (the largest Hessian
+# eigenvalue of a Gaussian), split over the two points. Per point m:
+#   A   = Σ_i ŵ_i k(ξ_m, x_i) / (n_sub σ²)             data density
+#   ms  = Σ_i ŵ_i k(ξ_m, x_i) x_i / Σ_i ŵ_i k(ξ_m, x_i)  mean-shift target
+#   rep = Σ_{o≠m} k(ξ_m, ξ_o) (ξ_m − ξ_o) / (n σ²)      linearized repulsion
+#   B   = 2 (n − 1) L / n = 4 (n − 1) e^{-3/2} / (n σ²)
+#   ξ_m ← clamp((A ms + B ξ_m + rep) / (A + B), bounds)
+# The full-data sweep (alpha = 1) never increases the objective. In
+# stochastic mode `alpha` blends A and the data numerator with the running
+# constant exactly as the energy sweep does, so the loop in
+# `support_points` is shared. `current_const[m]` receives A.
+function _mm_sweep!(
+  k::GaussianKernel{Float64},
+  new_points::Matrix{Float64},
+  current_const::Vector{Float64},
+  points::Matrix{Float64},
+  subsample_data::AbstractMatrix{Float64},
+  subsample_weights::AbstractVector{Float64},
+  running_const::Vector{Float64},
+  alpha::Float64,
+  bounds::Matrix{Float64},
+  n_threads::Int,
+)
+  n, p = size(points)
+  n_sub = size(subsample_data, 1)
+  s2 = k.bandwidth^2
+  inv2s2 = 1 / (2 * s2)
+  B = 4 * (n - 1) * exp(-1.5) / (n * s2)
+  chunks = collect(Iterators.partition(1:n, cld(n, max(1, n_threads))))
+  @sync for chunk in chunks
+    Threads.@spawn begin
+      s1 = zeros(p)
+      r1 = zeros(p)
+      for m in chunk
+        s0 = 0.0
+        fill!(s1, 0.0)
+        for i = 1:n_sub
+          d = 0.0
+          for j = 1:p
+            d += (subsample_data[i, j] - points[m, j])^2
+          end
+          w = subsample_weights[i] * exp(-d * inv2s2)
+          s0 += w
+          for j = 1:p
+            s1[j] += w * subsample_data[i, j]
+          end
+        end
+        r0 = 0.0
+        fill!(r1, 0.0)
+        for o = 1:n
+          o == m && continue
+          d = 0.0
+          for j = 1:p
+            d += (points[m, j] - points[o, j])^2
+          end
+          w = exp(-d * inv2s2)
+          r0 += w
+          for j = 1:p
+            r1[j] += w * points[o, j]
+          end
+        end
+        A = s0 / (n_sub * s2)
+        current_const[m] = A
+        denom = (1 - alpha) * running_const[m] + alpha * A + B
+        for j = 1:p
+          ms = s0 > 0 ? s1[j] / s0 : points[m, j]
+          rep = (r0 * points[m, j] - r1[j]) / (n * s2)
+          x = if denom > 0
+            (
+              (1 - alpha) * running_const[m] * points[m, j] +
+              alpha * (A * ms + rep) +
+              B * points[m, j]
+            ) / denom
+          else
+            points[m, j]
+          end
+          new_points[m, j] = clamp(x, bounds[j, 1], bounds[j, 2])
+        end
+      end
+    end
+  end
+  return nothing
+end
+
 # Validate the (weights | target, target_weights) combination and return the
 # target matrix plus its mean-one and sum-one weight vectors. `weights`
 # belongs to the data-as-target case only. On the no-target path, `R` is
