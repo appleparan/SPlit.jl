@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kernel thinning halves, compares, and swaps</title>
+  <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif; background: var(--paper); padding: 2rem; }
+    svg { width: 100%; max-width: 960px; display: block; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="kernel-thinning-title kernel-thinning-desc">
+    <title id="kernel-thinning-title">Kernel thinning builds candidate halves, chooses the best, then swaps</title>
+    <desc id="kernel-thinning-desc">Sixteen rows split into two groups of eight and then four candidate groups of four. The four structured candidates and a random group of four are compared with all rows. A swap pass replaces a selected row when an outside row lowers mismatch, producing four selected rows.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/></marker>
+    </defs>
+    <rect width="100%" height="100%" fill="var(--paper)"/>
+
+    <!-- Tree and comparison connectors, all behind boxes. -->
+    <path d="M 160 176 H 184 Q 192 176 192 168 V 96 Q 192 88 200 88 H 220" fill="none" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <path d="M 160 176 H 184 Q 192 176 192 184 V 244 Q 192 252 200 252 H 220" fill="none" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <path d="M 340 88 H 368 Q 376 88 376 80 V 72 Q 376 64 384 64 H 400" fill="none" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <path d="M 340 88 H 368 Q 376 88 376 96 V 124 Q 376 132 384 132 H 400" fill="none" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <path d="M 340 252 H 368 Q 376 252 376 244 V 220 Q 376 212 384 212 H 400" fill="none" stroke="var(--ink-a20)" marker-end="url(#arrow)"/>
+    <path d="M 340 252 H 368 Q 376 252 376 260 V 280 Q 376 288 384 288 H 400" fill="none" stroke="var(--ink-a20)" marker-end="url(#arrow)"/>
+    <path d="M 512 64 H 536 Q 544 64 544 72 V 112 Q 544 120 552 120 H 568" fill="none" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <line x1="512" y1="132" x2="568" y2="132" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <path d="M 512 212 H 536 Q 544 212 544 204 V 152 Q 544 144 552 144 H 568" fill="none" stroke="var(--ink-a20)" marker-end="url(#arrow)"/>
+    <path d="M 512 288 H 528 Q 536 288 536 280 V 164 Q 536 156 544 156 H 568" fill="none" stroke="var(--ink-a20)" marker-end="url(#arrow)"/>
+    <path d="M 380 372 H 520 Q 528 372 528 364 V 176 Q 528 168 536 168 H 568" fill="none" stroke="var(--muted)" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+    <line x1="688" y1="148" x2="720" y2="148" stroke="var(--muted)" marker-end="url(#arrow)"/>
+    <line x1="824" y1="148" x2="852" y2="148" stroke="var(--muted)" marker-end="url(#arrow)"/>
+
+    <rect x="168" y="120" width="48" height="16" rx="2" fill="var(--paper)"/><text x="192" y="131" fill="var(--muted)" font-size="8" text-anchor="middle" letter-spacing="0.10em">HALVE</text>
+    <rect x="352" y="156" width="48" height="16" rx="2" fill="var(--paper)"/><text x="376" y="167" fill="var(--muted)" font-size="8" text-anchor="middle" letter-spacing="0.10em">HALVE</text>
+
+    <g font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">
+      <rect x="24" y="128" width="136" height="96" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <text x="92" y="150" fill="var(--ink)" font-size="10" font-weight="600" text-anchor="middle">ALL ROWS · 16</text>
+      <g fill="var(--muted-a20)" stroke="var(--muted)">
+        <circle cx="56" cy="172" r="3"/><circle cx="80" cy="172" r="3"/><circle cx="104" cy="172" r="3"/><circle cx="128" cy="172" r="3"/>
+        <circle cx="56" cy="188" r="3"/><circle cx="80" cy="188" r="3"/><circle cx="104" cy="188" r="3"/><circle cx="128" cy="188" r="3"/>
+        <circle cx="56" cy="204" r="3"/><circle cx="80" cy="204" r="3"/><circle cx="104" cy="204" r="3"/><circle cx="128" cy="204" r="3"/>
+        <circle cx="56" cy="212" r="3"/><circle cx="80" cy="212" r="3"/><circle cx="104" cy="212" r="3"/><circle cx="128" cy="212" r="3"/>
+      </g>
+
+      <rect x="220" y="56" width="120" height="64" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <rect x="220" y="220" width="120" height="64" rx="6" fill="var(--surface)" stroke="var(--rule)"/>
+      <text x="280" y="80" fill="var(--ink)" font-size="11" font-weight="600" text-anchor="middle">8</text>
+      <text x="280" y="244" fill="var(--ink)" font-size="11" font-weight="600" text-anchor="middle">8</text>
+      <g fill="var(--muted-a20)" stroke="var(--muted)">
+        <circle cx="248" cy="100" r="3"/><circle cx="268" cy="100" r="3"/><circle cx="288" cy="100" r="3"/><circle cx="308" cy="100" r="3"/>
+        <circle cx="248" cy="108" r="3"/><circle cx="268" cy="108" r="3"/><circle cx="288" cy="108" r="3"/><circle cx="308" cy="108" r="3"/>
+        <circle cx="248" cy="264" r="3"/><circle cx="268" cy="264" r="3"/><circle cx="288" cy="264" r="3"/><circle cx="308" cy="264" r="3"/>
+        <circle cx="248" cy="272" r="3"/><circle cx="268" cy="272" r="3"/><circle cx="288" cy="272" r="3"/><circle cx="308" cy="272" r="3"/>
+      </g>
+
+      <g fill="var(--surface)" stroke="var(--rule)">
+        <rect x="400" y="36" width="112" height="56" rx="6"/><rect x="400" y="104" width="112" height="56" rx="6"/>
+      </g>
+      <g fill="var(--ink-a02)" stroke="var(--ink-a12)">
+        <rect x="400" y="184" width="112" height="56" rx="6"/><rect x="400" y="260" width="112" height="56" rx="6"/>
+      </g>
+      <g fill="var(--ink)" font-size="10" font-weight="600">
+        <text x="440" y="58"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">4 = n</tspan></text>
+        <text x="440" y="126"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">4 = n</tspan></text>
+        <text x="440" y="206"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">4 = n</tspan></text>
+        <text x="440" y="282"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif" font-style="italic">4 = n</tspan></text>
+      </g>
+      <g fill="var(--muted-a20)" stroke="var(--muted)">
+        <circle cx="426" cy="76" r="3"/><circle cx="446" cy="76" r="3"/><circle cx="466" cy="76" r="3"/><circle cx="486" cy="76" r="3"/>
+        <circle cx="426" cy="144" r="3"/><circle cx="446" cy="144" r="3"/><circle cx="466" cy="144" r="3"/><circle cx="486" cy="144" r="3"/>
+        <circle cx="426" cy="224" r="3"/><circle cx="446" cy="224" r="3"/><circle cx="466" cy="224" r="3"/><circle cx="486" cy="224" r="3"/>
+        <circle cx="426" cy="300" r="3"/><circle cx="446" cy="300" r="3"/><circle cx="466" cy="300" r="3"/><circle cx="486" cy="300" r="3"/>
+      </g>
+
+      <rect x="220" y="340" width="160" height="64" rx="6" fill="var(--paper)" stroke="var(--muted)" stroke-dasharray="4,3"/>
+      <text x="300" y="362" fill="var(--muted)" font-size="10" font-weight="600" text-anchor="middle">RANDOM 4</text>
+      <g fill="var(--muted-a20)" stroke="var(--muted)"><circle cx="264" cy="384" r="3"/><circle cx="288" cy="384" r="3"/><circle cx="312" cy="384" r="3"/><circle cx="336" cy="384" r="3"/></g>
+
+      <rect x="568" y="112" width="120" height="72" rx="6" fill="var(--surface)" stroke="var(--ink)"/>
+      <text x="628" y="136" fill="var(--ink)" font-size="10" font-weight="600" text-anchor="middle">PICK THE BEST OF 5</text>
+      <text x="628" y="156" fill="var(--muted)" font-size="8" text-anchor="middle">compare against</text>
+      <text x="628" y="170" fill="var(--muted)" font-size="8" text-anchor="middle">all rows</text>
+
+      <rect x="720" y="88" width="104" height="120" rx="6" fill="var(--surface)" stroke="var(--ink)"/>
+      <text x="772" y="112" fill="var(--ink)" font-size="11" font-weight="600" text-anchor="middle">SWAP</text>
+      <text x="772" y="130" fill="var(--muted)" font-size="8" text-anchor="middle">if mismatch falls</text>
+      <line x1="752" y1="154" x2="752" y2="140" stroke="var(--muted)" marker-end="url(#arrow)"/>
+      <line x1="792" y1="198" x2="792" y2="182" stroke="var(--muted)" marker-end="url(#arrow)"/>
+      <rect x="728" y="166" width="32" height="16" rx="2" fill="var(--paper)"/>
+      <rect x="798" y="182" width="22" height="16" rx="2" fill="var(--paper)"/>
+      <circle cx="752" cy="160" r="4" fill="var(--ink)"/>
+      <circle cx="792" cy="176" r="4" fill="var(--muted-a20)" stroke="var(--muted)"/>
+      <text x="740" y="178" fill="var(--muted)" font-size="7">out</text><text x="800" y="194" fill="var(--muted)" font-size="7">in</text>
+
+      <rect x="852" y="112" width="84" height="72" rx="6" fill="var(--accent-a08)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="894" y="136" fill="var(--ink)" font-size="10" font-weight="600" text-anchor="middle">SELECTED · 4</text>
+      <g fill="var(--ink)"><circle cx="870" cy="160" r="3"/><circle cx="886" cy="160" r="3"/><circle cx="902" cy="160" r="3"/><circle cx="918" cy="160" r="3"/></g>
+
+      <!-- Dealing-cards analogy inset. -->
+      <rect x="40" y="424" width="472" height="88" rx="6" fill="var(--ink-a02)" stroke="var(--rule)"/>
+      <text x="56" y="444" fill="var(--muted)" font-size="10" font-style="italic">each pair: one row to each pile — flip the assignment</text>
+      <text x="56" y="460" fill="var(--muted)" font-size="10" font-style="italic">when the piles drift apart</text>
+      <path d="M 272 482 Q 292 456 312 482" fill="none" stroke="var(--muted)" marker-end="url(#arrow)"/>
+      <circle cx="80" cy="486" r="4" fill="var(--muted-a20)" stroke="var(--muted)"/><circle cx="104" cy="486" r="4" fill="var(--muted-a20)" stroke="var(--muted)"/>
+      <rect x="176" y="472" width="88" height="28" rx="4" fill="var(--surface)" stroke="var(--ink-a20)"/><rect x="320" y="472" width="88" height="28" rx="4" fill="var(--surface)" stroke="var(--ink-a20)"/>
+      <text x="220" y="490" fill="var(--ink)" font-size="8" text-anchor="middle">PILE A</text><text x="364" y="490" fill="var(--ink)" font-size="8" text-anchor="middle">PILE B</text>
+
+      <g letter-spacing="0.06em">
+      <line x1="40" y1="536" x2="920" y2="536" stroke="var(--ink-a12)" stroke-width="0.8"/>
+      <text x="40" y="552" fill="var(--muted)" font-size="8" letter-spacing="0.12em">LEGEND</text>
+      <circle cx="52" cy="576" r="3" fill="var(--muted-a20)" stroke="var(--muted)"/><text x="62" y="580" fill="var(--ink)" font-size="9">ROW</text>
+      <rect x="132" y="566" width="32" height="20" rx="4" fill="var(--surface)" stroke="var(--rule)"/><text x="172" y="580" fill="var(--ink)" font-size="9">CANDIDATE SUBSET</text>
+      <rect x="340" y="566" width="32" height="20" rx="4" fill="var(--paper)" stroke="var(--muted)" stroke-dasharray="4,3"/><text x="380" y="580" fill="var(--ink)" font-size="9">RANDOM BASELINE</text>
+      <rect x="556" y="566" width="32" height="20" rx="4" fill="var(--accent-a08)" stroke="var(--accent)" stroke-width="1.5"/><text x="596" y="580" fill="var(--ink)" font-size="9">SELECTED</text>
+      </g>
+    </g>
+  </svg>
+</body>
+</html>

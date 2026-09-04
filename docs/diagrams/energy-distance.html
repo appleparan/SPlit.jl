@@ -8,145 +8,86 @@
   <link rel="stylesheet" href="theme.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif;
-      background: var(--paper);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-    }
-    .frame { max-width: 1000px; width: 100%; }
-    svg { width: 100%; min-width: 800px; display: block; }
+    body { font-family: Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif; background: var(--paper); padding: 2rem; }
+    svg { width: 100%; max-width: 960px; display: block; margin: 0 auto; }
   </style>
 </head>
 <body>
-  <div class="frame">
-    <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="energy-distance-title energy-distance-desc">
-      <title id="energy-distance-title">Energy distance: two groups in a room</title>
-      <desc id="energy-distance-desc">Two point-cloud panels compare the average cross-group distance with the average within-group distance. When group A and group B are the same crowd, cross and within distances are similar and the energy distance is near zero. When the groups are different populations sitting apart, the cross distance is much larger than either within distance and the energy distance is large.</desc>
+  <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="energy-distance-title energy-distance-desc">
+    <title id="energy-distance-title">Energy distance compares cross-group and within-group distances</title>
+    <desc id="energy-distance-desc">Two panels compare samples A, shown as filled gray circles, and B, shown as filled blue squares. Intermingled samples have similar cross-group and within-group distances, while separated samples have much longer cross-group distances.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/></marker>
+    </defs>
 
-      <rect width="100%" height="100%" fill="var(--paper)"/>
+    <rect width="100%" height="100%" fill="var(--paper)"/>
 
-      <!-- ============ LEFT PANEL: SAME CROWD ============ -->
-      <rect x="40" y="40" width="416" height="460" rx="8" fill="var(--panel)" stroke="var(--ink-a12)" stroke-width="1"/>
+    <rect x="40" y="40" width="416" height="460" rx="8" fill="var(--panel)" stroke="var(--ink-a12)"/>
+    <line x1="80" y1="332" x2="192" y2="312" stroke="var(--accent)" stroke-width="1.2"/>
+    <line x1="276" y1="324" x2="180" y2="408" stroke="var(--muted)" stroke-dasharray="4,3"/>
+    <line x1="380" y1="144" x2="296" y2="236" stroke="var(--blue)" stroke-dasharray="4,3"/>
+    <rect x="112" y="300" width="48" height="14" rx="2" fill="var(--panel)"/>
+    <text x="136" y="310" fill="var(--accent)" font-size="8" text-anchor="middle" letter-spacing="0.10em">CROSS</text>
+    <rect x="200" y="364" width="64" height="14" rx="2" fill="var(--panel)"/>
+    <text x="232" y="374" fill="var(--muted)" font-size="8" text-anchor="middle" letter-spacing="0.10em">WITHIN A</text>
+    <rect x="296" y="180" width="64" height="14" rx="2" fill="var(--panel)"/>
+    <text x="328" y="190" fill="var(--blue)" font-size="8" text-anchor="middle" letter-spacing="0.10em">WITHIN B</text>
+    <g fill="var(--muted)">
+      <circle cx="292" cy="132" r="5"/><circle cx="184" cy="216" r="5"/><circle cx="376" cy="224" r="5"/>
+      <circle cx="80" cy="332" r="5"/><circle cx="276" cy="324" r="5"/><circle cx="180" cy="408" r="5"/><circle cx="384" cy="404" r="5"/>
+    </g>
+    <g fill="var(--blue)">
+      <rect x="375" y="139" width="10" height="10"/><rect x="95" y="227" width="10" height="10"/><rect x="291" y="231" width="10" height="10"/>
+      <rect x="187" y="307" width="10" height="10"/><rect x="391" y="303" width="10" height="10"/><rect x="87" y="415" width="10" height="10"/><rect x="295" y="419" width="10" height="10"/>
+    </g>
+    <text x="56" y="64" fill="var(--muted)" font-size="8" letter-spacing="0.12em">SAME CROWD</text>
+    <text x="56" y="88" fill="var(--ink)" font-size="12" font-weight="600">cross</text>
+    <text x="92" y="88" fill="var(--ink)" font-size="12" font-weight="600"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">≈</tspan></text>
+    <text x="108" y="88" fill="var(--ink)" font-size="12" font-weight="600">within</text>
+    <text x="150" y="88" fill="var(--ink)" font-size="12" font-weight="600"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">→</tspan></text>
+    <text x="170" y="88" fill="var(--ink)" font-size="12" font-weight="600">energy distance</text>
+    <text x="270" y="88" fill="var(--ink)" font-size="12" font-weight="600"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">≈ 0</tspan></text>
+    <text x="72" y="116" fill="var(--muted)" font-size="13" font-style="italic">two random samples</text>
+    <text x="72" y="134" fill="var(--muted)" font-size="13" font-style="italic">from the same crowd</text>
+    <path d="M 152 140 Q 164 174 184 216" fill="none" stroke="var(--ink-a40)" stroke-dasharray="4,3"/>
+    <circle cx="184" cy="216" r="2" fill="var(--ink)"/>
 
-      <!-- left panel distance lines (drawn before points so points sit on top) -->
-      <!-- CROSS A-B -->
-      <line x1="80" y1="332" x2="192" y2="312" stroke="var(--accent)" stroke-width="1.2"/>
-      <!-- WITHIN A -->
-      <line x1="276" y1="324" x2="180" y2="408" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3"/>
-      <!-- WITHIN B -->
-      <line x1="380" y1="144" x2="296" y2="236" stroke="var(--blue)" stroke-width="1" stroke-dasharray="4,3"/>
+    <rect x="504" y="40" width="416" height="460" rx="8" fill="var(--panel)" stroke="var(--ink-a12)"/>
+    <line x1="592" y1="392" x2="832" y2="204" stroke="var(--accent)" stroke-width="1.2"/>
+    <line x1="536" y1="392" x2="592" y2="448" stroke="var(--muted)" stroke-dasharray="4,3"/>
+    <line x1="776" y1="148" x2="832" y2="148" stroke="var(--blue)" stroke-dasharray="4,3"/>
+    <rect x="684" y="284" width="48" height="14" rx="2" fill="var(--panel)"/>
+    <text x="708" y="294" fill="var(--accent)" font-size="8" text-anchor="middle" letter-spacing="0.10em">CROSS</text>
+    <rect x="536" y="408" width="64" height="14" rx="2" fill="var(--panel)"/>
+    <text x="568" y="418" fill="var(--muted)" font-size="8" text-anchor="middle" letter-spacing="0.10em">WITHIN A</text>
+    <rect x="772" y="128" width="64" height="14" rx="2" fill="var(--panel)"/>
+    <text x="804" y="138" fill="var(--blue)" font-size="8" text-anchor="middle" letter-spacing="0.10em">WITHIN B</text>
+    <g fill="var(--muted)">
+      <circle cx="536" cy="336" r="5"/><circle cx="592" cy="336" r="5"/><circle cx="536" cy="392" r="5"/>
+      <circle cx="592" cy="392" r="5"/><circle cx="536" cy="448" r="5"/><circle cx="592" cy="448" r="5"/><circle cx="648" cy="448" r="5"/>
+    </g>
+    <g fill="var(--blue)">
+      <rect x="771" y="143" width="10" height="10"/><rect x="827" y="143" width="10" height="10"/><rect x="883" y="143" width="10" height="10"/>
+      <rect x="827" y="199" width="10" height="10"/><rect x="883" y="199" width="10" height="10"/><rect x="827" y="255" width="10" height="10"/><rect x="883" y="255" width="10" height="10"/>
+    </g>
+    <text x="520" y="64" fill="var(--muted)" font-size="8" letter-spacing="0.12em">DIFFERENT POPULATIONS</text>
+    <text x="520" y="88" fill="var(--ink)" font-size="12" font-weight="600">cross</text>
+    <text x="556" y="88" fill="var(--ink)" font-size="12" font-weight="600"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">≫</tspan></text>
+    <text x="574" y="88" fill="var(--ink)" font-size="12" font-weight="600">within</text>
+    <text x="616" y="88" fill="var(--ink)" font-size="12" font-weight="600"><tspan font-family="'STIX Two Text', 'DejaVu Math TeX Gyre', 'Times New Roman', serif">→</tspan></text>
+    <text x="636" y="88" fill="var(--ink)" font-size="12" font-weight="600">energy distance large</text>
 
-      <!-- left panel line-end dots (reinforce measurement, sit under point circles) -->
-      <circle cx="80" cy="332" r="4" fill="var(--paper)"/>
-      <circle cx="192" cy="312" r="4" fill="var(--paper)"/>
-      <circle cx="276" cy="324" r="4" fill="var(--paper)"/>
-      <circle cx="180" cy="408" r="4" fill="var(--paper)"/>
-      <circle cx="380" cy="144" r="4" fill="var(--paper)"/>
-      <circle cx="296" cy="236" r="4" fill="var(--paper)"/>
-
-      <!-- left panel distance labels (mono 8px, paper mask, 6-10px off the line's midpoint) -->
-      <rect x="116" y="300" width="40" height="12" rx="2" fill="var(--panel)"/>
-      <text x="136" y="308" fill="var(--accent)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">CROSS</text>
-
-      <rect x="204" y="364" width="60" height="12" rx="2" fill="var(--panel)"/>
-      <text x="232" y="372" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN A</text>
-
-      <rect x="300" y="180" width="60" height="12" rx="2" fill="var(--panel)"/>
-      <text x="328" y="188" fill="var(--blue)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN B</text>
-
-      <!-- left panel group A points (irregular spacing, no shared row/column) -->
-      <circle cx="292" cy="132" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="184" cy="216" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="376" cy="224" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="80" cy="332" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="276" cy="324" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="180" cy="408" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="384" cy="404" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-
-      <!-- left panel group B points (irregular spacing, no shared row/column) -->
-      <circle cx="380" cy="144" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="100" cy="232" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="296" cy="236" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="192" cy="312" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="396" cy="308" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="92" cy="420" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="300" cy="424" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-
-      <!-- left panel header -->
-      <text x="56" y="64" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">SAME CROWD</text>
-      <text x="56" y="88" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">cross &#8776; within &#8594; energy distance &#8776; 0</text>
-
-      <!-- ============ RIGHT PANEL: DIFFERENT POPULATIONS ============ -->
-      <rect x="504" y="40" width="416" height="460" rx="8" fill="var(--panel)" stroke="var(--ink-a12)" stroke-width="1"/>
-
-      <!-- right panel distance lines -->
-      <!-- CROSS A-B (long, spans the empty gap) -->
-      <line x1="592" y1="392" x2="832" y2="204" stroke="var(--accent)" stroke-width="1.2"/>
-      <!-- WITHIN A -->
-      <line x1="536" y1="392" x2="592" y2="448" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3"/>
-      <!-- WITHIN B -->
-      <line x1="776" y1="148" x2="832" y2="148" stroke="var(--blue)" stroke-width="1" stroke-dasharray="4,3"/>
-
-      <!-- right panel line-end dots -->
-      <circle cx="592" cy="392" r="4" fill="var(--paper)"/>
-      <circle cx="832" cy="204" r="4" fill="var(--paper)"/>
-      <circle cx="536" cy="392" r="4" fill="var(--paper)"/>
-      <circle cx="592" cy="448" r="4" fill="var(--paper)"/>
-      <circle cx="776" cy="148" r="4" fill="var(--paper)"/>
-      <circle cx="832" cy="148" r="4" fill="var(--paper)"/>
-
-      <!-- right panel distance labels (6-10px from each line's midpoint) -->
-      <rect x="688" y="284" width="40" height="12" rx="2" fill="var(--panel)"/>
-      <text x="708" y="292" fill="var(--accent)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">CROSS</text>
-
-      <rect x="540" y="408" width="60" height="12" rx="2" fill="var(--panel)"/>
-      <text x="568" y="416" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN A</text>
-
-      <rect x="776" y="132" width="60" height="12" rx="2" fill="var(--panel)"/>
-      <text x="804" y="140" fill="var(--blue)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" text-anchor="middle" letter-spacing="0.10em">WITHIN B</text>
-
-      <!-- right panel group A points (lower-left cluster) -->
-      <circle cx="536" cy="336" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="592" cy="336" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="536" cy="392" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="592" cy="392" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="536" cy="448" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="592" cy="448" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <circle cx="648" cy="448" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-
-      <!-- right panel group B points (upper-right cluster) -->
-      <circle cx="776" cy="148" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="832" cy="148" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="888" cy="148" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="832" cy="204" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="888" cy="204" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="832" cy="260" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <circle cx="888" cy="260" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-
-      <!-- right panel header -->
-      <text x="520" y="64" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">DIFFERENT POPULATIONS</text>
-      <text x="520" y="88" fill="var(--ink)" font-size="12" font-weight="600" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">cross &#8811; within &#8594; energy distance large</text>
-
-      <!-- ============ LEGEND STRIP (bottom 60px) ============ -->
-      <line x1="40" y1="508" x2="920" y2="508" stroke="var(--ink-a12)" stroke-width="0.8"/>
-      <text x="40" y="524" fill="var(--muted)" font-size="8" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif" letter-spacing="0.12em">LEGEND</text>
-
-      <circle cx="56" cy="548" r="4" fill="var(--muted-a20)" stroke="var(--muted)" stroke-width="1"/>
-      <text x="68" y="552" fill="var(--ink)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Group A row</text>
-
-      <circle cx="284" cy="548" r="4" fill="var(--blue-a20)" stroke="var(--blue)" stroke-width="1"/>
-      <text x="296" y="552" fill="var(--ink)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Group B row</text>
-
-      <line x1="504" y1="548" x2="524" y2="548" stroke="var(--accent)" stroke-width="1.2"/>
-      <text x="532" y="552" fill="var(--ink)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Cross-distance</text>
-
-      <line x1="712" y1="548" x2="732" y2="548" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4,3"/>
-      <text x="740" y="552" fill="var(--ink)" font-size="9" font-family="Pretendard, Helvetica, 'Helvetica Neue', 'Nimbus Sans', Arial, sans-serif">Within-distance</text>
-    </svg>
-  </div>
+    <line x1="40" y1="516" x2="920" y2="516" stroke="var(--ink-a12)" stroke-width="0.8"/>
+    <text x="40" y="536" fill="var(--muted)" font-size="8" letter-spacing="0.12em">LEGEND</text>
+    <circle cx="56" cy="560" r="5" fill="var(--muted)"/>
+    <text x="68" y="564" fill="var(--ink)" font-size="9" letter-spacing="0.08em">GROUP A ROW</text>
+    <rect x="256" y="555" width="10" height="10" fill="var(--blue)"/>
+    <text x="276" y="564" fill="var(--ink)" font-size="9" letter-spacing="0.08em">GROUP B ROW</text>
+    <line x1="472" y1="560" x2="496" y2="560" stroke="var(--accent)" stroke-width="1.2"/>
+    <text x="504" y="564" fill="var(--ink)" font-size="9" letter-spacing="0.08em">CROSS-DISTANCE</text>
+    <line x1="704" y1="560" x2="728" y2="560" stroke="var(--muted)" stroke-dasharray="4,3"/>
+    <text x="736" y="564" fill="var(--ink)" font-size="9" letter-spacing="0.08em">WITHIN-DISTANCE</text>
+  </svg>
 </body>
 </html>
