@@ -95,4 +95,19 @@ def test_compress_options() -> None:
             compress='maybe',  # ty: ignore[invalid-argument-type]
         )
     with pytest.raises(ValueError, match='Compress'):
-        select_rows(data, 100, method='kernel_thinning', compress='always', weights=np.ones(n_rows))
+        select_rows(
+            data,
+            100,
+            method='kernel_thinning',
+            compress='always',
+            weights=np.random.default_rng(21).random(n_rows),
+        )
+    uniform = select_rows(
+        data,
+        100,
+        method='kernel_thinning',
+        compress='always',
+        weights=np.ones(n_rows),
+        seed=1,
+    )
+    assert np.array_equal(uniform, always)
