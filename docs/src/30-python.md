@@ -33,7 +33,7 @@ splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
 
 | Python | Julia |
 |---|---|
-| `datasplit(X, ratio, method="support_points", kappa=..., seed=...)` | `datasplit(SupportPointSplitter(...), X)` |
+| `datasplit(X, ratio, method="support_points", kappa=..., seed=...)` (`kernel` may be `"energy"` or `"gaussian"`; `kappa` applies to either) | `datasplit(SupportPointSplitter(...), X)` |
 | `datasplit(X, ratio, method="herding", kernel="gaussian", bandwidth=...)` | `datasplit(HerdingSplitter(...), X)` |
 | `datasplit(X, ratio, method="twinning", ...)` | `datasplit(TwinningSplitter(...), X)` |
 | `datasplit(X, ratio, method="kernel_thinning", ...)` | `datasplit(KernelThinningSplitter(...), X)` |

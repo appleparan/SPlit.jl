@@ -66,7 +66,7 @@ output-matching tests. The design record is
   `rng` only feeds a `:median` bandwidth. Its data term is exact (`O(N²)`);
   there is no subsampled mode. `SplitResult.iterations` is the number of
   selections.
-- Gaussian optimizer: the first trial step is 10% of the standardized data
+- Gaussian optimizer (full data): the first trial step is 10% of the standardized data
   scale (median column range) divided by the largest per-point gradient
   norm, not a fixed constant; later iterations warm-start from twice the
   previous accepted step. Convergence needs at least 2 iterations and either

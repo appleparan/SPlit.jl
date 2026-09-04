@@ -86,7 +86,8 @@ idx_embed = selectrows(HerdingSplitter(), embeddings, 50; standardize = false)
 `EnergyKernel`, minimizes the energy distance of Mak & Joseph (2018).
 `GaussianKernel` minimizes the squared maximum mean discrepancy (MMD²,
 Gretton et al., 2012) instead, by projected gradient descent with Armijo
-backtracking; see [Methods](@ref methods) for both objectives.
+backtracking (full data; `kappa` runs a mean-shift MM sweep on subsamples);
+see [Methods](@ref methods) for both objectives.
 
 ```julia
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
@@ -153,7 +154,8 @@ See the [Reference](@ref reference) section for complete API documentation.
    distance to the data (Mak & Joseph, 2018). For large `n`, `kappa`
    switches to the stochastic variant that resamples rows each iteration.
    Under `GaussianKernel` the optimizer is projected gradient descent on the
-   squared MMD instead; see [Methods](@ref methods).
+   squared MMD instead (full data; `kappa` runs a mean-shift MM sweep on
+   subsamples); see [Methods](@ref methods).
 3. Nearest-neighbor assignment. Each support point claims its nearest
    unclaimed data row via a k-d tree (Joseph & Vakayil, 2022).
 4. Partitioning. The claimed rows form the smaller subset and the rest form

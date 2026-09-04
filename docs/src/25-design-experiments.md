@@ -206,8 +206,15 @@ the number of target rows. Measured on the four benchmark datasets at
 N = 1,000 and 10,000, n = 0.2N, `:median` bandwidth, three seeds: an MM
 sweep costs 1.9-6.9x less than an Armijo iteration, but it takes smaller
 steps — every MM run in the table uses its full iteration cap (200 at
-N = 1,000, 100 at N = 10,000) without reaching the displacement rule, while
-Armijo stops early by its relative-decrease rule on three of the four
+N = 1,000, 100 at N = 10,000). The benchmark script's `mm` arm is a private
+loop that always runs for a fixed number of iterations, so its iteration
+column is the cap by construction, not evidence of non-convergence on its
+own; a separate, earlier run of the same comparison through
+`support_points` (made before the optimizer decision below) did reach the
+same outcome by actually checking the rule — it never satisfied the
+displacement rule within the cap either. Armijo stops early (by its
+relative-decrease rule in that earlier run through `support_points`; the
+table itself records only the iteration counts) on three of the four
 datasets (mixture-2d, normal-10d, t3-3d). On `uniform-5d`, where Armijo also
 runs to its cap, the extra MM iterations do not pay off: MM's selected-row
 MMD is worse than Armijo's at both sizes (N = 1,000: 0.00267 vs 0.00116,

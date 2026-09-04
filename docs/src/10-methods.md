@@ -195,6 +195,8 @@ B = \frac{4(n-1)e^{-3/2}}{n\sigma^2}, \qquad
 \xi_m \leftarrow \operatorname{clamp}\!\left(\frac{A\,\mathrm{ms} + B\,\xi_m + \mathrm{rep}}{A + B}\right).
 ```
 
+(In stochastic mode, the only mode in which this sweep runs, ``\kappa``
+takes the place of ``N`` in ``A``: the sums run over the drawn rows.)
 ``A + B > 0`` always, the sweep is one pass over the data and the point
 set, and on full data the objective never increases (the majorizer is
 tangent at the current points, so its minimizer cannot be worse). For
@@ -211,8 +213,9 @@ as for `EnergyKernel`. Convergence is the displacement rule.
 
 Full data keeps the Armijo path instead of this sweep because it measures
 better there: the sweep never reaches the displacement rule within the
-iteration cap and its selected rows are worse on one of four benchmark
-datasets. In `kappa` mode, where only the sweep is affordable, the
+iteration cap and its selected rows are worse on `uniform-5d` at both sizes
+and on `t3-3d` at N = 1,000 (0.000156 vs 0.000118), level or better
+elsewhere. In `kappa` mode, where only the sweep is affordable, the
 selected-row MMD at N = 10,000 is within about 3% of Armijo's on
 `normal-10d` and `t3-3d`, about 29% higher on `uniform-5d` (0.000393 vs
 0.000305), and about 10x higher on `mixture-2d` (5.47e-6 vs 5.6e-7, still
