@@ -31,7 +31,7 @@ State of the exported API at v0.5.2.
 | Component | Status | Notes |
 |---|---|---|
 | `SupportPointSplitter` with `EnergyKernel` | done | MM update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2022); `select_nearest` rounds optimized points to data rows via a k-d tree. |
-| `SupportPointSplitter` with `GaussianKernel` | done | Minimizes squared MMD by projected gradient descent with Armijo backtracking. Has no `kappa` mode: the `SupportPointSplitter` constructor throws for `GaussianKernel` with `kappa` set. A `:median` bandwidth is resolved at `datasplit` time and the resolved kernel is stored in `result.method.kernel`. |
+| `SupportPointSplitter` with `GaussianKernel` | done | Minimizes squared MMD by projected gradient descent with Armijo backtracking on full data; `kappa` runs a mean-shift MM sweep on subsamples (roadmap M6). A `:median` bandwidth is resolved at `datasplit` time and the resolved kernel is stored in `result.method.kernel`. |
 | `HerdingSplitter` | done | Greedy kernel herding (Chen, Welling & Smola, 2010); exact `O(N^2)` data term, deterministic given the data and a numeric kernel. |
 | `optimal_split_ratio` | done | γ = 1/(√p + 1) (Joseph, 2022). |
 | Preprocessing | done | Helmert encoding of categorical columns in canonical level order, constant-column removal, standardization to mean 0 and variance 1. |
@@ -179,14 +179,22 @@ Why last: it needs all of M1-M4 at once. It is also where the reframing
 of the package landed — the top-level docs now describe subset selection,
 with train/test splitting as one of its entry points.
 
-### M6: MMD gradient-flow update (exploratory)
+### M6: MMD gradient-flow update
 
-Idea. Replace the Armijo projected gradient in the Gaussian-kernel path
-with the mean-shift-style update from MMD gradient-flow quantization
-(arXiv 2502.10600). Structurally similar to the current MM step. The
-Gaussian path has no `kappa` stochastic mode today, unlike `EnergyKernel`,
-so a cheaper update rule matters more there. M4 and M5 provide the
-baseline to evaluate it against.
+Done (2026-09-04). Added a majorization-minimization sweep to the
+Gaussian-kernel path (mean-shift data term, majorized repulsion,
+structurally the energy sweep of Mak & Joseph, 2018) and `kappa` for
+`SupportPointSplitter` with `GaussianKernel`, with the stochastic
+semantics, running-average blend, and displacement rule of `EnergyKernel`.
+Benchmarked against the existing Armijo path (`benchmark/gaussian_update.jl`),
+the sweep was kept only for stochastic mode: on full data it never reaches
+the displacement rule within the iteration cap and is worse on one of four
+benchmark datasets, while `kappa` mode — where only the sweep is affordable
+— matches Armijo's quality within a few percent at 3.4-3.8x lower wall
+time at N = 10,000 (see [Design experiments](@ref gaussian-update)). The
+weighted mean-shift map of Belhadji, Sharp & Marzouk (2025) was not adopted
+as written because it re-solves the subset's weights every iteration and
+the package's selected subset is uniform.
 
 ## Open questions
 
@@ -258,3 +266,5 @@ baseline to evaluate it against.
 - 2026-09-04: M4 (kernel thinning) done; Compress++ moved to M5.
 - 2026-09-04: M5 (embedding workflow, Compress++, data-selection guide)
   done; both remaining open questions resolved.
+- 2026-09-04: M6 (Gaussian MM sweep in `kappa` mode, `kappa` for
+  `GaussianKernel`) done.

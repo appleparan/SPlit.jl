@@ -192,8 +192,8 @@ tolerance limits, and the `rng` that drives every random choice.
 - `GaussianKernel(bandwidth = :median)`: support points minimize the squared
   maximum mean discrepancy (Gretton et al., 2012) via projected gradient
   descent with Armijo backtracking, instead of the energy-distance MM step.
-  It has no `kappa` mode; the resolved bandwidth is stored in
-  `result.method.kernel`.
+  `kappa` runs a mean-shift MM sweep on subsamples; the resolved bandwidth
+  is stored in `result.method.kernel`.
 - `HerdingSplitter`: builds the smaller subset directly by greedy kernel
   herding (Chen, Welling & Smola, 2010) instead of computing support
   points, under either `EnergyKernel` or `GaussianKernel`. It is

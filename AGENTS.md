@@ -50,9 +50,13 @@ output-matching tests. The design record is
   are accepted.
 - All randomness goes through the caller's `rng`; nothing in `src/` seeds or
   prints on a default path.
-- `GaussianKernel` has no `kappa` mode; its `:median` bandwidth is resolved
-  at `datasplit` time and the resolved kernel is stored in
-  `result.method.kernel`.
+- `GaussianKernel`'s `:median` bandwidth is resolved at `datasplit` time and
+  the resolved kernel is stored in `result.method.kernel`. Its `kappa` mode
+  runs the Gaussian MM sweep (`_mm_sweep!(::GaussianKernel, …)`: mean-shift
+  data term, L-smooth majorized repulsion with
+  `B = 4(n−1)e^{−3/2}/(nσ²)`, the energy path's running-average blend,
+  displacement rule); full data stays the Armijo path — measured, see
+  Design experiments.
 - `:median` fails with an `ArgumentError` when at least half of all row
   pairs coincide (e.g. a single binary categorical column); pass a numeric
   bandwidth then. Choose `σ` on the scale of the standardized data (`:median`
