@@ -6,8 +6,9 @@ criterion.** On four synthetic datasets at N = 1,000 and 10,000
 `kernel thinning · energy` in 3, and the two stay within 0.85-1.06x of each
 other everywhere; on Gaussian MMD kernel thinning wins 6 of 8. Herding is
 also the fastest optimized method in every cell, 26-100x faster than the
-support-point optimizer and 8.6-11x faster than kernel thinning at
-N = 10,000. Sections 1 and 2 are the evidence; section 3 is
+support-point optimizer, 8.6-11x faster than `kernel thinning · energy`,
+and up to 23x faster than `kernel thinning · gaussian` at N = 10,000.
+Sections 1 and 2 are the evidence; section 3 is
 why support points fall behind. The setup is under
 [How it was run](@ref benchmarks-environment). Section 4 shows where
 `twinning` fits at N up to 10⁶.
@@ -109,9 +110,10 @@ at 10⁶, and 26x faster than support points at 10⁵. Its energy distance
 is 3.0x, 4.4x, and 4.1x below the random split at those three sizes,
 though herding's is lower still, by a steady 1.6x at every N. Twinning
 is faster from N = 10⁴ on, by a widening margin at 10⁵ and 10⁶; keep
-herding for the best quality while its `O(N²)` pass stays affordable. Support
-points stop at N = 10⁵ because the MM repulsion term is quadratic in
-the selected count; herding runs a single `O(N²)` pass. Twinning is
+herding for the best energy distance while its `O(N²)` pass stays
+affordable. Support points stop at N = 10⁵ because the MM repulsion term
+is quadratic in the selected count; herding runs a single `O(N²)` pass.
+Twinning is
 serial. Numbers: [`assets/benchmarks/twinning.md`](assets/benchmarks/twinning.md);
 the nearest-neighbor structure was chosen on the
 [Design experiments](@ref twinning-trees) page, which also reports

@@ -192,6 +192,18 @@ end
           SPlit._kt_swap(EnergyKernel(), Xt, cands, baseline, d, 4)
   end
 
+  @testset "_kt_swap rejects a candidate size mismatch" begin
+    d = SPlit._data_term(EnergyKernel(), X, 1)
+    @test_throws ArgumentError SPlit._kt_swap(
+      EnergyKernel(),
+      Xt,
+      [collect(1:10)],
+      collect(1:12),
+      d,
+      1,
+    )
+  end
+
   @testset "kernel_thinning: sizes, validation, reproducibility" begin
     rows, swaps = SPlit.kernel_thinning(EnergyKernel(), X, 96; rng = MersenneTwister(30))
     @test length(rows) == 96 && allunique(rows)
@@ -210,6 +222,22 @@ end
     @test length(
       SPlit.kernel_thinning(EnergyKernel(), X, 120; rng = MersenneTwister(32))[1],
     ) == 120
+  end
+
+  @testset "kernel_thinning end-to-end result is independent of n_threads" begin
+    @test SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      96;
+      n_threads = 1,
+      rng = MersenneTwister(72),
+    ) == SPlit.kernel_thinning(
+      EnergyKernel(),
+      X,
+      96;
+      n_threads = 4,
+      rng = MersenneTwister(72),
+    )
   end
 
   @testset "kernel_thinning beats random subsets under its own discrepancy" begin
@@ -356,5 +384,17 @@ end
     @test count(heavy[targeted]) > count(heavy[plain])
     folds = multiplet(KernelThinningSplitter(rng = MersenneTwister(7)), data, 4)
     @test sort(reduce(vcat, folds)) == 1:300
+  end
+
+  @testset "multiplet :halving partitions with balanced fold sizes" begin
+    data301 = randn(MersenneTwister(71), 301, 2)
+    folds = multiplet(
+      KernelThinningSplitter(rng = MersenneTwister(70)),
+      data301,
+      4;
+      strategy = :halving,
+    )
+    @test sort(reduce(vcat, folds)) == 1:301
+    @test maximum(length.(folds)) - minimum(length.(folds)) <= 1
   end
 end

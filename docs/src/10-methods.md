@@ -529,12 +529,14 @@ kernel by default), the split kernel of the papers is ``k`` itself
    the row outside the subset that lowers the objective most, if any.
 
 The result is never worse than the random baseline, and each KT-SPLIT
-candidate carries the papers' ``O(\sqrt{\log n / n})`` MMD bound. The cost
-is ``O(L^2)`` kernel evaluations for the halvings, ``O(N^2)`` for the data
-term and ``O(nN)`` for the swap pass, all threaded: the same class as
-herding. The near-linear variant of the papers, Compress++, applies to
-``n \approx \sqrt N`` root-thinning and is out of scope here; it moves to
-the roadmap's M5.
+candidate carries the papers' ``O(\sqrt{\log n / n})`` MMD bound against the
+empirical measure of the ``L`` rows that entered KT-SPLIT (all ``N`` rows
+when ``N/n`` is a power of two); the KT-SWAP step then targets the full
+data. The cost is ``O(L^2)`` kernel evaluations for the halvings, ``O(N^2)``
+for the data term and ``O(nN)`` for the swap pass, all threaded: the same
+class as herding. The near-linear variant of the papers, Compress++,
+applies to ``n \approx \sqrt N`` root-thinning and is out of scope here; it
+moves to the roadmap's M5.
 
 **Differences from the paper.** The papers thin ``N`` rows to
 ``\lfloor N/2^m \rfloor``; here ``n`` is set by `ratio` (or the caller) and

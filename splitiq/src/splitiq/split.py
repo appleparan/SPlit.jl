@@ -41,10 +41,11 @@ class SplitResult:
         train_indices: 0-based row indices assigned to the train set.
         test_indices: 0-based row indices assigned to the test set.
         converged: Whether the optimizer's stopping rule fired. Always
-            ``True`` for kernel herding, which has no iterative convergence
-            criterion.
+            ``True`` for kernel herding and kernel thinning, which have no
+            iterative convergence criterion.
         iterations: Number of optimizer iterations run (kernel herding:
-            number of greedy selections).
+            number of greedy selections; kernel thinning: number of
+            KT-SWAP replacements).
         method: ``'support_points'``, ``'herding'``, ``'twinning'``, or
             ``'kernel_thinning'``.
         kernel: ``'energy'`` or ``'gaussian'``.
@@ -286,7 +287,8 @@ def select_rows(
         A 0-based numpy array of `n` row indices, in selection order
         (support-point order for ``method='support_points'``, greedy order
         for ``method='herding'``, twin-group formation order for
-        ``method='twinning'``).
+        ``method='twinning'``, coreset position order for
+        ``method='kernel_thinning'``).
 
     Raises:
         ValueError: If `method` or `kernel` is unrecognized, if `method` is
@@ -578,7 +580,7 @@ def _to_julia_start(jl: JuliaValue, start: StartRule) -> JuliaValue:
 def _splitter_kwargs(
     kernel_obj: JuliaValue, ratio: float, n_threads: int | None, rng: JuliaValue | None
 ) -> dict[str, JuliaValue]:
-    """Build the keyword arguments shared by both splitter constructors.
+    """Build the keyword arguments shared by every kernel-based splitter constructor.
 
     Args:
         kernel_obj: A Julia ``SplitKernel`` value.
@@ -587,7 +589,8 @@ def _splitter_kwargs(
         rng: A Julia RNG value, or ``None`` to omit the keyword.
 
     Returns:
-        Keyword arguments for ``SupportPointSplitter``/``HerdingSplitter``.
+        Keyword arguments for ``SupportPointSplitter``, ``HerdingSplitter``,
+        or ``KernelThinningSplitter``.
     """
     kwargs: dict[str, JuliaValue] = {'kernel': kernel_obj, 'ratio': ratio}
     if n_threads is not None:
