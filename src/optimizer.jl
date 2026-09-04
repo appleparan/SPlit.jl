@@ -278,14 +278,14 @@ function _draw_subsample(
 end
 
 """
-    support_points(kernel, data, n; kwargs...) -> (points, converged, iterations)
+    support_points(kernel::EnergyKernel, data, n; kwargs...) -> (points, converged, iterations)
 
-Compute `n` support points for `data` (rows are observations) under `kernel`,
-by the majorization–minimization (MM) sweep of that kernel: the closed-form
-update of Mak & Joseph (2018) for `EnergyKernel`. The sweep costs one pass
-over the data and the point set and never increases the objective on full
-data. Returns the points, whether the point-movement tolerance was reached,
-and the number of iterations actually used.
+Compute `n` support points for `data` (rows are observations) under the
+energy kernel by the closed-form majorization–minimization (MM) sweep of
+Mak & Joseph (2018). The sweep costs one pass over the data and the point
+set and never increases the objective on full data. Returns the points,
+whether the point-movement tolerance was reached, and the number of
+iterations actually used.
 
 Convergence compares the largest *squared* displacement of any support point
 in one iteration to `tolerance`. In stochastic mode (`kappa !== nothing`),
@@ -373,8 +373,6 @@ function _support_points_mm(
   _n0_factor::Float64 = 0.2,
   _subsampling::Symbol = :uniform,
 )
-  isresolved(k) ||
-    throw(ArgumentError("GaussianKernel bandwidth must be resolved; call resolve first"))
   N = size(data, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$(N), got $n"))
   kappa === nothing ||
@@ -672,6 +670,9 @@ function support_points(
   kappa === nothing ||
     kappa > 0 ||
     throw(ArgumentError("kappa must be positive, got $kappa"))
+  _subsampling in (:uniform, :proportional) || throw(
+    ArgumentError("_subsampling must be :uniform or :proportional, got :$_subsampling"),
+  )
   M = target === nothing ? size(data, 1) : size(target, 1)
   stochastic = kappa !== nothing && kappa < M
   if stochastic

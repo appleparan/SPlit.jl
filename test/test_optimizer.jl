@@ -177,6 +177,7 @@ end
     @test_throws ArgumentError SPlit.support_points(GaussianKernel(), data, 5)
     @test_throws ArgumentError SPlit.support_points(k, data, 0)
     @test_throws ArgumentError SPlit.support_points(k, data, 5; kappa = 0)
+    @test_throws ArgumentError SPlit.support_points(k, data, 5; _subsampling = :bogus)
   end
 
   @testset "does not stop at the initial sample on high-dimensional data" begin
