@@ -195,3 +195,37 @@ with:
 ```sh
 julia -t auto --project=benchmark benchmark/compress.jl
 ```
+
+## [Gaussian update rule](@id gaussian-update)
+
+`support_points(::GaussianKernel, …)` minimizes MMD² by an MM sweep (the
+mean-shift majorizer of the data term plus the L-smooth majorizer of the
+repulsion; see [Methods](@ref methods)) instead of the projected gradient
+with Armijo backtracking it used before. A sweep is one pass over the data
+and the point set; an Armijo iteration evaluates the objective up to 30
+times. Measured on the four benchmark datasets at N = 1,000 and 10,000,
+n = 0.2N, `:median` bandwidth, three seeds: a sweep costs 2.1-6.0x less
+than an Armijo iteration, but total wall time follows whichever method
+needs fewer iterations to satisfy its own stopping rule — MM is up to
+6.0x faster overall where Armijo runs to its iteration cap (uniform-5d,
+both N) and up to 3.6x slower where Armijo converges in a handful of
+iterations (mixture-2d, both N; t3-3d at N = 10,000). The selected rows'
+MMD is within 8% of Armijo's on half the cells (both N for normal-10d,
+t3-3d at N = 10,000, mixture-2d at N = 1,000) and diverges by 29-130%
+higher on uniform-5d (both N) and t3-3d at N = 1,000, or 53% lower on
+mixture-2d at N = 10,000; in six of the eight cells MM still beats a
+random subset by 7.5-66x, and on the eighth (normal-10d, where neither
+method separates from random in 10-D under `:median` bandwidth) it ties
+both Armijo and random. `kappa = 1,000` cuts the N = 10,000 MM time by
+3.5-3.9x (0.92-1.74s against 3.24-6.22s) at the full-data sweep's MMD
+within 6% on three datasets, and 21x higher — but still 2.2x below
+random — on mixture-2d. The damped uniform-weight fixed point of
+Belhadji, Sharp & Marzouk (2025, eq. 29) was also tried and diverged on
+every dataset, because its denominator crosses zero where the point set
+fits the data. Full table:
+[`assets/benchmarks/gaussian_update.md`](assets/benchmarks/gaussian_update.md).
+Reproduce with:
+
+```sh
+julia -t auto --project=benchmark benchmark/gaussian_update.jl
+```
