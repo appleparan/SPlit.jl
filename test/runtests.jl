@@ -14,6 +14,7 @@ using Test
   include("test_twinning.jl")
   include("test_multiplet.jl")
   include("test_kernel_thinning.jl")
+  include("test_standardize.jl")
   include("test_ratio.jl")
   include("test_comparison.jl")
   include("test_properties.jl")

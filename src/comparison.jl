@@ -36,6 +36,10 @@ scoring kernel, and to `splitquality`.
 `reference` and `reference_weights` are forwarded to `datasplit` and
 `splitquality`, and a `:median` scoring kernel is then resolved on the
 encoded reference.
+
+`standardize = false` uses a numeric matrix or vector as it is (no
+centering, scaling, or constant-column removal) — for cosine-normalized
+embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function compare(
   methods::Vector{<:AbstractSplitter},
@@ -45,24 +49,28 @@ function compare(
   weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
   reference_weights::Union{Nothing,AbstractVector} = nothing,
+  standardize::Bool = true,
   kwargs...,
 )
-  results = [datasplit(m, data; weights, reference, reference_weights) for m in methods]
+  results = [
+    datasplit(m, data; weights, reference, reference_weights, standardize) for m in methods
+  ]
   k = if isresolved(kernel)
     kernel
   elseif reference !== nothing
     _nrows(reference) >= 1 || throw(ArgumentError("reference must have at least one row"))
-    resolve(
-      kernel,
+    R = if standardize
       apply_preprocessor(
         fit_preprocessor(reference; weights = reference_weights, extra = data),
         reference,
-      ),
-      rng,
-      reference_weights,
-    )
+      )
+    else
+      _raw_matrix(reference)
+    end
+    resolve(kernel, R, rng, reference_weights)
   else
-    resolve(kernel, preprocess(data, weights), rng, weights)
+    X = standardize ? preprocess(data, weights) : _raw_matrix(data)
+    resolve(kernel, X, rng, weights)
   end
   qualities = [
     splitquality(
@@ -73,6 +81,7 @@ function compare(
       weights,
       reference,
       reference_weights,
+      standardize,
       kwargs...,
     ) for r in results
   ]

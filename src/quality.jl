@@ -439,6 +439,10 @@ the weighted test rows, each side's weights rescaled to sum one.
 test: preprocessing is fit on `reference` and applied to both, and the
 discrepancy is between the selected rows (uniform) and the reference
 (weighted). `weights` cannot be combined with `reference`.
+
+`standardize = false` uses a numeric matrix or vector as it is (no
+centering, scaling, or constant-column removal) — for cosine-normalized
+embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function splitquality(
   data,
@@ -453,6 +457,7 @@ function splitquality(
   weights::Union{Nothing,AbstractVector} = nothing,
   reference = nothing,
   reference_weights::Union{Nothing,AbstractVector} = nothing,
+  standardize::Bool = true,
 )
   if reference !== nothing
     weights === nothing || throw(
@@ -461,9 +466,17 @@ function splitquality(
       ),
     )
     _nrows(reference) >= 1 || throw(ArgumentError("reference must have at least one row"))
-    prep = fit_preprocessor(reference; weights = reference_weights, extra = data)
-    R = apply_preprocessor(prep, reference)
-    Xs = apply_preprocessor(prep, data)[_selected_indices(result), :]
+    R, Xall = if standardize
+      prep = fit_preprocessor(reference; weights = reference_weights, extra = data)
+      apply_preprocessor(prep, reference), apply_preprocessor(prep, data)
+    else
+      Rr = _raw_matrix(reference)
+      Xr = _raw_matrix(data)
+      size(Rr, 2) == size(Xr, 2) ||
+        throw(ArgumentError("reference must have the same number of columns as data"))
+      Rr, Xr
+    end
+    Xs = Xall[_selected_indices(result), :]
     k = isresolved(kernel) ? kernel : resolve(kernel, R, rng, reference_weights)
     chosen = if subsample !== nothing
       Subsample(subsample, repeats)
@@ -478,7 +491,12 @@ function splitquality(
   end
   reference_weights === nothing ||
     throw(ArgumentError("reference_weights needs a reference"))
-  X = preprocess(data, weights)
+  X = if standardize
+    preprocess(data, weights)
+  else
+    weights === nothing || _check_weights(weights, _nrows(data))
+    _raw_matrix(data)
+  end
   train = X[result.train_indices, :]
   test = X[result.test_indices, :]
   k = isresolved(kernel) ? kernel : resolve(kernel, X, rng, weights)
