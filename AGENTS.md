@@ -117,8 +117,11 @@ output-matching tests. The design record is
   input. It is the embedding mode; see the LLM data-selection docs page.
 - Compress++ (`compress` on `KernelThinningSplitter`) is defined only for
   the data's own measure: `:always` errors with `weights`/`reference` and
-  `:auto` falls back to plain kernel thinning there. `:auto` never fires at
-  split ratios, only for `n ≪ N`; `g = max(4, ⌈log₂(2n/√N)⌉)`.
+  `:auto` falls back to plain kernel thinning there. `:auto` does not fire
+  at the default 20% ratio (so `datasplit` with the default splitter is
+  unchanged) but can below roughly 10% for N ≥ 10⁴ — up to n = 800 at
+  N = 10⁴, 10,100 at N = 10⁵, 64,000 at N = 10⁶; pass `compress = :never`
+  to keep the plain path there. `g = max(4, ⌈log₂(2n/√N)⌉)`.
 - The example under `examples/` is not run in CI, and its table under
   `docs/src/assets/examples/` is committed output — regenerate it only when
   asked, like the benchmark tables.

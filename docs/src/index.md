@@ -65,10 +65,11 @@ idx = selectrows(HerdingSplitter(), data, 100)
 
 target_sample = randn(MersenneTwister(4), 50, 3)
 # rows of data that match target_sample's distribution instead of data's own
-idx = selectrows(SupportPointSplitter(), data, 100; reference = target_sample)
+idx_target = selectrows(SupportPointSplitter(), data, 100; reference = target_sample)
 
 # embeddings: use the rows as they are, with no per-column standardization
-idx = selectrows(HerdingSplitter(), embeddings, 500; standardize = false)
+embeddings = randn(MersenneTwister(5), 200, 16)   # rows already on the scale you want to keep
+idx_embed = selectrows(HerdingSplitter(), embeddings, 50; standardize = false)
 ```
 
 ## Kernels and splitters

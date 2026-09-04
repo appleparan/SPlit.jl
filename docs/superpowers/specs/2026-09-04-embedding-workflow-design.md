@@ -142,12 +142,14 @@ about `2^g √N`, up to those roundings.
   `KernelThinningSplitter` (keyword, default `:auto`) and a keyword of
   `kernel_thinning` (default `:never`, so existing calls are unchanged).
 
-With `:auto` and a split ratio (`n = 0.2N`), `2^g √N ≥ 2n` forces
-`4^g ≥ 0.16 N`, and the cost rule then rejects Compress++ for every `N`,
-so `datasplit` results with the default splitter stay identical to M4's.
-Compress++ only engages through `selectrows`/`multiplet` with `n ≪ N` — at
-N = 5,000 up to n ≈ 560, at N = 10⁴ up to n ≈ 800 (`g = 4`), at N = 10⁶ up
-to a few 10⁴ rows.
+With `:auto` at the default split ratio (`n = 0.2N`), `2^g √N ≥ 2n` forces
+`4^g ≥ 0.16 N`, and the cost rule then rejects Compress++ for every `N`, so
+`datasplit` results with the default splitter stay identical to M4's. It
+does fire at smaller ratios: below roughly 10% once `N ≥ 10⁴` — at
+N = 5,000 up to n ≈ 560, at N = 10⁴ up to n = 800 (`g = 4`), at N = 10⁵ up
+to n = 10,100, at N = 10⁶ up to n = 64,000 — which `selectrows`/`multiplet`
+reach, and so does `datasplit` with an explicitly small `ratio`. Pass
+`compress = :never` to keep the plain path there.
 
 `SplitResult.iterations` is THIN's swap count. Documented differences from
 the paper: HALVE is kernel thinning of the block (split + swap, `m = 1`);

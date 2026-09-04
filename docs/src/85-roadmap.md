@@ -155,7 +155,8 @@ Why: selects directly from the data, with no continuous optimization and
 no nearest-neighbor assignment step, and comes with an MMD rate of
 O(sqrt(log n / n)) that neither the support-point splitters nor Twinning
 provide. Near-linear time (Compress++) applies to `n ≈ √N` root-thinning and
-moves to M5; at split ratios the cost is `O(N²)`, the herding class.
+was delivered in M5 as `compress = :auto`; at the default split ratio the
+cost is `O(N²)`, the herding class.
 
 ### M5: embedding workflow, docs, and comparison
 

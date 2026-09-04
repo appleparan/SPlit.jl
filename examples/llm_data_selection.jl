@@ -18,17 +18,21 @@
 
 using SPlit, DataFrames, DuckDB, Downloads, LinearAlgebra, Printf, Random, Statistics
 
-const MODEL = let i = findfirst(==("--model"), ARGS)
-  i === nothing ? "minilm" : ARGS[i+1]
+# Value of `flag`, or `default` when the flag is absent; a trailing flag
+# without a value is an error rather than a `BoundsError`.
+function argvalue(flag, default)
+  i = findfirst(==(flag), ARGS)
+  i === nothing && return default
+  i < length(ARGS) || error("$flag needs a value")
+  return ARGS[i+1]
 end
-const N_SELECT = let i = findfirst(==("--n"), ARGS)
-  i === nothing ? 500 : parse(Int, ARGS[i+1])
-end
-const OUT = let i = findfirst(==("--out"), ARGS)
-  i === nothing ?
-  joinpath(@__DIR__, "..", "docs", "src", "assets", "examples", "llm_selection.md") :
-  ARGS[i+1]
-end
+
+const MODEL = argvalue("--model", "minilm")
+const N_SELECT = parse(Int, argvalue("--n", "500"))
+const OUT = argvalue(
+  "--out",
+  joinpath(@__DIR__, "..", "docs", "src", "assets", "examples", "llm_selection.md"),
+)
 const DATASET = "https://huggingface.co/datasets/sondalex/arxiv-abstracts-2021-embeddings-10000/resolve/main/data/arxiv-abstract-$(MODEL).parquet"
 
 # ---- data
@@ -107,12 +111,14 @@ for (setting, kwargs, scorer, skip) in (
   kcenter_greedy(E[1:200, :], 20, MersenneTwister(0))   # warm-up (JIT)
   t = @elapsed sel = kcenter_greedy(E, N_SELECT, MersenneTwister(7))
   record!(setting, "k-center greedy", sel, t, scorer)
-  for (label, s) in splitters(1)
+  # separate rng seeds so the warm-up run (compilation only, on a throwaway
+  # splitter copy) never consumes the timed splitter's own rng stream
+  for ((label, s_warmup), (_, s)) in zip(splitters(0), splitters(1))
     label in skip && continue
     # weights must match the sliced row count; reference is unaffected by the slice
     warmup_kwargs =
       haskey(kwargs, :weights) ? merge(kwargs, (; weights = kwargs.weights[1:200])) : kwargs
-    selectrows(s, E[1:200, :], 20; standardize = false, warmup_kwargs...)   # warm-up (JIT)
+    selectrows(s_warmup, E[1:200, :], 20; standardize = false, warmup_kwargs...)   # warm-up (JIT)
     t = @elapsed sel = selectrows(s, E, N_SELECT; standardize = false, kwargs...)
     record!(setting, label, sel, t, scorer)
   end
@@ -120,17 +126,18 @@ end
 
 # ---- Compress++ against plain kernel thinning at n ≪ N
 let n = 250
-  for (label, s) in (
-    (
-      "kernel thinning · compress = :never",
-      KernelThinningSplitter(compress = :never, rng = MersenneTwister(3)),
-    ),
-    (
-      "kernel thinning · compress = :always",
-      KernelThinningSplitter(compress = :always, rng = MersenneTwister(3)),
-    ),
+  for (label, mode) in (
+    ("kernel thinning · compress = :never", :never),
+    ("kernel thinning · compress = :always", :always),
   )
-    selectrows(s, E[1:400, :], 20; standardize = false)
+    # a throwaway splitter for the warm-up, so the timed one starts on a fresh rng
+    selectrows(
+      KernelThinningSplitter(compress = mode, rng = MersenneTwister(0)),
+      E[1:400, :],
+      20;
+      standardize = false,
+    )
+    s = KernelThinningSplitter(compress = mode, rng = MersenneTwister(3))
     t = @elapsed sel = selectrows(s, E, n; standardize = false)
     record!("plain, n = $n", label, sel, t, score_plain)
   end

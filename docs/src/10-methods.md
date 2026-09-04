@@ -565,10 +565,13 @@ about ``2^{g+1}\sqrt{N}`` rows at once.
 - **Compress.** A random permutation of the rows is split into four
   consecutive parts, each part is compressed recursively (sequences of
   at most ``4^g`` rows are returned as they are), the four results are
-  concatenated and halved. The halving is kernel thinning of the block to
-  half its size, and with probability one half its complement is kept
-  instead, so each halving is unbiased for the block's mean embedding.
-  The output has about ``2^g \sqrt N`` rows.
+  concatenated and halved. The halving is kernel thinning of the block of
+  ``\ell`` rows to ``h = \lfloor \ell/2 \rfloor`` rows, kept with
+  probability ``h/\ell``; otherwise the complement is kept, trimmed by one
+  row chosen at random when ``\ell`` is odd. Every row of the block is then
+  kept with probability exactly ``h/\ell`` (a fair coin for even ``\ell``),
+  so each halving is unbiased for the block's mean embedding. The output has
+  about ``2^g \sqrt N`` rows.
 - **Thin.** Kernel thinning then selects ``n`` rows from the compressed
   set, with the compressed rows as its data term and swap candidates.
 
@@ -577,10 +580,12 @@ target measure is the data itself and the estimated cost
 ``4^g N (4\log_4 N + 1)`` is below plain kernel thinning's ``1.5 N^2``,
 with ``g = \max(4, \lceil \log_2(2n/\sqrt N) \rceil)`` (the paper's
 experiments use ``g = 4``; the second term keeps the compressed set at
-about ``2n`` rows). At split ratios the rule never fires, so `datasplit`
-is unchanged; it engages through `selectrows` and `multiplet` when ``n``
-is a few percent of ``N`` or less. `:always` and `:never` force either
-path.
+about ``2n`` rows). The rule does not fire at the default 20% split ratio,
+so `datasplit` with the default splitter is unchanged; it can fire below
+roughly a 10% ratio once ``N \ge 10^4`` — up to ``n = 800`` at
+``N = 10^4``, 10,100 at ``N = 10^5`` and 64,000 at ``N = 10^6`` — which is
+where `selectrows` and `multiplet` usually sit. Pass `compress = :never` to
+keep the plain path there; `:always` forces Compress++.
 
 **Differences from the paper.** The halving algorithm is kernel thinning
 of the block (split and swap), the failure probability is split evenly
