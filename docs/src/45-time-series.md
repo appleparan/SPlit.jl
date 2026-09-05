@@ -5,7 +5,7 @@ rows: turning it into one means cutting it into fixed-length windows and
 flattening each window into one row. That preserves the distribution of
 windows and nothing beyond the window length. Past a few hundred columns
 the selectors' advantage over random shrinks, and at thousands of columns
-the support-point selector becomes slow — about four minutes at 12,288
+the support-point selector becomes slow — about five minutes at 12,288
 columns for `M = 2000` — while twinning stays fast; long windows need a
 different representation. The numbers on this page
 come from `examples/time_series_windows.jl`; its Python counterpart,
@@ -165,16 +165,16 @@ Flattening trades window length for column count: `L*p` columns per row.
 
 | L·p | method | compile s | run s | ratio to random |
 |---:|---|---:|---:|---:|
-| 24 | twinning | 0.48 | 0.043 | 0.378 |
-| 24 | support points | 0.17 | 0.13 | 0.918 |
-| 192 | twinning | 8.8e-05 | 0.012 | 0.595 |
-| 192 | support points | 1.2 | 0.95 | 0.863 |
-| 1536 | twinning | 0.0013 | 0.094 | 0.817 |
-| 1536 | support points | 0.0062 | 12 | 1.05 |
-| 3072 | twinning | 0.00061 | 0.33 | 0.893 |
-| 3072 | support points | 0.0064 | 43 | 0.966 |
-| 12288 | twinning | 0.0025 | 3.9 | 0.932 |
-| 12288 | support points | 0.021 | 220 | 0.993 |
+| 24 | twinning | 0.46 | 0.01 | 0.378 |
+| 24 | support points | 0.15 | 0.12 | 0.918 |
+| 192 | twinning | 8.2e-05 | 0.012 | 0.595 |
+| 192 | support points | 1.3 | 0.88 | 0.863 |
+| 1536 | twinning | 0.00034 | 0.11 | 0.817 |
+| 1536 | support points | 0.0031 | 16 | 1.05 |
+| 3072 | twinning | 0.00063 | 0.42 | 0.893 |
+| 3072 | support points | 0.0063 | 65 | 0.966 |
+| 12288 | twinning | 0.0039 | 2.8 | 0.932 |
+| 12288 | support points | 0.02 | 330 | 0.993 |
 
 "Compile seconds" is the first call of that splitter at that width in this
 process, on a throwaway 60-row matrix. The matrix brute-force search behind
@@ -192,7 +192,7 @@ failed with a memory error at 12,288. Both selectors lose their edge over
 random as `L*p` grows: twinning's ratio to random rises from 0.38 at 24
 columns to 0.93 at 12,288; support points reach parity with random by
 1,536 and stay there — 0.99 at 12,288 — while their run time grows to
-about four minutes.
+about five minutes.
 
 Past a few hundred columns, do not flatten. The selectors' advantage over
 random keeps shrinking, and the support-point selector's run time keeps

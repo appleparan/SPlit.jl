@@ -97,17 +97,17 @@ width has been compiled earlier in the process.
 | L | L·p | method | compile seconds | seconds | energy distance | ratio to random |
 |---:|---:|---|---:|---:|---:|---:|
 | 8 | 24 | random | – | – | 0.0297 | 1 |
-| 8 | 24 | twinning | 0.48 | 0.043 | 0.0112 | 0.378 |
-| 8 | 24 | support points · energy | 0.17 | 0.13 | 0.0273 | 0.918 |
+| 8 | 24 | twinning | 0.46 | 0.01 | 0.0112 | 0.378 |
+| 8 | 24 | support points · energy | 0.15 | 0.12 | 0.0273 | 0.918 |
 | 64 | 192 | random | – | – | 0.0927 | 1 |
-| 64 | 192 | twinning | 8.8e-05 | 0.012 | 0.0551 | 0.595 |
-| 64 | 192 | support points · energy | 1.2 | 0.95 | 0.08 | 0.863 |
+| 64 | 192 | twinning | 8.2e-05 | 0.012 | 0.0551 | 0.595 |
+| 64 | 192 | support points · energy | 1.3 | 0.88 | 0.08 | 0.863 |
 | 512 | 1536 | random | – | – | 0.245 | 1 |
-| 512 | 1536 | twinning | 0.0013 | 0.094 | 0.2 | 0.817 |
-| 512 | 1536 | support points · energy | 0.0062 | 12 | 0.257 | 1.05 |
+| 512 | 1536 | twinning | 0.00034 | 0.11 | 0.2 | 0.817 |
+| 512 | 1536 | support points · energy | 0.0031 | 16 | 0.257 | 1.05 |
 | 1024 | 3072 | random | – | – | 0.355 | 1 |
-| 1024 | 3072 | twinning | 0.00061 | 0.33 | 0.317 | 0.893 |
-| 1024 | 3072 | support points · energy | 0.0064 | 43 | 0.343 | 0.966 |
+| 1024 | 3072 | twinning | 0.00063 | 0.42 | 0.317 | 0.893 |
+| 1024 | 3072 | support points · energy | 0.0063 | 65 | 0.343 | 0.966 |
 | 4096 | 12288 | random | – | – | 0.706 | 1 |
-| 4096 | 12288 | twinning | 0.0025 | 3.9 | 0.658 | 0.932 |
-| 4096 | 12288 | support points · energy | 0.021 | 2.2e+02 | 0.701 | 0.993 |
+| 4096 | 12288 | twinning | 0.0039 | 2.8 | 0.658 | 0.932 |
+| 4096 | 12288 | support points · energy | 0.02 | 3.3e+02 | 0.701 | 0.993 |
