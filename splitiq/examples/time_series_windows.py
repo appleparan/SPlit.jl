@@ -29,10 +29,6 @@ dev Julia project: build it once with `./scripts/setup_julia_dev.sh` (or
 Options: `--out PATH` writes the printed tables as one markdown file (nothing is
 written by default); `--quick` shrinks the synthetic demo (`m=200`, `n=20`
 instead of `m=1000`, `n=100`) for a fast smoke run.
-
-Source on the repository main branch:
-https://github.com/appleparan/SPlit.jl/blob/main/splitiq/examples/time_series_windows.py
-Julia counterpart: https://github.com/appleparan/SPlit.jl/blob/main/examples/time_series_windows.jl
 """
 
 from __future__ import annotations

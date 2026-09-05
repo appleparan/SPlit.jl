@@ -24,10 +24,6 @@ Options: `--model minilm|arcticlarge` (default `minilm`), `--n` (default
 500), `--out PATH` (write the printed table to a markdown file; nothing is
 written by default), `--quick` (`n=50` over the first 1,000 rows, for a fast
 smoke run).
-
-Source on the repository main branch:
-https://github.com/appleparan/SPlit.jl/blob/main/splitiq/examples/llm_data_selection.py
-Julia counterpart: https://github.com/appleparan/SPlit.jl/blob/main/examples/llm_data_selection.jl
 """
 
 from __future__ import annotations
