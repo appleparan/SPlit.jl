@@ -12,3 +12,4 @@ docs/diagrams/.cache/
 
 # Example datasets downloaded on demand
 examples/data/
+splitiq/examples/data/
