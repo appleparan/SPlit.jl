@@ -24,13 +24,14 @@ possible to a target measure, under the energy distance or the maximum mean
 discrepancy. Three choices make up a call:
 
 - **What you get.** `datasplit` returns a train/test partition, `multiplet`
-  returns `k` distribution-balanced folds, and `selectrows` returns just the
-  `n` chosen row indices.
+  returns `k` distribution-balanced folds (`k` = number of folds), and
+  `selectrows` returns just the `n` chosen row indices (`n` = number of rows
+  selected).
 - **What you match.** The data's own distribution by default; `weights`
   matches a quality-weighted version of it, `reference` matches a separate
   target sample while still drawing rows from the data.
 - **How rows are chosen.** `SupportPointSplitter`, `HerdingSplitter`,
-  `TwinningSplitter`, or `KernelThinningSplitter` — see
+  `TwinningSplitter`, or `KernelThinningSplitter`; see
   [Methods](@ref methods) and [Benchmarks](@ref benchmarks) for how they
   differ.
 
@@ -86,8 +87,9 @@ idx_embed = selectrows(HerdingSplitter(), embeddings, 50; standardize = false)
 `EnergyKernel`, minimizes the energy distance of Mak & Joseph (2018).
 `GaussianKernel` minimizes the squared maximum mean discrepancy (MMD²,
 Gretton et al., 2012) instead, by projected gradient descent with Armijo
-backtracking (full data; `kappa` runs a mean-shift MM sweep on subsamples);
-see [Methods](@ref methods) for both objectives.
+backtracking (full data; `kappa`, the size of the per-iteration random
+subsample, runs a mean-shift MM, or majorization-minimization, sweep on
+subsamples); see [Methods](@ref methods) for both objectives.
 
 ```julia
 gauss = SupportPointSplitter(kernel = GaussianKernel(), rng = MersenneTwister(3))
@@ -106,7 +108,8 @@ result = datasplit(herd, data)
 
 `TwinningSplitter` (Vakayil & Joseph, 2022) needs neither a kernel nor an
 optimizer: it chains nearest-neighbor groups through the data and keeps
-one row per group, in `O(pN log N)`. `multiplet` turns any splitter into
+one row per group, in `O(pN log N)` (`N` = number of rows, `p` = number of
+columns). `multiplet` turns any splitter into
 `k` distribution-balanced folds:
 
 ```julia
@@ -115,8 +118,8 @@ folds = multiplet(TwinningSplitter(), data, 5)        # 5 folds, sizes within on
 ```
 
 `KernelThinningSplitter` (Dwivedi & Mackey, 2022, 2024) also selects rows
-directly: KT-SPLIT halves a shuffled sequence of rows into candidate
-subsets by randomized kernel halving, and KT-SWAP keeps the candidate
+directly: KT-SPLIT (KT = kernel thinning) halves a shuffled sequence of
+rows into candidate subsets by randomized kernel halving, and KT-SWAP keeps the candidate
 closest to the target measure and refines it by single-row swaps, with a
 high-probability MMD guarantee neither `HerdingSplitter` nor
 `TwinningSplitter` has:
@@ -157,7 +160,8 @@ See the [Reference](@ref reference) section for complete API documentation.
    squared MMD instead (full data; `kappa` runs a mean-shift MM sweep on
    subsamples); see [Methods](@ref methods).
 3. Nearest-neighbor assignment. Each support point claims its nearest
-   unclaimed data row via a k-d tree (Joseph & Vakayil, 2022).
+   unclaimed data row via a k-d tree (a space-partitioning search tree;
+   Joseph & Vakayil, 2022).
 4. Partitioning. The claimed rows form the smaller subset and the rest form
    the larger one; `ratio` decides which of the two is the test set.
 

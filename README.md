@@ -39,8 +39,9 @@ to a target measure, under the energy distance or the maximum mean
 discrepancy. Three choices make up a call:
 
 - **What you get.** `datasplit` returns a train/test partition, `multiplet`
-  returns `k` distribution-balanced folds, and `selectrows` (Python:
-  `select_rows`) returns just the `n` chosen row indices.
+  returns `k` distribution-balanced folds (`k` = number of folds), and
+  `selectrows` (Python: `select_rows`) returns just the `n` chosen row
+  indices (`n` = number of rows selected).
 - **What you match.** The data's own distribution by default; `weights`
   matches a quality-weighted version of it, `reference` matches a separate
   target sample while still drawing rows from the data.
@@ -178,7 +179,7 @@ non-negative score per row, so the selection matches the weighted data),
 `reference`/`reference_weights` (make the chosen side approximate a second
 dataset instead of `data`'s own distribution, with candidates still drawn
 from `data`), and `standardize = false` (use a numeric matrix as it is, with
-no encoding, constant-column removal, or scaling — the mode for embeddings;
+no encoding, constant-column removal, or scaling: the mode for embeddings;
 see the [LLM data-selection guide](docs/src/40-llm-data-selection.md)).
 
 ### Selection methods
@@ -190,20 +191,21 @@ for stochastic majorization-minimization on large datasets, iteration and
 tolerance limits, and the `rng` that drives every random choice.
 
 - `GaussianKernel(bandwidth = :median)`: support points minimize the squared
-  maximum mean discrepancy (Gretton et al., 2012) via projected gradient
-  descent with Armijo backtracking, instead of the energy-distance MM step.
-  `kappa` runs a mean-shift MM sweep on subsamples; the resolved bandwidth
-  is stored in `result.method.kernel`.
+  maximum mean discrepancy (MMD², Gretton et al., 2012) via projected
+  gradient descent with Armijo backtracking, instead of the
+  energy-distance majorization-minimization (MM) step. `kappa` runs a
+  mean-shift MM sweep on subsamples; the resolved bandwidth is stored in
+  `result.method.kernel`.
 - `HerdingSplitter`: builds the smaller subset directly by greedy kernel
   herding (Chen, Welling & Smola, 2010) instead of computing support
   points, under either `EnergyKernel` or `GaussianKernel`. It is
   deterministic given the data and a numeric kernel, with an exact
-  (`O(N²)`) data term at every dataset size.
+  (`O(N²)`, `N` = number of rows) data term at every dataset size.
 - `TwinningSplitter`: partitions by sequential nearest-neighbor twinning
   (Vakayil & Joseph, 2022) under the energy distance, with no kernel or
   optimizer options. It is deterministic by default.
-- `KernelThinningSplitter`: generalized kernel thinning with the target
-  kernel (Dwivedi & Mackey, 2022, 2024) under `EnergyKernel` or
+- `KernelThinningSplitter`: generalized kernel thinning (KT) with the
+  target kernel (Dwivedi & Mackey, 2022, 2024) under `EnergyKernel` or
   `GaussianKernel`: KT-SPLIT halves a shuffled sequence of rows by
   randomized kernel halving, and KT-SWAP keeps the candidate closest to
   the target measure and refines it by single-row swaps. It carries a

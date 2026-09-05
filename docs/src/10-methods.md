@@ -9,6 +9,34 @@ Throughout, ``x_1, \dots, x_N`` are the rows of the data after preprocessing
 and ``\xi_1, \dots, \xi_n`` are support points, with ``n`` the size of the
 smaller subset.
 
+## [Notation](@id notation)
+
+The table below covers every symbol and abbreviation used on this page.
+Later sections reuse a couple of letters for a second, unrelated quantity;
+each such reuse is called out again where it happens.
+
+| symbol | meaning |
+|---|---|
+| ``N`` | number of rows of the data |
+| ``p`` | number of columns (variables) |
+| ``n`` | number of rows selected, the smaller side of a split |
+| ``X`` | the ``N \times p`` preprocessed data matrix, with rows ``x_1, \dots, x_N`` |
+| ``\xi_1, \dots, \xi_n`` | the support points: candidate locations, before nearest-neighbor rounding to rows |
+| `ratio` (``r`` in "The procedure" below) | the target split fraction |
+| `kappa` (``\kappa``) | size of the per-iteration random subsample used by the stochastic optimizer |
+| ``\sigma`` | the Gaussian kernel's bandwidth |
+| ``r`` (Twinning section) | the twinning group size, ``N \div n``; unrelated to the split `ratio` above, despite the shared letter |
+| ``g`` | Compress++'s oversampling parameter |
+| ``L`` | the Lipschitz constant of the repulsion term's gradient (Gaussian-kernel section), or the KT block size ``n \cdot 2^m`` (kernel-thinning section); named at each use |
+| ``M`` | number of reference rows |
+| ``d(a)`` | kernel herding's data term evaluated at row ``a`` (kernel-thinning section) |
+| ``\delta`` | kernel thinning's target failure probability, the papers' ``\delta`` |
+| ED | energy distance |
+| MMD | maximum mean discrepancy |
+| MM | majorization-minimization |
+| KT | kernel thinning |
+| k-d tree | a space-partitioning search tree |
+
 ## The procedure
 
 `datasplit(splitter, data)` runs the same five steps for every splitter; the
@@ -181,7 +209,8 @@ mode). The data term ``-k(\xi, x)`` is concave in ``\|\xi - x\|^2``, so its
 tangent at the current point is an upper bound whose minimizer is the
 mean-shift step (Fukunaga & Hostetler, 1975): the kernel-weighted mean of
 the data. The repulsion ``k(\xi_i, \xi_j)`` is bounded above by its
-quadratic ``L``-smooth majorizer with ``L = 2e^{-3/2}/\sigma^2``, the
+quadratic ``L``-smooth majorizer, ``L`` here the Lipschitz constant of the
+repulsion's gradient, with ``L = 2e^{-3/2}/\sigma^2``, the
 largest Hessian eigenvalue of a Gaussian, split evenly over the two
 points. Per point, with ``s_0 = \sum_l k(\xi_m, x_l)``,
 ``s_1 = \sum_l k(\xi_m, x_l)\,x_l``, ``r_0 = \sum_{j \ne m} k(\xi_m, \xi_j)``,
@@ -219,7 +248,7 @@ elsewhere. In `kappa` mode, where only the sweep is affordable, the
 selected-row MMD at N = 10,000 is within about 3% of Armijo's on
 `normal-10d` and `t3-3d`, about 29% higher on `uniform-5d` (0.000393 vs
 0.000305), and about 10x higher on `mixture-2d` (5.47e-6 vs 5.6e-7, still
-about 2x below the random subset's 1.23e-5) — while running 3.4-3.8x
+about 2x below the random subset's 1.23e-5), while running 3.4-3.8x
 faster than the full-data sweep (see
 [Design experiments](@ref gaussian-update)). The design record
 (`docs/superpowers/specs/2026-09-04-gaussian-mm-update-design.md`) explains
@@ -496,7 +525,7 @@ steps of the procedure change:
   encoded reference.
 
 Step 4 keeps its rules with the reference as the target measure: the data
-term of the energy distance or MMD² runs over the reference rows
+term of the energy distance or MMD² runs over the ``M`` reference rows
 ``r_1, \dots, r_M`` with weights ``\bar v_l``, the support points start at
 rows of `data` and are rounded to rows of `data`, and kernel herding's data
 term becomes ``\sum_l \bar v_l\, k(x, r_l)`` for every candidate ``x``.
@@ -524,7 +553,9 @@ between the two twins, so minimizing the gap between the twins minimizes
 the SPlit objective.
 
 Given ``n`` rows to select, twinning covers the data with ``n`` disjoint
-groups and selects one row per group (Algorithm 1):
+groups and selects one row per group (Algorithm 1). Below, ``r`` denotes
+the group size, ``N \div n``; it is not the split `ratio` from step 2,
+which this section does not use again.
 
 1. Start at ``u_1``: with `start = :farthest` (the default) the row farthest
    from the centroid, with `:random` a row drawn from `rng`, or a given
@@ -603,7 +634,9 @@ kernel by default), the split kernel of the papers is ``k`` itself
    least ``1 - \delta_{\mathrm{step}}``, for a per-step failure
    probability ``\delta_{\mathrm{step}}`` fixed by the caller.
 2. **KT-SPLIT.** With ``m = \lfloor \log_2 (N/n) \rfloor``, the first
-   ``L = n 2^m`` rows of the shuffle are halved ``m`` times, giving ``2^m``
+   ``L = n 2^m`` rows of the shuffle (``L`` here the KT block size, not the
+   Lipschitz constant of the Gaussian-kernel section above) are halved
+   ``m`` times, giving ``2^m``
    candidate subsets of size ``n``; every halving at every level shares
    the same ``\delta_{\mathrm{step}} = \delta / (mL)``, the papers'
    per-point ``\delta_i = \delta/L`` (`delta`, default ``0.5``) applied as
@@ -656,7 +689,8 @@ as the thinned set (this identity is only approximate under `weights` or
 
 For ``n \ll N`` the ``O(N^2)`` cost of kernel thinning is dominated by the
 first halving of all ``N`` rows and by the data term. Compress++
-(Shetty, Dwivedi & Mackey, 2022) avoids both: it never halves more than
+(Shetty, Dwivedi & Mackey, 2022) avoids both: with ``g`` an oversampling
+parameter (defined below), it never halves more than
 about ``2^{g+1}\sqrt{N}`` rows at once.
 
 - **Compress.** A random permutation of the rows is split into four
@@ -679,8 +713,8 @@ with ``g = \max(4, \lceil \log_2(2n/\sqrt N) \rceil)`` (the paper's
 experiments use ``g = 4``; the second term keeps the compressed set at
 about ``2n`` rows). The rule does not fire at the default 20% split ratio,
 so `datasplit` with the default splitter is unchanged; it can fire below
-roughly a 10% ratio once ``N \ge 10^4`` — up to ``n = 800`` at
-``N = 10^4``, 10,100 at ``N = 10^5`` and 64,000 at ``N = 10^6`` — which is
+roughly a 10% ratio once ``N \ge 10^4`` (up to ``n = 800`` at
+``N = 10^4``, 10,100 at ``N = 10^5`` and 64,000 at ``N = 10^6``), which is
 where `selectrows` and `multiplet` usually sit. Pass `compress = :never` to
 keep the plain path there; `:always` forces Compress++. The rule was checked
 against wall time and quality in [Compress++ cost rule](@ref compress-rule):

@@ -217,7 +217,7 @@ end
 # Validate the (weights | target, target_weights) combination and return the
 # target matrix plus its mean-one and sum-one weight vectors. `weights`
 # belongs to the data-as-target case only. On the no-target path, `R` is
-# `data` itself (not a copy) — callers must not mutate it.
+# `data` itself (not a copy); callers must not mutate it.
 function _resolve_target(data::Matrix{Float64}, weights, target, target_weights)
   N = size(data, 1)
   if target === nothing
@@ -554,7 +554,7 @@ end
 # One projected-gradient step with Armijo backtracking on the projected step:
 # ξ_new is ξ − tG clamped to the bounding box, and the accepted step size t
 # is the largest tried (starting from t0, halving) satisfying
-# f(ξ_new) ≤ f(ξ) − 1e-4 · ⟨G, ξ − ξ_new⟩ — the sufficient-decrease test
+# f(ξ_new) ≤ f(ξ) − 1e-4 · ⟨G, ξ − ξ_new⟩: the sufficient-decrease test
 # against the actual projected move rather than the unprojected ‖G‖², so a
 # point held at the bounding box (where ξ − ξ_new can be much smaller than
 # tG) can still be accepted as converged. Returns (accepted step size,
@@ -612,7 +612,7 @@ Armijo backtracking on the projected step (the objective never increases
 across accepted steps). In stochastic mode (`kappa` below the number of
 target rows), support points instead come from the Gaussian MM sweep
 (mean-shift data term, majorized repulsion, see the Methods page), with the
-energy path's running-average blend and the displacement rule only — no
+energy path's running-average blend and the displacement rule only, no
 line search. The kernel must be resolved (numeric bandwidth); `datasplit`
 resolves it.
 

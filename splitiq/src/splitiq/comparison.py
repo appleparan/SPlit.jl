@@ -75,7 +75,7 @@ class SplitComparison:
         qualities: One discrepancy score per entry of `results`, under
             `kernel`; lower is better.
         kernel: The scoring kernel every quality was computed under
-            (``'energy'`` or ``'gaussian'``) — not each splitter's own
+            (``'energy'`` or ``'gaussian'``), not each splitter's own
             kernel, which may differ per method spec.
     """
 
@@ -157,7 +157,7 @@ def compare(
         reference_weights: One non-negative entry per row of `reference`,
             or ``None`` for uniform reference weights. Requires `reference`.
         standardize: ``False`` uses a numeric array as it is (no centering,
-            scaling, or constant-column removal) — for cosine-normalized
+            scaling, or constant-column removal), for cosine-normalized
             embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:

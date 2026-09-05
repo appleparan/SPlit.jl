@@ -4,7 +4,7 @@ its nearest not-yet-selected data row (Joseph & Vakayil 2022). Served by a
 k-d tree (`search = :kdtree`; doubles `k` and retries when every returned
 neighbor is already claimed) or, at or above `NEAREST_BRUTE_FORCE_DIMENSION`
 columns, by [`MatrixSearch`](@ref) (`search = :matrix`; one pass per point,
-skipping claimed rows) — a NearestNeighbors tree specializes its search code
+skipping claimed rows), a NearestNeighbors tree specializes its search code
 on `SVector{p, Float64}` and stops compiling in practical time once `p`
 reaches a few thousand, while `MatrixSearch`'s plain `Matrix{Float64}`
 compiles once regardless of width (issue #72).
@@ -32,7 +32,7 @@ _nearest_search(p::Int) = p >= NEAREST_BRUTE_FORCE_DIMENSION ? :matrix : :kdtree
 Nearest/k-nearest column search over `Xt` (`p × m`, one point per column) by
 explicit `@inbounds @simd` distance loops rather than a NearestNeighbors
 tree. `Xt` is a plain `Matrix{Float64}`, so the search compiles once no
-matter how large `p` is — unlike `KDTree`/`BruteTree`, which specialize on
+matter how large `p` is, unlike `KDTree`/`BruteTree`, which specialize on
 `SVector{p, Float64}` and become impractical to compile above a few
 thousand columns (issue #72).
 """

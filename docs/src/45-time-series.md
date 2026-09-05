@@ -4,26 +4,40 @@ The splitters in this package select rows. A time series is not a table of
 rows: turning it into one means cutting it into fixed-length windows and
 flattening each window into one row. That preserves the distribution of
 windows and nothing beyond the window length. Past a few hundred columns
-the selectors' advantage over random shrinks, and at thousands of columns
-the support-point selector becomes slow — about five minutes at 12,288
-columns for `M = 2000` — while twinning stays fast; long windows need a
-different representation. The numbers on this page
-come from `examples/time_series_windows.jl`; its Python counterpart,
+per window the selectors' advantage over random shrinks, and at thousands
+of columns the support-point selector becomes slow (about five minutes for
+2,000 windows of 12,288 columns) while twinning stays fast; long windows
+need a different representation. The numbers on this page come from
+`examples/time_series_windows.jl`; its Python counterpart,
 `splitiq/examples/time_series_windows.py`, runs the same workflow with its
-own random stream and without the `L*p` dimension ladder.
+own random stream and without the window-length ladder.
+
+Notation used throughout the page (shared symbols as on the
+[Methods](@ref notation) page):
+
+- ``N``: number of time steps (rows of the series), ``p``: number of
+  variables (columns).
+- ``L``: window length in time steps; ``\text{stride}``: step between
+  window starts (``L`` here, so windows do not overlap).
+- ``M``: number of windows, one row each after flattening; ``Lp``: columns
+  of a flattened window.
+- ``n``: number of windows selected.
+- `kappa` (``\kappa``): size of the per-iteration random subsample used by
+  `SupportPointSplitter`'s stochastic optimizer.
 
 ## Point level and window level
 
 Matching a selection's per-point mean and variance to the full series does
 not mean the selection captures the series' temporal structure. Two regimes
 can share identical point-level moments while differing entirely in how
-consecutive points depend on each other — a persistent regime and an
+consecutive points depend on each other: a persistent regime and an
 alternating one, say, built so every per-variable mean and variance line up.
 
-On the example's two-regime series (`M = 1000` windows, `L = 32`, `p = 3`),
+On the example's two-regime series (``M = 1000`` windows of ``L = 32`` steps
+over ``p = 3`` variables),
 the energy distance between regime A and regime B is 0.00175 at the point
 level and 0.529 once each window is flattened and standardized. The null
-scale — the energy distance between two random halves of regime A alone —
+scale (the energy distance between two random halves of regime A alone)
 is 0.000271 at the point level and 0.0724 at the window level: the
 point-level A-vs-B distance stays within an order of magnitude of its null,
 while the window-level A-vs-B distance is about seven times its null. The
@@ -79,7 +93,7 @@ of the package.
    variable are the same physical quantity at different lags and should
    share one mean and scale. Fit on the training block when there is a
    chronological holdout; never fit per window.
-3. Select with `standardize = false` — the flattened windows are already on
+3. Select with `standardize = false`: the flattened windows are already on
    the scale you want, and passing a raw numeric matrix through unchanged is
    what that keyword is for (see [Methods](@ref methods)).
 4. Recover the original `L x p` slice for each selected window and keep it
@@ -106,7 +120,7 @@ recovered = [recover_window(x, int(starts[i]), length) for i in idx]
 ```
 
 A `datasplit` on windows gives a train/test partition, but the two sides
-interleave in time — the selector picks representative windows throughout
+interleave in time: the selector picks representative windows throughout
 the series, not a chronological cut. `splitquality` on that partition
 measures how well the test windows are interpolated from the rest, not
 whether a model can forecast ahead of them. For a forecasting evaluation,
@@ -191,12 +205,12 @@ structures, compiled per width, took 22 s at 1,536, 110 s at 3,072, and
 failed with a memory error at 12,288. Both selectors lose their edge over
 random as `L*p` grows: twinning's ratio to random rises from 0.38 at 24
 columns to 0.93 at 12,288; support points reach parity with random by
-1,536 and stay there — 0.99 at 12,288 — while their run time grows to
+1,536 and stay there (0.99 at 12,288) while their run time grows to
 about five minutes.
 
 Past a few hundred columns, do not flatten. The selectors' advantage over
 random keeps shrinking, and the support-point selector's run time keeps
-growing — to minutes at the widths above — so a different representation
+growing (to minutes at the widths above), so a different representation
 pays off well before compilation becomes a concern. Options, roughly in
 order of effort:
 
@@ -213,8 +227,8 @@ order of effort:
   flatten at all: the flattened rows would trace a curve through
   ``\mathbb{R}^{Lp}`` rather than filling out a distribution, collapsing
   selection to a time-uniform pick, and `Z` would repeat every observation
-  `L/stride` times. Represent each origin by a short state vector — the
-  same summary-feature idea, computed up to that origin — and select
+  `L/stride` times. Represent each origin by a short state vector (the
+  same summary-feature idea, computed up to that origin) and select
   origins with `selectrows` instead of windows.
 
 ## Boundaries
@@ -224,7 +238,7 @@ order of effort:
 - For a forecasting evaluation, fix the chronological holdout before
   selecting, and select only inside the training block.
 - Preprocessing (standardization) must be fit only on data the evaluation
-  is allowed to see — the training block, not the full series.
+  is allowed to see: the training block, not the full series.
 - For series with labeled invalid stretches (a normal-only training set),
   keep the time axis and exclude any window that intersects an invalid
   interval, rather than deleting the invalid points and joining what

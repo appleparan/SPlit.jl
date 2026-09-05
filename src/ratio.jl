@@ -16,7 +16,7 @@ Optimal fraction of data to assign to the test set, following the
   of `x` (after [`preprocess`](@ref): categorical columns Helmert-encoded,
   constant columns dropped) plus one, for the intercept.
 - `method = :regression`: the paper's practical strategy (Section 3) for
-  when the model is unknown — expand `x` into a larger feature set (e.g.
+  when the model is unknown: expand `x` into a larger feature set (e.g.
   polynomial terms up to `degree`), fit a linear regression on the full
   data, and select p via a model-selection criterion such as Cp or AIC.
   Not implemented in this release; calling with this method raises an

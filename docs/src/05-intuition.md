@@ -31,8 +31,9 @@ else, in proportion. The rest of this page explains how it does that.
 ## The whole procedure at a glance
 
 Every splitter in this package has the same shape. The rows are first
-preprocessed so that every column counts equally. Then `n` of them are
-chosen to stand in for all `N` rows. The chosen rows become one side of the
+preprocessed so that every column counts equally. Then `n` of them (the
+number of rows selected, the smaller side) are chosen to stand in for all
+`N` rows (the total number of rows). The chosen rows become one side of the
 split, and everything left over becomes the other side.
 
 Only the middle step differs, and there are four ways to do it.
@@ -147,8 +148,9 @@ already sits well and is left alone here.
 1,000 rows, `n` is 200; those 200 points are what the optimizer places.
 
 Reach for support points when you want the procedure of Joseph & Vakayil
-(2022) as published, and when the data is large enough that `kappa` can buy
-you speed:
+(2022) as published, and when the data is large enough that `kappa` (the
+size of the per-iteration random subsample, explained below) can buy you
+speed:
 
 ```julia
 using SPlit, Random
@@ -358,8 +360,8 @@ result.iterations   # number of swap replacements
 ```
 
 The guarantee, in words: each halved candidate stays close to the rows that
-entered the halving, measured by the MMD of the next section, and it does so
-with high probability. `delta` is the failure probability of that guarantee,
+entered the halving, measured by the maximum mean discrepancy (MMD) of the
+next section, and it does so with high probability. `delta` is the failure probability of that guarantee,
 0.5 by default, the value the papers use in their experiments. The cost
 grows with the square of the number of rows, the same class as kernel
 herding, so reach for kernel thinning when you want the guarantee and your

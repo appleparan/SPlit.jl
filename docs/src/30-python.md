@@ -133,9 +133,9 @@ keywords described in [Methods](@ref weighted-samples).
 
 ## Selecting rows toward a reference
 
-`select_rows` returns the indices of `n` rows without forming a partition, and
-`reference` makes the chosen rows follow a target sample instead of the
-data itself:
+`select_rows` returns the indices of `n` rows (the number of rows to
+select) without forming a partition, and `reference` makes the chosen rows
+follow a target sample instead of the data itself:
 
 ```python
 import numpy as np
@@ -157,7 +157,8 @@ combined with `reference`. This mirrors the Julia `reference` and
 ## Twinning and k-fold multiplets
 
 `method='twinning'` selects `TwinningSplitter`; `start` picks the starting row
-(`'farthest'`, `'random'`, or a 0-based index). `multiplet` returns `k` folds:
+(`'farthest'`, `'random'`, or a 0-based index). `multiplet` returns `k`
+folds (`k` = number of folds):
 
 ```python
 import numpy as np
@@ -185,14 +186,16 @@ result = datasplit(data, ratio=0.2, method='kernel_thinning', kernel='energy', d
 ```
 
 `kernel='gaussian'` (with `bandwidth`) and `n_threads` apply as with the
-other methods; `kappa`, `max_iterations`, `tolerance`, and `start` raise
-`ValueError` with this method, as they do with `'herding'`. See
+other methods; `kappa` (the size of the per-iteration random subsample
+used by the stochastic support-point optimizer), `max_iterations`,
+`tolerance`, and `start` raise `ValueError` with this method, as they do
+with `'herding'`. See
 [Kernel thinning](@ref kernel-thinning) for the algorithm.
 
 ## Embeddings
 
 `standardize=False` uses a numeric array exactly as given, with no
-Helmert encoding, constant-column removal, or per-column scaling — the
+Helmert encoding, constant-column removal, or per-column scaling: the
 mode for cosine-normalized embeddings, where standardizing columns would
 distort the angles. It is accepted by `datasplit`, `select_rows`,
 `multiplet`, `splitquality`, and `compare`; a pandas DataFrame raises
