@@ -76,7 +76,10 @@ output-matching tests. The design record is
   whenever the optimizer's displacement is below the row spacing (measured
   on `normal-10d`/`uniform-5d` at N = 10,000, see Benchmarks): the split is
   then exactly the initial random sample. `HerdingSplitter` has no such
-  rounding step.
+  rounding step. `select_nearest` queries a k-d tree below `NEAREST_BRUTE_FORCE_DIMENSION`
+  (200) columns and `MatrixSearch` above (see Design experiments);
+  `MatrixSearch` compiles once for any width, but its queries must be
+  contiguous column views, or the SIMD distance loop degrades (measured 7x).
 - `weights` (on `datasplit`, `splitquality`, `compare`) and
   `weights_x`/`weights_y` (on `energydistance`, `mmd`) define weighted
   empirical distributions; the selected subset is always uniform.
@@ -104,8 +107,11 @@ output-matching tests. The design record is
   `ArgumentError`; `start = :farthest` consumes no rng. Group sizes are
   `r = N ÷ n` or `r + 1`, spread evenly; the paper's case is `N = r·n`.
   The search tree is rebuilt once more than half of its rows are masked,
-  and switches to brute force at `TWINNING_BRUTE_FORCE_DIMENSION`
-  (measured, see Design experiments). `multiplet(:single)` is
+  and switches to the `MatrixSearch` brute force at
+  `TWINNING_BRUTE_FORCE_DIMENSION` (measured, see Design experiments); the
+  `search` keyword also accepts `:brute_tree` (the prior `BruteTree`
+  structure), kept only so the benchmark that replaced it stays
+  reproducible, never chosen by default. `multiplet(:single)` is
   twinning-only; `:sequential`/`:halving` call `selectrows` on any
   splitter and re-fit preprocessing per run.
 - `KernelThinningSplitter`: KT-SPLIT runs on the first `n·2^m` rows of a

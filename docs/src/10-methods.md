@@ -281,6 +281,12 @@ locations into rows. Each support point, in order, claims its nearest not-yet-cl
 tree, doubling the neighbor count and retrying when every returned neighbor
 is already claimed. The claimed rows form the smaller subset.
 
+Below 200 columns the k-d tree serves the query; from 200 on, a
+plain-matrix brute-force search does: it matches or beats the k-d tree
+from that width and compiles once for any width, whereas the k-d tree's
+width-specialized code stops compiling in practical time above a few
+thousand columns (see [Matrix brute-force search](@ref matrix-brute-force)).
+
 The figure shows three turns of the claim side by side. Hollow circles are
 support points numbered in claim order, grey circles are unclaimed rows,
 and filled circles are claimed rows. Points 1 and 2 take their nearest row

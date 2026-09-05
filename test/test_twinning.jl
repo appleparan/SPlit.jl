@@ -71,18 +71,49 @@ end
       X = SPlit.preprocess(randn(MersenneTwister(seed), N, p))
       expected = naive_twin_groups(X, n, 1)
       @test SPlit._twin_groups(X, n, 1, MersenneTwister(0)) == expected
-      @test SPlit._twin_groups(X, n, 1, MersenneTwister(0); brute_force = true) == expected
+      @test SPlit._twin_groups(X, n, 1, MersenneTwister(0); search = :matrix) == expected
+      @test SPlit._twin_groups(X, n, 1, MersenneTwister(0); search = :brute_tree) ==
+            expected
     end
+  end
+
+  @testset "_twinning_search resolves at the TWINNING_BRUTE_FORCE_DIMENSION boundary" begin
+    p = SPlit.TWINNING_BRUTE_FORCE_DIMENSION
+    @test SPlit._twinning_search(p) === :matrix
+    @test SPlit._twinning_search(p - 1) === :kdtree
   end
 
   @testset "the default search structure follows TWINNING_BRUTE_FORCE_DIMENSION" begin
     p = SPlit.TWINNING_BRUTE_FORCE_DIMENSION
     X = SPlit.preprocess(randn(MersenneTwister(8), 120, p))
     @test SPlit._twin_groups(X, 24, 1, MersenneTwister(0)) ==
-          SPlit._twin_groups(X, 24, 1, MersenneTwister(0); brute_force = true)
+          SPlit._twin_groups(X, 24, 1, MersenneTwister(0); search = :matrix)
     Xlow = SPlit.preprocess(randn(MersenneTwister(9), 120, p - 1))
     @test SPlit._twin_groups(Xlow, 24, 1, MersenneTwister(0)) ==
-          SPlit._twin_groups(Xlow, 24, 1, MersenneTwister(0); brute_force = false)
+          SPlit._twin_groups(Xlow, 24, 1, MersenneTwister(0); search = :kdtree)
+  end
+
+  @testset "invalid search symbol throws ArgumentError" begin
+    X = SPlit.preprocess(randn(MersenneTwister(19), 20, 2))
+    @test_throws ArgumentError SPlit._twin_groups(
+      X,
+      5,
+      1,
+      MersenneTwister(0);
+      search = :bogus,
+    )
+  end
+
+  @testset "width regression: p = 12,288 compiles and returns distinct indices" begin
+    # The reason for the matrix search: BruteTree/KDTree specialize on
+    # SVector{p, Float64} and fail to compile near this width (issue #72).
+    data = randn(MersenneTwister(0), 60, 12_288)
+    idx_twin = selectrows(TwinningSplitter(), data, 6; standardize = false)
+    @test length(idx_twin) == 6 && allunique(idx_twin)
+
+    sp = SupportPointSplitter(kappa = 20, max_iterations = 3, rng = MersenneTwister(1))
+    idx_sp = selectrows(sp, data, 6; standardize = false)
+    @test length(idx_sp) == 6 && allunique(idx_sp)
   end
 
   @testset "each group is u followed by its neighbors in increasing distance" begin

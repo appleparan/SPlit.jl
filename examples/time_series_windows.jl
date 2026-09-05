@@ -16,7 +16,7 @@
 #   julia --project=examples -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
 #   julia -t auto --project=examples examples/time_series_windows.jl
 #
-# Run (contrast 2 can take minutes at L = 4096): julia -t auto --project=examples examples/time_series_windows.jl
+# Run (contrast 2 can take a few minutes at L = 4096, from the support-point runs, not compilation): julia -t auto --project=examples examples/time_series_windows.jl
 # Options: --quick (small sizes, short ladder, for a fast smoke run), --out PATH
 
 using SPlit, DataFrames, LinearAlgebra, Printf, Random, Statistics
@@ -48,13 +48,9 @@ const RANDOM_DRAWS_MAIN = QUICK ? 5 : 20
 const RANDOM_DRAWS_LADDER = QUICK ? 5 : 10
 const LADDER1 = [1, 2, 4, 8, 16, 32]           # contrast 1: L_short
 const DATA_SEEDS_CONTRAST1 = QUICK ? 2 : 5     # contrast 1: independent datasets to average over
-# Ladder stops at L = 1024 (L·p = 3,072): TwinningSplitter's brute-force path
-# and SupportPointSplitter's `select_nearest` build static-vector
-# nearest-neighbor structures (NearestNeighbors' BruteTree/KDTree) sized to
-# the row width; that compilation fails outright at L·p = 12,288 (L = 4096,
-# "invalid syntax (memory-error out of gc handles)") and did not finish
-# within 7 minutes at L·p = 6,144 (L = 2048). Measured 2026-09-05.
-const LADDER2 = QUICK ? [8, 64] : [8, 64, 512, 1024]   # contrast 2: L
+# The 12,288-column rung (L = 4096) failed to compile before the matrix
+# brute-force search (issue #72); it is included now.
+const LADDER2 = QUICK ? [8, 64] : [8, 64, 512, 1024, 4096]   # contrast 2: L
 const M_LADDER2 = 2000
 const N_LADDER2 = 200
 const KAPPA_LADDER2 = 500
@@ -317,13 +313,12 @@ contrast2_text = let
     ratio_to_random = Float64[],
   )
   for L in LADDER2
-    # Warm up per L, not once: the static-vector nearest-neighbor structures
-    # (NearestNeighbors' BruteTree for twinning's brute-force path, KDTree for
-    # select_nearest) are compiled fresh for each row width, so a warm-up at a
-    # single fixed width would still leave every other ladder width paying
-    # its own width-specific compilation on the timed call below. Run on a
-    # small throwaway matrix of the same width as this L (separate rng seeds
-    # from the timed runs) and record the elapsed time as `compile_seconds`.
+    # Warm up per L, not once: `compile_seconds` records the elapsed time of
+    # the first call of that splitter at this width in this process, on a
+    # throwaway matrix of the same width as this L (separate rng seeds from
+    # the timed runs). With the matrix brute-force search, compilation is no
+    # longer width-specific, so this is expected to stay flat across the
+    # ladder rather than growing with L.
     warmup = randn(MersenneTwister(0), 60, L * P_MAIN)
     t_compile_twin =
       @elapsed selectrows(TwinningSplitter(), warmup, 6; standardize = false)
@@ -412,21 +407,19 @@ contrast2_text = let
   )
   println(
     io,
-    "at that width in this process, on a throwaway 60-row matrix; twinning is warmed",
+    "at that width in this process, on a throwaway 60-row matrix; with the matrix",
   )
   println(
     io,
-    "up first, and the support-point warm-up that follows at the same width reuses",
+    "brute-force search, compilation is flat from 200 columns on; below that, the",
   )
+  println(io, "k-d tree of `select_nearest` still pays a width-specific compile (the")
+  println(io, "192-column rung). Twinning is warmed up first, and the")
   println(
     io,
-    "whatever the static-vector code already compiled, so the two columns are not",
+    "support-point warm-up follows. This ladder runs before Contrast 1 so no ladder",
   )
-  println(
-    io,
-    "independent measurements. This ladder runs before Contrast 1 so no ladder width",
-  )
-  println(io, "has been compiled earlier in the process.\n")
+  println(io, "width has been compiled earlier in the process.\n")
   println(
     io,
     "| L | L·p | method | compile seconds | seconds | energy distance | ratio to random |",

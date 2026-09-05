@@ -48,7 +48,7 @@ State of the exported API at v0.5.2.
 | Compress++ | done | `KernelThinningSplitter(compress = :auto)` (Shetty, Dwivedi & Mackey, 2022): near-linear kernel thinning for `n ≪ N` against the data's own measure; see [Methods](@ref compress). |
 | LLM data-selection workflow | done | Embedding matrices end to end: the example under `examples/` and the [decision table](@ref llm-data-selection). |
 | Time-series windows | done (example and docs) | Flatten fixed-length windows into rows (variable-major), standardize per variable, and select with `standardize = false`; see [Time-series windows](@ref time-series). Measured on a synthetic two-regime series: window-level selection separates regimes that point-level statistics cannot, twinning/herding/kernel thinning beat random once `L` reaches the dependence length, and support points do not at `L*p` in the hundreds. Grouped selection (windows from the same event) and rolling-origin selection are not implemented. |
-| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension. Support-point and herding splitters remain untested above p = 10. The [time-series contrast](@ref time-series) adds a second data point: twinning's ratio to random rises from 0.38 at 24 columns to 0.89 at 3,072, support points reach parity with random by 1,536, and the static-vector nearest-neighbor structures fail to compile at 12,288 columns. |
+| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension, and above `TWINNING_BRUTE_FORCE_DIMENSION`/`NEAREST_BRUTE_FORCE_DIMENSION` runs the plain-matrix search ([Design experiments](@ref matrix-brute-force)), which compiles once for any width. Support-point and herding splitters remain untested above p = 10. The [time-series contrast](@ref time-series) adds a second data point: twinning's ratio to random rises from 0.38 at 24 columns to 0.89 at 3,072, support points reach parity with random by 1,536, and twinning and support points now run at 12,288 columns — the compile ceiling that used to fail there is gone. |
 
 ## Design principles
 
@@ -225,14 +225,14 @@ iteration and the package's selected subset is uniform.
   selections track the weighted corpus better than the unweighted ones do.
   Left open pending downstream results; if it underperforms, alternatives
   include stratified selection by quality quantile.
-- Nearest-neighbor structures above a few thousand columns. Twinning's
-  brute-force search and `select_nearest`'s k-d tree are both
-  NearestNeighbors.jl structures over static vectors of the row width;
-  first-call compilation at that width grows with column count and failed
-  outright at `L*p = 12,288` in the [time-series example](@ref time-series).
-  A plain-matrix brute force (no static vectors) would remove the
-  compile-time ceiling, at the cost of the static-vector speed for the
-  column counts where compilation currently succeeds. Not started.
+- Nearest-neighbor structures above a few thousand columns. Resolved
+  2026-09-05 by the plain-matrix `MatrixSearch` on the
+  [Design experiments](@ref matrix-brute-force) page: it compiles once for
+  any width and replaces `BruteTree` in twinning (`TWINNING_BRUTE_FORCE_DIMENSION`
+  stays 50) and the k-d tree in `select_nearest` above the new
+  `NEAREST_BRUTE_FORCE_DIMENSION = 200`; it also removes the compile-time
+  ceiling that failed at `L*p = 12,288` in the
+  [time-series example](@ref time-series).
 - Grouped and rolling-origin selection for time series. Not implemented:
   there is no constraint to keep windows from the same event or recording
   together, and no dedicated support for rolling-origin windows, where
@@ -302,3 +302,7 @@ iteration and the package's selected subset is uniform.
   measurement; two open questions added (nearest-neighbor structures above
   a few thousand columns, grouped and rolling-origin selection);
   references 15-17 added.
+- 2026-09-05: `MatrixSearch` (issue #72) replaces the static-vector
+  brute-force structure above `TWINNING_BRUTE_FORCE_DIMENSION`/
+  `NEAREST_BRUTE_FORCE_DIMENSION`; nearest-neighbor structures above a few
+  thousand columns question resolved; high-dimensional data row updated.

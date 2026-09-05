@@ -22,9 +22,10 @@ const OUTFILE = QUICK ? "twinning_trees_quick.md" : "twinning_trees.md"
 repeats(N) = QUICK ? 1 : (N <= 10_000 ? 3 : 1)
 
 function timed(X, N, brute)
-  SPlit._twin_groups(X[1:500, :], 100, 1, MersenneTwister(0); brute_force = brute)  # warm-up
+  search = brute ? :brute_tree : :kdtree   # historical script; keeps comparing against BruteTree
+  SPlit._twin_groups(X[1:500, :], 100, 1, MersenneTwister(0); search)  # warm-up
   return minimum(
-    (@elapsed SPlit._twin_groups(X, N ÷ 5, 1, MersenneTwister(0); brute_force = brute)) for
+    (@elapsed SPlit._twin_groups(X, N ÷ 5, 1, MersenneTwister(0); search)) for
     _ = 1:repeats(N)
   )
 end
