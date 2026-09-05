@@ -27,7 +27,7 @@ one interface serves both audiences the roadmap set out to reach:
 
 ## Current state
 
-State of the exported API at v0.5.2.
+State of the exported API at v0.6.0.
 
 | Component | Status | Notes |
 |---|---|---|

@@ -311,7 +311,7 @@ under "Cite this repository":
   author  = {Kim, Jongsu Liam},
   title   = {SPlit.jl: Distribution-preserving subset selection for tabular data and embeddings},
   year    = {2026},
-  version = {0.5.2},
+  version = {0.6.0},
   url     = {https://github.com/appleparan/SPlit.jl},
   license = {Apache-2.0}
 }
