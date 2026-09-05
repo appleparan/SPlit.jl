@@ -10,6 +10,7 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/ReusableTest.yml
+    secrets: inherit
     with:
       os: ${{ matrix.os }}
       version: ${{ matrix.version }}

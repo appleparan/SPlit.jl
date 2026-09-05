@@ -19,6 +19,7 @@ concurrency:
 jobs:
   test:
     uses: ./.github/workflows/ReusableTest.yml
+    secrets: inherit
     with:
       os: ubuntu-latest
       version: "1"
