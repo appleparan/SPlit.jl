@@ -87,7 +87,13 @@ jobs:
       - name: Build the Julia dev environment (SPlit.jl from this checkout)
         run: sh scripts/setup_julia_dev.sh
       - name: Run tests
-        run: uv run pytest --cov
+        run: uv run pytest --cov --cov-branch --cov-report=xml
         env:
           PYTHON_JULIACALL_PROJECT: ${{ github.workspace }}/splitiq/.julia_dev
           PYTHON_JULIACALL_EXE: julia
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: splitiq/coverage.xml
+          flags: splitiq
