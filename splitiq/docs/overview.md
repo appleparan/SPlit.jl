@@ -49,7 +49,7 @@ index arrays directly.
 `compare` returns a frozen `SplitComparison` dataclass: `results` (one `SplitResult` per
 entry of the `methods` argument) and `qualities` (one discrepancy score per result, under
 `kernel`; lower is better), both index-aligned with `methods`, plus the scoring `kernel`
-itself (`'energy'` or `'gaussian'`) — distinct from any per-method `kernel` a `methods`
+itself (`'energy'` or `'gaussian'`), distinct from any per-method `kernel` a `methods`
 mapping entry sets for its own splitter. `comparison.best()` returns the `(index, result)`
 pair with the lowest quality.
 

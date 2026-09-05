@@ -24,7 +24,7 @@ end
 
 # Sum f(pair) over `pairs`, split across n_threads spawned tasks that each
 # write disjoint entries of a preallocated vector, then reduced by `sum` in
-# pair order — the result does not depend on the thread count.
+# pair order; the result does not depend on the thread count.
 function _threaded_block_sum(f, pairs::Vector, n_threads::Int)
   n = length(pairs)
   partial = zeros(Float64, n)
@@ -151,7 +151,7 @@ function _mean_kernel(
 end
 
 # Mean Gaussian kernel value with the X side implicitly uniform (1/size(X, 1)
-# each), avoiding the allocation of an explicit uniform weight vector — used
+# each), avoiding the allocation of an explicit uniform weight vector: used
 # by the optimizer's per-trial objective, where X is the current points.
 function _mean_kernel(
   k::GaussianKernel{Float64},
@@ -205,7 +205,7 @@ whose rows are observations, under `kernel`.
 `estimator` selects how it is computed: [`Exact`](@ref) (default) accumulates
 the V-statistic `mean k(X,X) + mean k(Y,Y) − 2 mean k(X,Y)` block-wise,
 threaded over `n_threads`; [`Subsample`](@ref) averages the exact statistic
-over `repeats` random size-`m` row subsets drawn with `rng` — this estimate
+over `repeats` random size-`m` row subsets drawn with `rng`: this estimate
 carries a positive bias of order `1/m`, so use it to compare splits rather
 than as an absolute value; [`RandomFeatures`](@ref) estimates it with `D`
 random Fourier features drawn with `rng` (unbiased), and is defined for
@@ -306,7 +306,7 @@ Energy distance between two samples whose rows are observations.
 `estimator` selects how it is computed: [`Exact`](@ref) (default) evaluates
 every pairwise term block-wise, threaded over `n_threads`; [`Subsample`](@ref)
 averages the exact statistic over `repeats` random size-`m` row subsets drawn
-with `rng` — this estimate carries a positive bias of order `1/m`, so use it
+with `rng`: this estimate carries a positive bias of order `1/m`, so use it
 to compare splits rather than as an absolute value; [`RandomSlices`](@ref) averages
 `k` random one-dimensional projections drawn with `rng` (unbiased). The
 `subsample = m, repeats = r` keywords are a compatibility path equivalent to
@@ -417,14 +417,14 @@ _selected_indices(r::SplitResult) = _subset_indices(r, r.selected)
                  rng = Random.default_rng(), n_threads = Threads.nthreads()) -> Float64
 
 Discrepancy between the train and test rows of `data` under the same
-preprocessing `datasplit` applied — the energy distance by default, or
+preprocessing `datasplit` applied: the energy distance by default, or
 [`mmd`](@ref) under `kernel`. Smaller is better.
 
 `estimator = nothing` (the default) computes exactly ([`Exact`](@ref)) when
 the total row count is at most `exact_threshold`, and otherwise falls back to
 a fixed [`DiscrepancyEstimator`](@ref) chosen by the selection experiment on
 the Design experiments page (currently [`RandomSlices`](@ref)`(64)` for
-`EnergyKernel` and [`RandomFeatures`](@ref)`(512)` for `GaussianKernel` — see
+`EnergyKernel` and [`RandomFeatures`](@ref)`(512)` for `GaussianKernel`; see
 `_fallback_estimator`). Pass any `DiscrepancyEstimator` to override. The old
 `subsample = m, repeats = r` keywords are a compatibility path: when
 `subsample` is given explicitly, it always wins over `estimator` and maps to
@@ -441,7 +441,7 @@ discrepancy is between the selected rows (uniform) and the reference
 (weighted). `weights` cannot be combined with `reference`.
 
 `standardize = false` uses a numeric matrix or vector as it is (no
-centering, scaling, or constant-column removal) — for cosine-normalized
+centering, scaling, or constant-column removal), for cosine-normalized
 embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function splitquality(

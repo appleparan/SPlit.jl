@@ -1,7 +1,8 @@
 # [Benchmarks](@id benchmarks)
 
-**Use `herding · energy` by default; use `kernel thinning` when MMD is the
-criterion.** On four synthetic datasets at N = 1,000 and 10,000
+**Use `herding · energy` by default; use `kernel thinning` when maximum
+mean discrepancy (MMD) is the criterion.** On four synthetic datasets at
+N = 1,000 and 10,000 (notation as on the [Methods](@ref notation) page)
 `herding · energy` has the lowest energy distance in 4 of 8 cases and
 `kernel thinning · energy` in 3, and the two stay within 0.85-1.06x of each
 other everywhere; on Gaussian MMD kernel thinning wins 6 of 8. Herding is
@@ -28,7 +29,7 @@ three `gaussian` methods minimize.
   remaining one (`mixture-2d` at N = 1,000). The two leaders are close
   everywhere: `kernel thinning · energy` is between 0.85x and 1.06x of
   `herding · energy` in every cell.
-- On MMD, kernel thinning wins 6 of 8 cells — the Gaussian kernel on
+- On MMD, kernel thinning wins 6 of 8 cells: the Gaussian kernel on
   `mixture-2d` and `t3-3d` at N = 1,000 and `t3-3d` at N = 10,000, the
   energy kernel on `uniform-5d` at both N and `mixture-2d` at N = 10,000.
   Herding takes the two `normal-10d` cells.
@@ -57,7 +58,8 @@ Every cell's fastest optimized method is `herding · energy`. All numbers:
 
 ![Wall time by method](assets/benchmarks/time.png)
 
-Wall time against N, log-log, JIT warm-up excluded; the random split is
+Wall time against N, log-log, just-in-time (JIT) compilation warm-up
+excluded; the random split is
 not shown because it does no work. At N = 10,000 `herding · energy` takes
 0.13-0.21 s and `herding · gaussian` 0.42-0.52 s; `kernel thinning · energy`
 takes 1.2-1.9 s and `kernel thinning · gaussian` 2.7-3.2 s. The two
@@ -105,14 +107,15 @@ a difference between the families.
 ![Twinning against the other splitters on normal-10d](assets/benchmarks/twinning.png)
 
 Twinning finishes in 0.15 s at N = 10,000, 4.6 s at N = 100,000, and
-140 s at N = 1,000,000 — 4.3x faster than herding at 10⁵ and 15x faster
+140 s at N = 1,000,000, 4.3x faster than herding at 10⁵ and 15x faster
 at 10⁶, and 26x faster than support points at 10⁵. Its energy distance
 is 3.0x, 4.4x, and 4.1x below the random split at those three sizes,
 though herding's is lower still, by a steady 1.6x at every N. Twinning
 is faster from N = 10⁴ on, by a widening margin at 10⁵ and 10⁶; keep
 herding for the best energy distance while its `O(N²)` pass stays
-affordable. Support points stop at N = 10⁵ because the MM repulsion term
-is quadratic in the selected count; herding runs a single `O(N²)` pass.
+affordable. Support points stop at N = 10⁵ because the
+majorization-minimization (MM) repulsion term is quadratic in the
+selected count; herding runs a single `O(N²)` pass.
 Twinning is
 serial. Numbers: [`assets/benchmarks/twinning.md`](assets/benchmarks/twinning.md);
 the nearest-neighbor structure was chosen on the

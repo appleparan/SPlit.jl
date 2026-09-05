@@ -171,7 +171,7 @@ def datasplit(
         reference_weights: One non-negative entry per row of `reference`,
             or ``None`` for uniform reference weights. Requires `reference`.
         standardize: ``False`` uses a numeric array as it is (no centering,
-            scaling, or constant-column removal) — for cosine-normalized
+            scaling, or constant-column removal), for cosine-normalized
             embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:
@@ -313,7 +313,7 @@ def select_rows(
         reference_weights: One non-negative entry per row of `reference`,
             or ``None`` for uniform reference weights. Requires `reference`.
         standardize: ``False`` uses a numeric array as it is (no centering,
-            scaling, or constant-column removal) — for cosine-normalized
+            scaling, or constant-column removal), for cosine-normalized
             embeddings; a `~pandas.DataFrame` then raises ``ValueError``.
 
     Returns:

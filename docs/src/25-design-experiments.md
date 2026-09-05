@@ -10,10 +10,12 @@ splitter comparison, which is on the [Benchmarks](@ref benchmarks) page.
 
 Selection experiment for the `DiscrepancyEstimator` `splitquality` falls
 back to above `exact_threshold`: on the four datasets from the
-[Benchmarks](@ref benchmarks) page at N = 10,000, absolute error against the
+[Benchmarks](@ref benchmarks) page at N = 10,000 (notation as on the
+[Methods](@ref notation) page), absolute error against the
 exact value and wall time of every candidate, measured on the split from
 `support points · energy`, `herding · energy` (energy distance) and
-`herding · gaussian` (MMD), over 5 rng seeds. Full table:
+`herding · gaussian` (maximum mean discrepancy, MMD), over 5 rng seeds.
+Full table:
 [`assets/benchmarks/estimators.md`](assets/benchmarks/estimators.md).
 Reproduce with:
 
@@ -229,7 +231,7 @@ already matches the k-d tree at 200.
 
 ### First call at extreme width
 
-`:matrix` only — the widths `BruteTree`/`KDTree` could not compile
+`:matrix` only: the widths `BruteTree`/`KDTree` could not compile
 (N = 200, n = 20). Each width runs `selectrows` in a fresh Julia process,
 so both columns are genuine first calls and include Julia startup, package
 load, and compilation, not just the search structure's own compile time:
@@ -317,13 +319,13 @@ with Armijo backtracking on full data, and runs the majorization–minimization
 the number of target rows. Measured on the four benchmark datasets at
 N = 1,000 and 10,000, n = 0.2N, `:median` bandwidth, three seeds: an MM
 sweep costs 1.9-6.9x less than an Armijo iteration, but it takes smaller
-steps — every MM run in the table uses its full iteration cap (200 at
+steps: every MM run in the table uses its full iteration cap (200 at
 N = 1,000, 100 at N = 10,000). The benchmark script's `mm` arm is a private
 loop that always runs for a fixed number of iterations, so its iteration
 column is the cap by construction, not evidence of non-convergence on its
 own; a separate, earlier run of the same comparison through
 `support_points` (made before the optimizer decision below) did reach the
-same outcome by actually checking the rule — it never satisfied the
+same outcome by actually checking the rule: it never satisfied the
 displacement rule within the cap either. Armijo stops early (by its
 relative-decrease rule in that earlier run through `support_points`; the
 table itself records only the iteration counts) on three of the four
@@ -336,8 +338,8 @@ other three datasets MM's selected-row MMD stays within 8% of Armijo's
 up to 53% lower (mixture-2d at N = 10,000); the one exception is `t3-3d` at
 N = 1,000, 32% higher. `kappa = 1,000` cuts the N = 10,000 MM time by
 3.4-3.8x (0.84-1.56s against 2.93-5.88s) at MMD within 6% of the full-data
-sweep on three datasets, and about 21x higher — but still about 2.2x below
-a random subset — on `mixture-2d`. An over-relaxed sweep (adaptive
+sweep on three datasets, and about 21x higher (but still about 2.2x below
+a random subset) on `mixture-2d`. An over-relaxed sweep (adaptive
 extrapolation along the MM direction, safeguarded by one objective
 evaluation per iteration) was also tried during the design and rejected:
 the objective barely improved while every iteration gained an objective

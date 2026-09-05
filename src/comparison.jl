@@ -38,7 +38,7 @@ scoring kernel, and to `splitquality`.
 encoded reference.
 
 `standardize = false` uses a numeric matrix or vector as it is (no
-centering, scaling, or constant-column removal) — for cosine-normalized
+centering, scaling, or constant-column removal), for cosine-normalized
 embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function compare(

@@ -55,8 +55,8 @@ output-matching tests. The design record is
   runs the Gaussian MM sweep (`_mm_sweep!(::GaussianKernel, …)`: mean-shift
   data term, L-smooth majorized repulsion with
   `B = 4(n−1)e^{−3/2}/(nσ²)`, the energy path's running-average blend,
-  displacement rule); full data stays the Armijo path — measured, see
-  Design experiments.
+  displacement rule); full data stays the Armijo path (measured, see
+  Design experiments).
 - `:median` fails with an `ArgumentError` when at least half of all row
   pairs coincide (e.g. a single binary categorical column); pass a numeric
   bandwidth then. Choose `σ` on the scale of the standardized data (`:median`
@@ -122,20 +122,20 @@ output-matching tests. The design record is
   `O(N²)`; threaded sums use fixed 1,024-row chunks so results do not
   depend on `n_threads`.
 - `standardize = false` (on `datasplit`, `selectrows`, `multiplet`,
-  `splitquality`, `compare`) skips preprocessing entirely — including
-  constant-column removal, not just the scaling — and rejects `DataFrame`
+  `splitquality`, `compare`) skips preprocessing entirely, including
+  constant-column removal, not just the scaling, and rejects `DataFrame`
   input. It is the embedding mode; see the LLM data-selection docs page.
 - Compress++ (`compress` on `KernelThinningSplitter`) is defined only for
   the data's own measure: `:always` errors with `weights`/`reference` and
   `:auto` falls back to plain kernel thinning there. `:auto` does not fire
   at the default 20% ratio (so `datasplit` with the default splitter is
-  unchanged) but can below roughly 10% for N ≥ 10⁴ — up to n = 800 at
-  N = 10⁴, 10,100 at N = 10⁵, 64,000 at N = 10⁶; pass `compress = :never`
+  unchanged) but can below roughly 10% for N ≥ 10⁴ (up to n = 800 at
+  N = 10⁴, 10,100 at N = 10⁵, 64,000 at N = 10⁶); pass `compress = :never`
   to keep the plain path there. `g = max(4, ⌈log₂(2n/√N)⌉)`. The rule
   was checked against wall time (`benchmark/compress.jl`, see Design
   experiments).
 - The example under `examples/` is not run in CI, and its table under
-  `docs/src/assets/examples/` is committed output — regenerate it only when
+  `docs/src/assets/examples/` is committed output: regenerate it only when
   asked, like the benchmark tables.
 
 ## Workflow

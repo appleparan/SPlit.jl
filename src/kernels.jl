@@ -37,7 +37,7 @@ Gretton et al. 2012) by projected gradient descent with Armijo backtracking.
 set at fit time to the median pairwise Euclidean distance of (a sample of)
 the standardized data. The resolved value is stored in `result.method.kernel`.
 `:median` fails with an `ArgumentError` when at least half of all row pairs
-coincide (e.g. a single binary categorical column) — pass a numeric
+coincide (e.g. a single binary categorical column): pass a numeric
 bandwidth in that case. Choose `σ` on the scale of the standardized data
 (`:median` does this), since a bandwidth far below the row spacing makes the
 objective flat and the optimizer stops at the initial sample.

@@ -263,7 +263,7 @@ to both, candidates stay the rows of `data`, and `weights` may not be
 given. Convergence diagnostics are reported by [`datasplit`](@ref).
 
 `standardize = false` uses a numeric matrix or vector as it is (no
-centering, scaling, or constant-column removal) — for cosine-normalized
+centering, scaling, or constant-column removal), for cosine-normalized
 embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function selectrows(
@@ -294,7 +294,7 @@ the method's own procedure; see the splitter types
 split target the weighted empirical distribution `Σ w̄ᵢ δ(xᵢ)`: the smaller
 subset is chosen to approximate it, preprocessing standardizes with the
 weighted mean and variance, and a `:median` bandwidth is resolved from rows
-drawn in proportion to the weights — this only changes the resolved
+drawn in proportion to the weights: this only changes the resolved
 bandwidth for datasets above 1000 rows; below that every row enters the
 median and the weights do not change it. The train/test labeling rule is
 unchanged. Weights proportional to duplication counts are equivalent to
@@ -312,7 +312,7 @@ combined with `reference`. The train/test labeling rule is unchanged;
 [`selectrows`](@ref) for the indices alone.
 
 `standardize = false` uses a numeric matrix or vector as it is (no
-centering, scaling, or constant-column removal) — for cosine-normalized
+centering, scaling, or constant-column removal), for cosine-normalized
 embeddings; a `DataFrame` then raises an `ArgumentError`.
 """
 function datasplit(

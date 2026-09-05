@@ -11,7 +11,7 @@ SPlit.jl started as a Julia implementation of SPlit (Joseph & Vakayil,
 tabular data based on support points. The literature that followed SPlit
 has largely reframed the problem as distribution compression, choosing a
 subset whose empirical distribution stays close to a reference distribution
-under energy distance or MMD.
+under energy distance or the maximum mean discrepancy (MMD).
 
 SPlit.jl is now a distribution-preserving subset selection library, and
 one interface serves both audiences the roadmap set out to reach:
@@ -20,7 +20,8 @@ one interface serves both audiences the roadmap set out to reach:
    original use case.
 2. Embedding-based data selection: choosing training subsets for LLM
    fine-tuning or pretraining from embedding matrices (hundreds to
-   thousands of dimensions, N in the hundreds of thousands), where the
+   thousands of dimensions, N in the hundreds of thousands; notation as
+   on the [Methods](@ref notation) page), where the
    reference distribution may be a target set rather than the data itself,
    and samples may carry quality weights.
 
@@ -30,7 +31,7 @@ State of the exported API at v0.5.2.
 
 | Component | Status | Notes |
 |---|---|---|
-| `SupportPointSplitter` with `EnergyKernel` | done | MM update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2022); `select_nearest` rounds optimized points to data rows via a k-d tree. |
+| `SupportPointSplitter` with `EnergyKernel` | done | MM (majorization-minimization) update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2022); `select_nearest` rounds optimized points to data rows via a k-d tree. |
 | `SupportPointSplitter` with `GaussianKernel` | done | Minimizes squared MMD by projected gradient descent with Armijo backtracking on full data; `kappa` runs a mean-shift MM sweep on subsamples (roadmap M6). A `:median` bandwidth is resolved at `datasplit` time and the resolved kernel is stored in `result.method.kernel`. |
 | `HerdingSplitter` | done | Greedy kernel herding (Chen, Welling & Smola, 2010); exact `O(N^2)` data term, deterministic given the data and a numeric kernel. |
 | `optimal_split_ratio` | done | γ = 1/(√p + 1) (Joseph, 2022). |
@@ -42,13 +43,13 @@ State of the exported API at v0.5.2.
 | Reference (target) distribution | done | `reference`/`reference_weights` on `selectrows`, `datasplit`, `splitquality`, `compare`; see [Methods](@ref reference-distribution). |
 | `selectrows` (selection without a partition) | done | Returns the chosen row indices; `datasplit` builds on it. |
 | `TwinningSplitter` | done | Sequential nearest-neighbor twinning (Vakayil & Joseph, 2022); energy distance objective, no kernel or optimizer options; deterministic with `start = :farthest`. |
-| `KernelThinningSplitter` | done | Target-kernel KT (Dwivedi & Mackey, 2022, 2024): kernel halving, KT-SPLIT, KT-SWAP; energy or Gaussian kernel; `O(N²)` like herding. |
+| `KernelThinningSplitter` | done | Target-kernel KT (kernel thinning; Dwivedi & Mackey, 2022, 2024): kernel halving, KT-SPLIT, KT-SWAP; energy or Gaussian kernel; `O(N²)` like herding. |
 | k-fold splitting (`multiplet`) | done | Strategies S1/S2/S3 of the twinning paper; S1/S2 work with every splitter. |
 | Skipping preprocessing (`standardize = false`) | done | `datasplit`, `selectrows`, `multiplet`, `splitquality`, `compare`: the numeric matrix is used unchanged, with no encoding, constant-column removal, or standardization; `DataFrame` input is rejected. See [Methods](@ref methods). |
 | Compress++ | done | `KernelThinningSplitter(compress = :auto)` (Shetty, Dwivedi & Mackey, 2022): near-linear kernel thinning for `n ≪ N` against the data's own measure; see [Methods](@ref compress). |
 | LLM data-selection workflow | done | Embedding matrices end to end: the example under `examples/` and the [decision table](@ref llm-data-selection). |
 | Time-series windows | done (example and docs) | Flatten fixed-length windows into rows (variable-major), standardize per variable, and select with `standardize = false`; see [Time-series windows](@ref time-series). Measured on a synthetic two-regime series: window-level selection separates regimes that point-level statistics cannot, twinning/herding/kernel thinning beat random once `L` reaches the dependence length, and support points do not at `L*p` in the hundreds. Grouped selection (windows from the same event) and rolling-origin selection are not implemented. |
-| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension, and above `TWINNING_BRUTE_FORCE_DIMENSION`/`NEAREST_BRUTE_FORCE_DIMENSION` runs the plain-matrix search ([Design experiments](@ref matrix-brute-force)), which compiles once for any width. Support-point and herding splitters remain untested above p = 10. The [time-series contrast](@ref time-series) adds a second data point: twinning's ratio to random rises from 0.38 at 24 columns to 0.89 at 3,072, support points reach parity with random by 1,536, and twinning and support points now run at 12,288 columns — the compile ceiling that used to fail there is gone. |
+| High-dimensional data (p in the hundreds) | partly measured | Twinning measured at p = 768 (N = 10³-10⁵) on the [Design experiments](@ref twinning-trees) page; the search structure switches by dimension, and above `TWINNING_BRUTE_FORCE_DIMENSION`/`NEAREST_BRUTE_FORCE_DIMENSION` runs the plain-matrix search ([Design experiments](@ref matrix-brute-force)), which compiles once for any width. Support-point and herding splitters remain untested above p = 10. The [time-series contrast](@ref time-series) adds a second data point: twinning's ratio to random rises from 0.38 at 24 columns to 0.89 at 3,072, support points reach parity with random by 1,536, and twinning and support points now run at 12,288 columns (the compile ceiling that used to fail there is gone). |
 
 ## Design principles
 
@@ -177,7 +178,7 @@ Done (2026-09-04). Four deliverables:
   workflow and the decision table.
 
 Why last: it needs all of M1-M4 at once. It is also where the reframing
-of the package landed — the top-level docs now describe subset selection,
+of the package landed: the top-level docs now describe subset selection,
 with train/test splitting as one of its entry points.
 
 ### M6: MMD gradient-flow update

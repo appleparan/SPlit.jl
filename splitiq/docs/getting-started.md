@@ -239,8 +239,8 @@ folds = multiplet(data, 4, strategy='single')    # one twinning run, folds by ne
 ## Embeddings
 
 - `standardize=False` on `datasplit`, `select_rows`, `multiplet`, `splitquality`, and
-  `compare` uses a numeric array as it is — no centering, scaling, or constant-column
-  removal — which suits cosine-normalized embeddings where standardizing would distort
+  `compare` uses a numeric array as it is: no centering, scaling, or constant-column
+  removal, which suits cosine-normalized embeddings where standardizing would distort
   direction. A pandas DataFrame then raises `ValueError`.
 - `compress='auto'` (default), `'always'`, or `'never'` on `datasplit`, `select_rows`, and
   `multiplet` controls whether `method='kernel_thinning'` runs Compress++ in place of plain
