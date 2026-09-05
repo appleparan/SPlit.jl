@@ -15,10 +15,12 @@ using NearestNeighbors
 # Dimension at or above which select_nearest defaults to MatrixSearch instead
 # of a KDTree. Set by `benchmark/brute_force.jl` (docs/src/assets/benchmarks/
 # brute_force.md, N = 10,000 rows, 2,000 query points near the rows): the
-# matrix search matches the k-d tree at p = 200 (0.371 s vs 0.375 s) and is
-# 3.3x faster at p = 768, while the k-d tree is 5-13x faster at p <= 50 and
-# 10-40x faster at N = 100,000 for p <= 50; the k-d tree's first call is also
-# width-specific (0.33 s at p = 200, 1.7 s at p = 768). See the Design
+# matrix search is within about 15% of the k-d tree at p = 200 (0.429 s vs
+# 0.363 s) and 2.86x faster at p = 768, while the k-d tree is 5-12x faster
+# at p <= 50 and 10-54x faster at N = 100,000 for p <= 50; the k-d tree's
+# first call is also width-specific (0.32 s at p = 200, 1.62 s at p = 768).
+# 200 is set by that crossover and by the first-call cost, not because the
+# matrix search already matches the k-d tree there. See the Design
 # experiments page.
 const NEAREST_BRUTE_FORCE_DIMENSION = 200
 

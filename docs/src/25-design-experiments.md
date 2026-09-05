@@ -169,29 +169,34 @@ process.
 
 | p | k-d tree first call (s) | brute tree first call (s) | matrix first call (s) |
 |---:|---:|---:|---:|
-| 50 | 0.77 | 0.159 | 0.403 |
-| 200 | 1.73 | 0.181 | 0.00183 |
-| 768 | 13.7 | 0.201 | 0.0293 |
+| 50 | 0.72 | 0.151 | 0.286 |
+| 200 | 1.6 | 0.179 | 0.00146 |
+| 768 | 13.5 | 0.188 | 0.0253 |
 
 | N | p | k-d tree (s) | brute tree (s) | matrix (s) | brute/matrix | kdtree/matrix |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1000 | 50 | 0.0081 | 0.00462 | 0.00497 | 0.93 | 1.63 |
-| 10000 | 50 | 0.64 | 0.318 | 0.36 | 0.884 | 1.78 |
-| 1000 | 200 | 0.0267 | 0.0121 | 0.00623 | 1.94 | 4.29 |
-| 10000 | 200 | 1.49 | 1.12 | 0.647 | 1.72 | 2.3 |
-| 1000 | 768 | 0.247 | 0.0379 | 0.0171 | 2.22 | 14.4 |
-| 10000 | 768 | 8.43 | 4.16 | 2.4 | 1.74 | 3.52 |
-| 100000 | 50 | 74.7 | 39.3 | 39.3 | 1.0 | 1.9 |
+| 1000 | 50 | 0.0081 | 0.00445 | 0.00353 | 1.26 | 2.3 |
+| 10000 | 50 | 0.632 | 0.314 | 0.323 | 0.973 | 1.95 |
+| 1000 | 200 | 0.0279 | 0.0114 | 0.00555 | 2.06 | 5.02 |
+| 10000 | 200 | 1.45 | 1.09 | 0.663 | 1.65 | 2.19 |
+| 1000 | 768 | 0.235 | 0.0359 | 0.0158 | 2.27 | 14.9 |
+| 10000 | 768 | 8.89 | 4.15 | 2.17 | 1.91 | 4.09 |
+| 100000 | 50 | 70.0 | 39.6 | 34.8 | 1.14 | 2.01 |
 
-Versus `BruteTree`, `MatrixSearch` is 1.7-2.2x faster at p ≥ 200, equal at
-N = 100,000/p = 50, and 7-12% slower at p = 50 for N ≤ 10,000 (0.36 s vs
-0.32 s at N = 10,000); its first call is not width-specific (0.002-0.03 s
-at p = 200-768, against 0.16-0.20 s for `BruteTree` and 1.7-13.7 s for the
-k-d tree). The threshold is unchanged: the matrix search is still
-1.6-1.9x faster than the k-d tree at p = 50 for every N, so
-`TWINNING_BRUTE_FORCE_DIMENSION` stays 50. `:brute_tree` stays available
-as an explicit, never-default `search` option so this benchmark stays
-reproducible against the structure it replaces.
+Versus `BruteTree`, `MatrixSearch` is within 3% or faster everywhere, and
+1.65-2.3x faster at p ≥ 200; its first call is not width-specific (0.29 s
+once, then 0.0015-0.025 s at the next widths, against 0.15-0.19 s for
+`BruteTree` and 0.72-13.5 s for the k-d tree). The threshold is unchanged:
+the matrix search is still 1.95-2.3x faster than the k-d tree at p = 50
+for every N, so `TWINNING_BRUTE_FORCE_DIMENSION` stays 50. `:brute_tree`
+stays available as an explicit, never-default `search` option so this
+benchmark stays reproducible against the structure it replaces.
+
+An earlier run of this same comparison found `MatrixSearch` 13% slower
+than `BruteTree` at N = 10,000/p = 50 (brute/matrix = 0.884), which raised
+a decision-rule concern; the cause was per-query sorting scratch in
+`_knn`, and replacing it with k independent argmin passes closed the gap
+(brute/matrix = 0.973, the value in the table above).
 
 ### `select_nearest`: search structure wall time
 
@@ -200,36 +205,45 @@ process. Query points are data rows plus N(0, 0.1) noise.
 
 | N | p | k-d tree first call (s) | matrix first call (s) | k-d tree (s) | matrix (s) | kdtree/matrix |
 |---:|---:|---:|---:|---:|---:|---:|
-| 10000 | 2 | 0.00482 | 7.58e-5 | 0.00222 | 0.0287 | 0.0774 |
-| 10000 | 10 | 0.355 | 0.000366 | 0.0074 | 0.0681 | 0.109 |
-| 10000 | 50 | 0.174 | 0.000563 | 0.0417 | 0.217 | 0.192 |
-| 10000 | 200 | 0.333 | 0.00087 | 0.375 | 0.371 | 1.01 |
-| 10000 | 768 | 1.69 | 0.00321 | 5.72 | 1.73 | 3.31 |
-| 100000 | 10 | 0.000239 | 0.000166 | 0.174 | 6.88 | 0.0254 |
-| 100000 | 50 | 0.000747 | 0.000538 | 2.3 | 23.0 | 0.1 |
+| 10000 | 2 | 0.00499 | 7.71e-5 | 0.00262 | 0.0305 | 0.0857 |
+| 10000 | 10 | 0.335 | 0.000231 | 0.00793 | 0.0921 | 0.0861 |
+| 10000 | 50 | 0.167 | 0.000546 | 0.0411 | 0.221 | 0.185 |
+| 10000 | 200 | 0.321 | 0.000924 | 0.363 | 0.429 | 0.847 |
+| 10000 | 768 | 1.62 | 0.00345 | 4.95 | 1.73 | 2.86 |
+| 100000 | 10 | – | – | 0.173 | 9.4 | 0.0184 |
+| 100000 | 50 | – | – | 2.32 | 22.9 | 0.102 |
 
-At N = 10,000 with 2,000 query points, the matrix search equals the k-d
-tree at p = 200 (0.371 s vs 0.375 s) and is 3.3x faster at p = 768; the
-k-d tree is 5-13x faster at p ≤ 50 and 10-40x faster at N = 100,000 for
-p ≤ 50. The k-d tree's first call is width-specific (0.33 s at p = 200,
-1.7 s at p = 768), the matrix search's is not. `NEAREST_BRUTE_FORCE_DIMENSION`
-is set to 200, the smallest measured p where the matrix search matches or
-beats the k-d tree at N ≥ 10,000.
+First-call columns show "–" for the 100000-row rows: their widths (10, 50)
+already ran, and compiled, earlier in this process at the 10000-row rows
+above, so no genuine first call remains to measure there.
+
+At N = 10,000 with 2,000 query points, the matrix search is within about
+15% of the k-d tree at p = 200 (0.429 s vs 0.363 s) and 2.86x faster at
+p = 768; the k-d tree is 5-12x faster at p ≤ 50 and 10-54x faster at
+N = 100,000 for p ≤ 50. The k-d tree's first call is width-specific
+(0.32 s at p = 200, 1.62 s at p = 768), the matrix search's is not.
+`NEAREST_BRUTE_FORCE_DIMENSION` stays 200: that is set by the crossover
+falling between p = 200 and p = 768 together with the k-d tree's first-call
+cost growing sharply over that same range, not because the matrix search
+already matches the k-d tree at 200.
 
 ### First call at extreme width
 
 `:matrix` only — the widths `BruteTree`/`KDTree` could not compile
-(N = 200, n = 20):
+(N = 200, n = 20). Each width runs `selectrows` in a fresh Julia process,
+so both columns are genuine first calls and include Julia startup, package
+load, and compilation, not just the search structure's own compile time:
 
 | p | twinning first call (s) | select_nearest first call (s) |
 |---:|---:|---:|
-| 3072 | 0.103 | 0.00247 |
-| 6144 | 0.00658 | 0.00506 |
-| 12288 | 0.0161 | 0.0135 |
+| 3072 | 1.18 | 1.84 |
+| 6144 | 1.27 | 1.82 |
+| 12288 | 1.35 | 1.85 |
 
 Against 110 s at 3,072, over 7 minutes at 6,144, and a compiler error at
 12,288 for the static-vector structures (measured in the time-series
-example, 2026-09-05), `MatrixSearch`'s first call is 0.003-0.1 s at all
+example, 2026-09-05), `MatrixSearch`'s fresh-process first call is flat at
+1.18-1.35 s for twinning and 1.82-1.85 s for `select_nearest` across all
 three widths.
 
 Below both thresholds, results are unchanged (the k-d tree paths are
