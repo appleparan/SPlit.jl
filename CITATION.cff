@@ -25,5 +25,5 @@ keywords:
   - julia
   - python
 license: Apache-2.0
-version: 0.5.2
-date-released: '2026-09-03'
+version: 0.6.0
+date-released: '2026-09-05'

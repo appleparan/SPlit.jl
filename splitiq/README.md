@@ -101,7 +101,7 @@ documentation has the full guide.
 
 ## Versioning and releases
 
-The `splitiq` version tracks the SPlit.jl version (currently 0.5.2); `src/splitiq/juliapkg.json`
+The `splitiq` version tracks the SPlit.jl version (currently 0.6.0); `src/splitiq/juliapkg.json`
 pins SPlit.jl at the git tag `v<version>`. Pushing a `vX.Y.Z` release tag builds the versioned
 Julia documentation and, through the `PythonPublish` workflow, publishes `splitiq` to PyPI, so
 both releases come from one tag. There is no separate changelog or release script for the
