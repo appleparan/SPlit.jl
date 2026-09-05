@@ -13,7 +13,7 @@ using Random
 # instead of a KDTree. Originally set by `benchmark/twinning_trees.jl` on
 # BruteTree; `benchmark/brute_force.jl` (docs/src/assets/benchmarks/
 # brute_force.md) confirms the threshold still holds for its replacement,
-# MatrixSearch, which is 1.6-1.9x faster than the k-d tree at p = 50 and
+# MatrixSearch, which is 1.95-2.3x faster than the k-d tree at p = 50 and
 # stays faster above, while the k-d tree wins at p <= 10 for N >= 10⁴; see
 # the Design experiments page.
 # `typemax(Int)` would mean the k-d tree is always used.

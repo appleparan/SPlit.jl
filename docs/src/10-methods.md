@@ -282,10 +282,12 @@ tree, doubling the neighbor count and retrying when every returned neighbor
 is already claimed. The claimed rows form the smaller subset.
 
 Below 200 columns the k-d tree serves the query; from 200 on, a
-plain-matrix brute-force search does: it matches or beats the k-d tree
-from that width and compiles once for any width, whereas the k-d tree's
-width-specialized code stops compiling in practical time above a few
-thousand columns (see [Matrix brute-force search](@ref matrix-brute-force)).
+plain-matrix brute-force search does. The threshold sits where the two
+cross: the matrix search is within about 15% of the k-d tree at 200
+columns and about three times faster at 768, while the k-d tree's
+width-specialized code costs a first-call compilation that grows with the
+width and stops finishing in practical time above a few thousand columns
+(see [Matrix brute-force search](@ref matrix-brute-force)).
 
 The figure shows three turns of the claim side by side. Hollow circles are
 support points numbered in claim order, grey circles are unclaimed rows,
