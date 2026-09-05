@@ -256,3 +256,21 @@ embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
 
 result = datasplit(embeddings, ratio=0.2, method='kernel_thinning', standardize=False)
 ```
+
+## Examples
+
+`examples/llm_data_selection.py` selects LLM training data from a public
+arXiv-abstract embedding matrix under plain, weighted, and targeted
+settings; `examples/time_series_windows.py` flattens time-series windows
+into rows and selects a distribution-preserving subset of them. Run either
+from `splitiq/`:
+
+```bash
+uv run python examples/llm_data_selection.py
+uv run python examples/time_series_windows.py
+```
+
+Against a checkout, run `make julia-dev` once and set
+`PYTHON_JULIACALL_PROJECT`/`PYTHON_JULIACALL_EXE` first, as in
+[Development setup](#development-setup) above. Results are on the
+[Julia documentation](https://liam.kim/SPlit.jl) site.

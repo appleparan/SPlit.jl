@@ -6,7 +6,9 @@ to a target measure: the whole corpus, a quality-weighted corpus, or a
 smaller target set. This page is the workflow and a decision table; the
 numbers come from `examples/llm_data_selection.jl` on 5,000 arXiv
 abstracts embedded with MiniLM (384 dimensions, CC0: a public-domain
-dedication, Creative Commons Zero).
+dedication, Creative Commons Zero). Its Python counterpart,
+`splitiq/examples/llm_data_selection.py`, runs the same workflow with its
+own random stream.
 
 ## Workflow
 

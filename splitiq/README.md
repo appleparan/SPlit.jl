@@ -76,7 +76,8 @@ nearest-neighbor twinning (Vakayil & Joseph, 2022); `method='kernel_thinning'` r
 kernel thinning (Dwivedi & Mackey, 2022/2024). Indices are 0-based. A Julia
 `ArgumentError` surfaces as a Python `ValueError`; other Julia errors propagate as
 `juliacall.JuliaError`. See the docstrings under `src/splitiq/` for the full argument
-reference, or build the API reference locally with `make docs`.
+reference, or build the API reference locally with `make docs`. `examples/` has two worked
+scripts: LLM training-data selection and time-series window selection.
 
 ## First call and threads
 

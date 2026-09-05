@@ -67,11 +67,8 @@ guarantee, and the papers they come from, see the
 [Julia documentation](https://liam.kim/SPlit.jl). `splitiq` changes none of that
 behavior; it only exposes it to Python.
 
-## Time-series windows
+## Examples
 
-Selecting rows from a time series means flattening fixed-length windows into rows first;
-`examples/time_series_windows.py` walks through the flattening rule, a synthetic two-regime
-demo, and the effect of window length on selection quality using `select_rows` and
-`datasplit`. The "Time-series windows" page of the
-[Julia documentation](https://liam.kim/SPlit.jl) has the full workflow, the measured
-comparisons, and where flattening stops being practical.
+See [Examples](getting-started.md#examples) in Getting Started for the two example scripts
+under `examples/` and how to run them; their results are on the
+[Julia documentation](https://liam.kim/SPlit.jl) site.

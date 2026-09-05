@@ -4,7 +4,7 @@
 embedding matrix with every `SPlit` splitter, under plain/weighted/targeted
 settings, and times Compress++ against plain kernel thinning.
 
-Run it from the repository root (`path="."` is the checkout — SPlit is a
+Run it from the repository root (`path="."` is the checkout; SPlit is a
 registered package, so a plain `Pkg.instantiate()` resolves the registry
 version instead):
 
@@ -37,5 +37,12 @@ Use `--quick` for a fast smoke run (small sizes, a short `L` ladder) and
 `--out PATH` to change the output file. The resulting tables are written to
 `docs/src/assets/examples/time_series_windows.md`.
 
-The Python counterpart lives at `splitiq/examples/time_series_windows.py` and
-is run from `splitiq/` with `uv run python examples/time_series_windows.py`.
+## Python
+
+Both examples have a Python counterpart under `splitiq/examples/`, run from
+`splitiq/`:
+
+```sh
+uv run python examples/llm_data_selection.py
+uv run python examples/time_series_windows.py
+```

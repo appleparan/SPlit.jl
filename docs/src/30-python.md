@@ -223,3 +223,30 @@ The "Skipping preprocessing" section of [Methods](@ref methods) and
 [Compress++](@ref compress) describe what each does;
 [Selecting LLM training data](@ref llm-data-selection) has the workflow and
 the decision table.
+
+## Examples
+
+`splitiq/examples/llm_data_selection.py` selects LLM training data from a
+public arXiv-abstract embedding matrix under plain, weighted, and targeted
+settings; its results and the decision table are on the
+[LLM data-selection page](@ref llm-data-selection).
+
+`splitiq/examples/time_series_windows.py` flattens time-series windows into
+rows and selects a distribution-preserving subset of them; its results are
+on the [Time-series windows page](@ref time-series).
+
+Run either from `splitiq/`:
+
+```bash
+uv run python examples/llm_data_selection.py
+uv run python examples/time_series_windows.py
+```
+
+Running against a checkout instead of the released Julia package needs the
+dev Julia project: run `make julia-dev` once, then set
+`PYTHON_JULIACALL_PROJECT=$PWD/.julia_dev PYTHON_JULIACALL_EXE=$(command -v julia)`
+before the command above.
+
+The Julia examples' committed tables under `docs/src/assets/examples/`
+remain the reference; the Python scripts print their own tables and do not
+write them to the docs.
