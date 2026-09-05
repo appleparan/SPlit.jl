@@ -4,7 +4,7 @@
 embedding matrix with every `SPlit` splitter, under plain/weighted/targeted
 settings, and times Compress++ against plain kernel thinning.
 
-Run it from the repository root (`path="."` is the checkout — SPlit is a
+Run it from the repository root (`path="."` is the checkout; SPlit is a
 registered package, so a plain `Pkg.instantiate()` resolves the registry
 version instead):
 

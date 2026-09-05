@@ -2,9 +2,9 @@ r"""Select LLM training data from an embedding matrix with `splitiq`.
 
 Downloads a public arXiv-abstract embedding dataset (5,000 abstracts, MiniLM
 384-d; CC0), cosine-normalizes the rows, and selects `n` (default 500, ~10%)
-abstracts with every splitter under three target measures -- the data
-itself, a quality-weighted version (abstract length as a stand-in), and a
-target sub-population (the `cs` archive) -- against uniform random and
+abstracts with every splitter under three target measures (the data
+itself, a quality-weighted version with abstract length as a stand-in, and
+the `cs` archive as a target sub-population) against uniform random and
 K-center greedy baselines. Also times Compress++ against plain kernel
 thinning for a selection size much smaller than the dataset. Prints a
 markdown table and writes it to `--out` when given.
