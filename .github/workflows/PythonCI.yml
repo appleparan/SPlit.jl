@@ -1,14 +1,15 @@
 name: Python CI
 
+# Pull requests run lint plus one test configuration (ubuntu-latest, Python
+# 3.13); the full OS x Python matrix runs on release tags, weekly, and on
+# manual dispatch.
 on:
   push:
-    branches:
-      - main
-    paths:
-      - "splitiq/**"
-      - "src/**"
-      - "Project.toml"
-      - ".github/workflows/PythonCI.yml"
+    tags:
+      - "v*.*.*"
+  schedule:
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC: full matrix
+  workflow_dispatch:
   pull_request:
     branches:
       - main
@@ -67,6 +68,11 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+        # Pull requests keep only ubuntu-latest / 3.13.
+        exclude:
+          - os: ${{ github.event_name == 'pull_request' && 'macos-latest' || 'none' }}
+          - python-version: ${{ github.event_name == 'pull_request' && '3.12' || 'none' }}
+          - python-version: ${{ github.event_name == 'pull_request' && '3.14' || 'none' }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
