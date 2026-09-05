@@ -3,7 +3,7 @@
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://liam.kim/SPlit.jl/stable)
 [![In development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://liam.kim/SPlit.jl/dev)
 [![Test workflow status](https://github.com/appleparan/SPlit.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Test.yml?query=branch%3Amain)
-[![Lint workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml?query=branch%3Amain)
+[![Lint workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml/badge.svg)](https://github.com/appleparan/SPlit.jl/actions/workflows/Lint.yml)
 [![Docs workflow Status](https://github.com/appleparan/SPlit.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 
 [![Python CI](https://github.com/appleparan/SPlit.jl/actions/workflows/PythonCI.yml/badge.svg?branch=main)](https://github.com/appleparan/SPlit.jl/actions/workflows/PythonCI.yml?query=branch%3Amain)
