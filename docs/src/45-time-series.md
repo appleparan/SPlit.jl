@@ -4,8 +4,10 @@ The splitters in this package select rows. A time series is not a table of
 rows: turning it into one means cutting it into fixed-length windows and
 flattening each window into one row. That preserves the distribution of
 windows and nothing beyond the window length. Past a few hundred columns
-the selectors' advantage over random shrinks and compilation time grows, so
-long windows need a different representation. The numbers on this page
+the selectors' advantage over random shrinks, and at thousands of columns
+the support-point selector becomes slow — about four minutes at 12,288
+columns for `M = 2000` — while twinning stays fast; long windows need a
+different representation. The numbers on this page
 come from `examples/time_series_windows.jl`; its Python counterpart,
 `splitiq/examples/time_series_windows.py`, runs the same workflow with its
 own random stream and without the `L*p` dimension ladder.
@@ -163,33 +165,40 @@ Flattening trades window length for column count: `L*p` columns per row.
 
 | L·p | method | compile s | run s | ratio to random |
 |---:|---|---:|---:|---:|
-| 24 | twinning | 0.51 | 0.032 | 0.378 |
-| 24 | support points | 0.16 | 0.15 | 0.918 |
-| 192 | twinning | 0.63 | 0.03 | 0.595 |
-| 192 | support points | 0.92 | 0.92 | 0.863 |
-| 1536 | twinning | 21 | 0.22 | 0.817 |
-| 1536 | support points | 34 | 13 | 1.05 |
-| 3072 | twinning | 110 | 0.58 | 0.893 |
-| 3072 | support points | 44 | 48 | 0.966 |
+| 24 | twinning | 0.48 | 0.043 | 0.378 |
+| 24 | support points | 0.17 | 0.13 | 0.918 |
+| 192 | twinning | 8.8e-05 | 0.012 | 0.595 |
+| 192 | support points | 1.2 | 0.95 | 0.863 |
+| 1536 | twinning | 0.0013 | 0.094 | 0.817 |
+| 1536 | support points | 0.0062 | 12 | 1.05 |
+| 3072 | twinning | 0.00061 | 0.33 | 0.893 |
+| 3072 | support points | 0.0064 | 43 | 0.966 |
+| 12288 | twinning | 0.0025 | 3.9 | 0.932 |
+| 12288 | support points | 0.021 | 220 | 0.993 |
 
 "Compile seconds" is the first call of that splitter at that width in this
-process, on a throwaway 60-row matrix. It is the width-specific compilation
-of the static-vector nearest-neighbor structures (`NearestNeighbors.jl`)
-behind `TwinningSplitter`'s brute-force search and `select_nearest`'s k-d
-tree. Twinning is warmed up first, and the support-point warm-up at the
-same width reuses whatever static-vector code is already compiled, so the
-two compile columns are not independent measurements. This ladder is measured before the `L_short` sweep in
+process, on a throwaway 60-row matrix. The matrix brute-force search behind
+`TwinningSplitter`'s search and `select_nearest`'s neighbor query
+(see [Matrix brute-force search](@ref matrix-brute-force)) compiles once
+for any width, so after the first width in this ladder both columns stay
+at milliseconds regardless of `L*p`. Twinning is warmed up first, and the
+support-point warm-up at the same width reuses whatever matrix-search code
+is already compiled, so the two compile columns are not independent
+measurements. This ladder is measured before the `L_short` sweep in
 "Choosing L" above, so no ladder width here has already been compiled by
-that sweep. Both selectors lose their edge over random as `L*p` grows:
-twinning's ratio rises from 0.38 at 24 columns to 0.89 at 3,072, and
-support points reach parity with random by 1,536. At `L*p = 6,144` the
-first call did not finish within 7 minutes, and at 12,288 the compiler
-failed with a memory error. This is a measured limit of the current
-release, from the width-specific compilation cost of the static-vector
-nearest-neighbor structures, not a design choice.
+that sweep. The previous release's static-vector nearest-neighbor
+structures, compiled per width, took 22 s at 1,536, 110 s at 3,072, and
+failed with a memory error at 12,288. Both selectors lose their edge over
+random as `L*p` grows: twinning's ratio to random rises from 0.38 at 24
+columns to 0.93 at 12,288; support points reach parity with random by
+1,536 and stay there — 0.99 at 12,288 — while their run time grows to
+about four minutes.
 
-Past a few hundred columns, do not flatten. Options, roughly in order of
-effort:
+Past a few hundred columns, do not flatten. The selectors' advantage over
+random keeps shrinking, and the support-point selector's run time keeps
+growing — to minutes at the widths above — so a different representation
+pays off well before compilation becomes a concern. Options, roughly in
+order of effort:
 
 - **Summary features.** Replace each window by a short vector of
   per-window statistics: mean, variance, lag-k autocorrelations, spectral
