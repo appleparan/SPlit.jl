@@ -18,9 +18,15 @@
 # narrower/wider timing below it reuses that compiled code. Table 2 reports
 # the same first-call time per row (500-row/100-point slice at that width)
 # for `select_nearest`, since a single `datasplit` call pays that
-# compilation cost once. Table 3 repeats just the first-call measurement at
-# the widths that used to fail (`:matrix` only — BruteTree/KDTree cannot
-# compile there in practical time).
+# compilation cost once; its N = 100,000 rows reuse widths already run
+# earlier in the process, so both first-call columns print "–" there instead
+# of a number that isn't a genuine first call. Table 3 repeats just the
+# first-call measurement at the widths that used to fail (`:matrix` only —
+# BruteTree/KDTree cannot compile there in practical time), each in its own
+# fresh Julia subprocess — unlike Tables 1 and 2, `MatrixSearch`'s code does
+# not depend on `p`, so a same-process "first call" at a new width would
+# actually reuse compilation paid for by an earlier width and understate the
+# true first-call cost.
 #
 # `--table N` (N = 1, 2, or 3) runs only that table, writing
 # `docs/src/assets/benchmarks/brute_force_table<N>.md` instead of the
@@ -171,11 +177,22 @@ function run_table2()
     rng = MersenneTwister(2000 * p + 7)
     data = SPlit.preprocess(randn(rng, N, p))
     points = noisy_points(rng, data, round(Int, 0.2 * N))
-    fc_kd, fc_mx = (firstcall_time(p, search) for search in T2_SEARCHES)
+    # These widths already ran (and compiled) in the T2_DIMS loop above, so a
+    # first-call measurement here would just be timing an already-compiled
+    # call -- print "-" instead of a number that looks like a real first call.
     t_kd = @elapsed SPlit.select_nearest(data, points; search = :kdtree)   # single run
     t_mx = @elapsed SPlit.select_nearest(data, points; search = :matrix)
-    line = "| $N | $p | $(round(fc_kd; sigdigits = 3)) | $(round(fc_mx; sigdigits = 3)) | $(round(t_kd; sigdigits = 3)) | $(round(t_mx; sigdigits = 3)) | $(round(t_kd / t_mx; sigdigits = 3)) |"
+    line = "| $N | $p | – | – | $(round(t_kd; sigdigits = 3)) | $(round(t_mx; sigdigits = 3)) | $(round(t_kd / t_mx; sigdigits = 3)) |"
     emit(line)
+  end
+  if !isempty(T2_EXTRA)
+    emit("")
+    widths = join(unique(last.(T2_EXTRA)), ", ")
+    emit(
+      "First-call columns show \"–\" for the $(first(T2_EXTRA)[1])-row rows: their widths " *
+      "($widths) already ran, and compiled, earlier in this process at the $T2_N-row " *
+      "rows above, so no genuine first call remains to measure there.",
+    )
   end
   return nothing
 end
@@ -195,15 +212,26 @@ function run_table3()
     "## First call at extreme width (`:matrix` only — the widths BruteTree/KDTree could not compile)",
   )
   emit("")
+  emit(
+    "Each width runs `selectrows` in a fresh Julia process, so both columns are genuine first calls.",
+  )
+  emit("")
   emit("| p | twinning first call (s) | select_nearest first call (s) |")
   emit("|---:|---:|---:|")
   for p in T3_DIMS
-    rng = MersenneTwister(3000 * p)
-    X = SPlit.preprocess(randn(rng, T3_N, p))
-    t_twin =
-      @elapsed SPlit._twin_groups(X, T3_N_SELECTED, 1, MersenneTwister(0); search = :matrix)
-    points = noisy_points(rng, X, T3_N_SELECTED)
-    t_sel = @elapsed SPlit.select_nearest(X, points; search = :matrix)
+    script = """
+    using SPlit, Random
+    data = randn(MersenneTwister(3000 * $p), $T3_N, $p)
+    t_twin = @elapsed selectrows(TwinningSplitter(), data, $T3_N_SELECTED; standardize = false)
+    sp = SupportPointSplitter(kappa = $T3_N_SELECTED, max_iterations = 3, rng = MersenneTwister(1))
+    t_sel = @elapsed selectrows(sp, data, $T3_N_SELECTED; standardize = false)
+    println("RESULT ", t_twin, " ", t_sel)
+    """
+    out = read(`$(Base.julia_cmd()) --project=$(Base.active_project()) -e $script`, String)
+    m = match(r"RESULT ([0-9.eE+-]+) ([0-9.eE+-]+)", out)
+    m === nothing && error("could not parse child process output for p=$p:\n$out")
+    t_twin = parse(Float64, m.captures[1])
+    t_sel = parse(Float64, m.captures[2])
     emit("| $p | $(round(t_twin; sigdigits = 3)) | $(round(t_sel; sigdigits = 3)) |")
   end
   return nothing

@@ -13,12 +13,13 @@ compiles once regardless of width (issue #72).
 using NearestNeighbors
 
 # Dimension at or above which select_nearest defaults to MatrixSearch instead
-# of a KDTree. Set by `benchmark/brute_force.jl` (2026-09-05, N = 10,000 rows,
-# 2,000 query points near the rows): the matrix search matches the k-d tree
-# at p = 200 (0.37 s vs 0.41 s) and is 3x faster at p = 768, while the k-d
-# tree is 5-10x faster at p <= 50 for N = 100,000; the k-d tree also pays a
-# width-specific first-call compilation (1.4 s at p = 200, 12 s at p = 768).
-# See the Design experiments page.
+# of a KDTree. Set by `benchmark/brute_force.jl` (docs/src/assets/benchmarks/
+# brute_force.md, N = 10,000 rows, 2,000 query points near the rows): the
+# matrix search matches the k-d tree at p = 200 (0.371 s vs 0.375 s) and is
+# 3.3x faster at p = 768, while the k-d tree is 5-13x faster at p <= 50 and
+# 10-40x faster at N = 100,000 for p <= 50; the k-d tree's first call is also
+# width-specific (0.33 s at p = 200, 1.7 s at p = 768). See the Design
+# experiments page.
 const NEAREST_BRUTE_FORCE_DIMENSION = 200
 
 _nearest_search(p::Int) = p >= NEAREST_BRUTE_FORCE_DIMENSION ? :matrix : :kdtree
@@ -73,12 +74,27 @@ function _nn(s::MatrixSearch, q, skip)
   return best, sqrt(bestsq)
 end
 
+# `partialsortperm` allocates O(m) radix-sort scratch regardless of k (m =
+# number of columns), which dominates for the small k this method is called
+# with (twinning neighbor lists); below this k, k passes of argmin over the
+# length-m scratch are faster and allocate nothing beyond the two length-k
+# outputs (measured on a 20,000 x 50 case, k = 5: 320,384 bytes with
+# `partialsortperm` vs. 224 bytes with the selection passes).
+const MATRIX_KNN_SELECTION_MAX_K = 32
+
 """
     _knn(s::MatrixSearch, q, k, skip) -> (idxs, dists)
 
 The `k` columns of `s.Xt` nearest to `q` with `!skip(j)`, by increasing
-distance; allocates only the returned index vector. `dists` are Euclidean,
-matching NearestNeighbors' `knn`.
+distance. `dists` are Euclidean, matching NearestNeighbors' `knn`. `k` must
+not exceed the number of available (unskipped) columns; this method throws
+an `ArgumentError` where NearestNeighbors' `knn` would instead return fewer
+results.
+
+For `k <= $MATRIX_KNN_SELECTION_MAX_K`, this selects by `k` passes of
+`argmin` over the scratch distances, allocating only the two length-`k`
+output vectors (`idxs` and `dists`); larger `k` falls back to
+`partialsortperm`, which allocates additional O(m) scratch.
 """
 function _knn(s::MatrixSearch, q, k::Int, skip)
   Xt, d = s.Xt, s.d
@@ -93,8 +109,27 @@ function _knn(s::MatrixSearch, q, k::Int, skip)
   end
   k <= navailable ||
     throw(ArgumentError("k=$k exceeds the number of available columns ($navailable)"))
-  idxs = partialsortperm(d, 1:k)
-  return idxs, sqrt.(view(d, idxs))
+  if k <= MATRIX_KNN_SELECTION_MAX_K
+    idxs = Vector{Int}(undef, k)
+    dists = Vector{Float64}(undef, k)
+    @inbounds for i = 1:k
+      best = 0
+      bestsq = Inf
+      for j in axes(Xt, 2)
+        if d[j] < bestsq
+          bestsq = d[j]
+          best = j
+        end
+      end
+      idxs[i] = best
+      dists[i] = sqrt(bestsq)
+      d[best] = Inf
+    end
+    return idxs, dists
+  else
+    idxs = partialsortperm(d, 1:k)
+    return idxs, sqrt.(view(d, idxs))
+  end
 end
 
 # NearestNeighbors path: same signatures as the MatrixSearch methods above,
@@ -174,10 +209,11 @@ function _select_nearest_matrix(data::Matrix{Float64}, points::Matrix{Float64})
   search = MatrixSearch(Xt)
   used = falses(size(data, 1))
   selected = Vector{Int}(undef, size(points, 1))
+  skip = i -> used[i]
 
   for j in axes(points, 1)
     query = view(Pt, :, j)
-    idx, _ = _nn(search, query, i -> used[i])
+    idx, _ = _nn(search, query, skip)
     used[idx] = true
     selected[j] = idx
   end

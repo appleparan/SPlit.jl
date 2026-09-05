@@ -88,8 +88,9 @@ seeds (min time, mean energy distance); random: 10 draws.
 The cached energy distance at L = 8 was checked to agree with
 `energydistance` directly. "compile seconds" is the first call of that splitter
 at that width in this process, on a throwaway 60-row matrix; with the matrix
-brute-force search, compilation is no longer width-specific, so this column
-should stay flat across the ladder. Twinning is warmed up first, and the
+brute-force search, compilation is flat from 200 columns on; below that, the
+k-d tree of `select_nearest` still pays a width-specific compile (the
+192-column rung). Twinning is warmed up first, and the
 support-point warm-up follows. This ladder runs before Contrast 1 so no ladder
 width has been compiled earlier in the process.
 

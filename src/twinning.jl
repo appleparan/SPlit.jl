@@ -10,12 +10,12 @@ using NearestNeighbors
 using Random
 
 # Dimension at or above which the twinning search structure is brute force
-# instead of a KDTree. Originally set by `benchmark/twinning_trees.jl`: on
-# standard-normal data at N = 10³-10⁵, brute force is 1.9-2.1x faster at
-# p = 50 and stays faster above, while the k-d tree wins at p ≤ 10 for
-# N ≥ 10⁴; see the Design experiments page. The brute-force structure is now
-# MatrixSearch, not BruteTree (`benchmark/brute_force.jl` confirms the
-# threshold still holds).
+# instead of a KDTree. Originally set by `benchmark/twinning_trees.jl` on
+# BruteTree; `benchmark/brute_force.jl` (docs/src/assets/benchmarks/
+# brute_force.md) confirms the threshold still holds for its replacement,
+# MatrixSearch, which is 1.6-1.9x faster than the k-d tree at p = 50 and
+# stays faster above, while the k-d tree wins at p <= 10 for N >= 10⁴; see
+# the Design experiments page.
 # `typemax(Int)` would mean the k-d tree is always used.
 const TWINNING_BRUTE_FORCE_DIMENSION = 50
 

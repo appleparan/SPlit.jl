@@ -77,6 +77,12 @@ end
     end
   end
 
+  @testset "_twinning_search resolves at the TWINNING_BRUTE_FORCE_DIMENSION boundary" begin
+    p = SPlit.TWINNING_BRUTE_FORCE_DIMENSION
+    @test SPlit._twinning_search(p) === :matrix
+    @test SPlit._twinning_search(p - 1) === :kdtree
+  end
+
   @testset "the default search structure follows TWINNING_BRUTE_FORCE_DIMENSION" begin
     p = SPlit.TWINNING_BRUTE_FORCE_DIMENSION
     X = SPlit.preprocess(randn(MersenneTwister(8), 120, p))

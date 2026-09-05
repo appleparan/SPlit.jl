@@ -76,7 +76,7 @@ output-matching tests. The design record is
   whenever the optimizer's displacement is below the row spacing (measured
   on `normal-10d`/`uniform-5d` at N = 10,000, see Benchmarks): the split is
   then exactly the initial random sample. `HerdingSplitter` has no such
-  rounding step. It queries a k-d tree below `NEAREST_BRUTE_FORCE_DIMENSION`
+  rounding step. `select_nearest` queries a k-d tree below `NEAREST_BRUTE_FORCE_DIMENSION`
   (200) columns and `MatrixSearch` above (see Design experiments);
   `MatrixSearch` compiles once for any width, but its queries must be
   contiguous column views, or the SIMD distance loop degrades (measured 7x).

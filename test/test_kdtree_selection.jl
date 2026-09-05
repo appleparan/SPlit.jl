@@ -41,6 +41,12 @@ end
     end
   end
 
+  @testset "_nearest_search resolves at the NEAREST_BRUTE_FORCE_DIMENSION boundary" begin
+    p = SPlit.NEAREST_BRUTE_FORCE_DIMENSION
+    @test SPlit._nearest_search(p) === :matrix
+    @test SPlit._nearest_search(p - 1) === :kdtree
+  end
+
   @testset "the default search structure follows NEAREST_BRUTE_FORCE_DIMENSION" begin
     p = SPlit.NEAREST_BRUTE_FORCE_DIMENSION
     rng = MersenneTwister(21)
