@@ -8,6 +8,8 @@ on:
       - "src/**"
       - "test/**"
       - "*.toml"
+      - ".github/workflows/ReusableTest.yml"
+      - ".github/workflows/TestOnPRs.yml"
     types: [opened, synchronize, reopened]
 
 concurrency:
