@@ -9,11 +9,13 @@ Selecting one row per group gives the twin. Serial by design.
 using NearestNeighbors
 using Random
 
-# Dimension at or above which the twinning search structure is a BruteTree
-# instead of a KDTree. Set by `benchmark/twinning_trees.jl`: on
+# Dimension at or above which the twinning search structure is brute force
+# instead of a KDTree. Originally set by `benchmark/twinning_trees.jl`: on
 # standard-normal data at N = 10³-10⁵, brute force is 1.9-2.1x faster at
 # p = 50 and stays faster above, while the k-d tree wins at p ≤ 10 for
-# N ≥ 10⁴; see the Design experiments page.
+# N ≥ 10⁴; see the Design experiments page. The brute-force structure is now
+# MatrixSearch, not BruteTree (`benchmark/brute_force.jl` confirms the
+# threshold still holds).
 # `typemax(Int)` would mean the k-d tree is always used.
 const TWINNING_BRUTE_FORCE_DIMENSION = 50
 
@@ -43,37 +45,49 @@ function _start_row(start, X::Matrix{Float64}, rng::AbstractRNG)
   return Int(start)
 end
 
-_build_tree(Xt::Matrix{Float64}, rows::Vector{Int}, brute_force::Bool) =
-  brute_force ? BruteTree(Xt[:, rows]) : KDTree(Xt[:, rows])
+# Search structure at or above TWINNING_BRUTE_FORCE_DIMENSION columns; below
+# it, the k-d tree.
+_twinning_search(p::Int) = p >= TWINNING_BRUTE_FORCE_DIMENSION ? :matrix : :kdtree
 
-# Nearest alive row to `point`; `rows` sends tree-local indices to data rows.
+function _build_tree(Xt::Matrix{Float64}, rows::Vector{Int}, search::Symbol)
+  search === :matrix && return MatrixSearch(Xt[:, rows])
+  search === :brute_tree && return BruteTree(Xt[:, rows])
+  search === :kdtree && return KDTree(Xt[:, rows])
+  throw(ArgumentError("search must be :kdtree, :brute_tree, or :matrix, got :$search"))
+end
+
+# Nearest alive row to `point`; `rows` sends search-local indices to data rows.
 function _nearest_alive(tree, rows::Vector{Int}, alive::BitVector, point)
-  idx, _ = nn(tree, point, j -> !alive[rows[j]])
+  idx, _ = _nn(tree, point, j -> !alive[rows[j]])
   return rows[idx]
 end
 
 # The k nearest alive rows to `point` other than row `u`, by increasing distance.
 function _neighbors_alive(tree, rows::Vector{Int}, alive::BitVector, point, k::Int, u::Int)
-  idxs, _ = knn(tree, point, k, true, j -> (r = rows[j]; !alive[r] || r == u))
+  idxs, _ = _knn(tree, point, k, j -> (r = rows[j]; !alive[r] || r == u))
   return rows[idxs]
 end
 
 """
-    _twin_groups(X, n, start, rng; brute_force) -> Vector{Vector{Int}}
+    _twin_groups(X, n, start, rng; search) -> Vector{Vector{Int}}
 
 The `n` groups of Algorithm 1 on the standardized rows of `X`, in formation
 order; each group lists `u_i` first and then its neighbors by increasing
-distance to `u_i`. Grouped rows are masked in the search tree; when more
-than half of the tree's rows are masked the tree is rebuilt on the alive
-rows (an implementation detail, not from the paper; total rebuild work is
-`O(N log N)`). `brute_force` selects a `BruteTree` over a `KDTree`.
+distance to `u_i`. Grouped rows are masked in the search structure; when
+more than half of the structure's rows are masked it is rebuilt on the
+alive rows (an implementation detail, not from the paper; total rebuild
+work is `O(N log N)`). `search` is `:kdtree`, `:brute_tree` (a
+NearestNeighbors `BruteTree`), or `:matrix` (a [`MatrixSearch`](@ref),
+which compiles once no matter how wide `X` is, unlike the NearestNeighbors
+trees); it defaults to `:matrix` at or above `TWINNING_BRUTE_FORCE_DIMENSION`
+columns and `:kdtree` below it.
 """
 function _twin_groups(
   X::Matrix{Float64},
   n::Int,
   start,
   rng::AbstractRNG;
-  brute_force::Bool = size(X, 2) >= TWINNING_BRUTE_FORCE_DIMENSION,
+  search::Symbol = _twinning_search(size(X, 2)),
 )
   N = size(X, 1)
   0 < n <= N || throw(ArgumentError("n must be in 1:$N, got $n"))
@@ -82,7 +96,7 @@ function _twin_groups(
   Xt = permutedims(X)                      # rows as contiguous columns
   alive = trues(N)
   rows = collect(1:N)
-  tree = _build_tree(Xt, rows, brute_force)
+  tree = _build_tree(Xt, rows, search)
   dead_in_tree = 0
   groups = Vector{Vector{Int}}(undef, n)
   far = u                                  # v_{i−1}^{r−1}; unused for i = 1
@@ -100,7 +114,7 @@ function _twin_groups(
     groups[i] = group
     if i < n && 2 * dead_in_tree > length(rows)
       rows = findall(alive)
-      tree = _build_tree(Xt, rows, brute_force)
+      tree = _build_tree(Xt, rows, search)
       dead_in_tree = 0
     end
   end
@@ -135,8 +149,10 @@ the last group absorbing the remainder. Here `n` follows the generic rule
 of [`datasplit`](@ref) (or the caller's `n` in [`selectrows`](@ref)) and
 `r = ⌊N/n⌋`, the `N − rn` leftover rows forming groups of `r + 1` spread
 evenly along the chain; when `N = rn` the two agree exactly. Grouped rows
-are masked in a k-d tree that is rebuilt on the remaining rows once more
-than half of its rows are masked (the paper masks without rebuilding).
+are masked in the search structure (a k-d tree below
+`TWINNING_BRUTE_FORCE_DIMENSION` columns, otherwise a matrix brute-force
+search), rebuilt on the remaining rows once more than half of its rows are
+masked (the paper masks without rebuilding).
 
 # Examples
 
