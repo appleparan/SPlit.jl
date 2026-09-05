@@ -13,8 +13,13 @@ compiles once regardless of width (issue #72).
 using NearestNeighbors
 
 # Dimension at or above which select_nearest defaults to MatrixSearch instead
-# of a KDTree. Set by `benchmark/brute_force.jl`.
-const NEAREST_BRUTE_FORCE_DIMENSION = 50
+# of a KDTree. Set by `benchmark/brute_force.jl` (2026-09-05, N = 10,000 rows,
+# 2,000 query points near the rows): the matrix search matches the k-d tree
+# at p = 200 (0.37 s vs 0.41 s) and is 3x faster at p = 768, while the k-d
+# tree is 5-10x faster at p <= 50 for N = 100,000; the k-d tree also pays a
+# width-specific first-call compilation (1.4 s at p = 200, 12 s at p = 768).
+# See the Design experiments page.
+const NEAREST_BRUTE_FORCE_DIMENSION = 200
 
 _nearest_search(p::Int) = p >= NEAREST_BRUTE_FORCE_DIMENSION ? :matrix : :kdtree
 
@@ -159,15 +164,19 @@ function _select_nearest_kdtree(data::Matrix{Float64}, points::Matrix{Float64})
 end
 
 # MatrixSearch path: skip claimed rows directly, one pass per point (no
-# k-doubling needed since _nn already excludes them).
+# k-doubling needed since _nn already excludes them). Both data and points
+# are transposed once so every query is a contiguous column view -- a
+# strided row view (`view(points, j, :)`) defeats the `@simd` loop in
+# `_sqdist`, since it reads with a stride instead of unit stride.
 function _select_nearest_matrix(data::Matrix{Float64}, points::Matrix{Float64})
-  Xt = permutedims(data)   # p × n, columns are data rows
+  Xt = permutedims(data)     # p × n, columns are data rows
+  Pt = permutedims(points)   # p × m, columns are query points
   search = MatrixSearch(Xt)
   used = falses(size(data, 1))
   selected = Vector{Int}(undef, size(points, 1))
 
   for j in axes(points, 1)
-    query = view(points, j, :)
+    query = view(Pt, :, j)
     idx, _ = _nn(search, query, i -> used[i])
     used[idx] = true
     selected[j] = idx
