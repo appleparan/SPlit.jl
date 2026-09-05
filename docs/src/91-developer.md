@@ -72,6 +72,15 @@ pkg> activate .
 pkg> test
 ```
 
+### Continuous integration
+
+A pull request is the gate: it runs the Julia tests on one configuration
+(Linux, Julia 1), the Python tests on one configuration (Linux, Python 3.13),
+Lint, Spell Check, and a Docs build. A push to `main` runs only the Docs deploy
+and the full Julia matrix (LTS, 1, pre on Linux, Windows, and macOS). The full
+Python matrix (Linux and macOS, Python 3.12 to 3.14) runs on release tags,
+weekly, and on manual dispatch of the `Python CI` workflow.
+
 ## Working on a new issue
 
 We try to keep a linear history in this repo, so it is important to keep your branches up-to-date.
