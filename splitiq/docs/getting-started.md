@@ -259,9 +259,9 @@ result = datasplit(embeddings, ratio=0.2, method='kernel_thinning', standardize=
 
 ## Examples
 
-`examples/llm_data_selection.py` selects LLM training data from a public
+[`examples/llm_data_selection.py`](https://github.com/appleparan/SPlit.jl/blob/main/splitiq/examples/llm_data_selection.py) selects LLM training data from a public
 arXiv-abstract embedding matrix under plain, weighted, and targeted
-settings; `examples/time_series_windows.py` flattens time-series windows
+settings; [`examples/time_series_windows.py`](https://github.com/appleparan/SPlit.jl/blob/main/splitiq/examples/time_series_windows.py) flattens time-series windows
 into rows and selects a distribution-preserving subset of them. Run either
 from `splitiq/`:
 

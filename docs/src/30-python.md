@@ -226,12 +226,12 @@ the decision table.
 
 ## Examples
 
-`splitiq/examples/llm_data_selection.py` selects LLM training data from a
+[`splitiq/examples/llm_data_selection.py`](https://github.com/appleparan/SPlit.jl/blob/main/splitiq/examples/llm_data_selection.py) selects LLM training data from a
 public arXiv-abstract embedding matrix under plain, weighted, and targeted
 settings; its results and the decision table are on the
 [LLM data-selection page](@ref llm-data-selection).
 
-`splitiq/examples/time_series_windows.py` flattens time-series windows into
+[`splitiq/examples/time_series_windows.py`](https://github.com/appleparan/SPlit.jl/blob/main/splitiq/examples/time_series_windows.py) flattens time-series windows into
 rows and selects a distribution-preserving subset of them; its results are
 on the [Time-series windows page](@ref time-series).
 
