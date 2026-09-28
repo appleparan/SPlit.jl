@@ -32,7 +32,7 @@ splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
 `CategoricalVector` would be. Indices are 0-based numpy arrays.
 
 | Python | Julia |
-|---|---|
+| --- | --- |
 | `datasplit(X, ratio, method="support_points", kappa=..., seed=...)` (`kernel` may be `"energy"` or `"gaussian"`; `kappa` applies to either) | `datasplit(SupportPointSplitter(...), X)` |
 | `datasplit(X, ratio, method="herding", kernel="gaussian", bandwidth=...)` | `datasplit(HerdingSplitter(...), X)` |
 | `datasplit(X, ratio, method="twinning", ...)` | `datasplit(TwinningSplitter(...), X)` |

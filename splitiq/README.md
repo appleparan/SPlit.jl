@@ -38,8 +38,8 @@ import splitiq
 X = np.random.default_rng(1).standard_normal((1_000, 3))
 result = splitiq.datasplit(X, ratio=0.2, seed=2)
 
-train, test = result.apply(X)          # or X[result.train_indices], X[result.test_indices]
-splitiq.splitquality(X, result)        # energy distance between train and test; lower is better
+train, test = result.apply(X)  # or X[result.train_indices], X[result.test_indices]
+splitiq.splitquality(X, result)  # energy distance between train and test; lower is better
 splitiq.optimal_split_ratio(X[:, :2], X[:, 2])
 ```
 
@@ -51,7 +51,7 @@ import pandas as pd
 
 df = pd.DataFrame({'x': X[:, 0], 'g': pd.Categorical(['a', 'b', 'c'] * (len(X) // 3))})
 result = splitiq.datasplit(df, ratio=0.2, seed=2)
-train, test = result.apply(df)         # df.iloc[result.train_indices], df.iloc[result.test_indices]
+train, test = result.apply(df)  # df.iloc[result.train_indices], df.iloc[result.test_indices]
 ```
 
 ## API

@@ -1,5 +1,5 @@
 | dataset | profile | kappa | rule | weighted ED (mean ± se, 5 seeds) | mean seconds |
-|---|---|---:|---|---:|---:|
+| --- | --- | ---: | --- | ---: | ---: |
 | normal-10d | lognormal | 500 | `uniform` | 0.00339 ± 0.0003 | 6.82 |
 | normal-10d | lognormal | 500 | `proportional` | 0.00339 ± 0.00029 | 6.76 |
 | normal-10d | lognormal | 2000 | `uniform` | 0.00338 ± 0.0003 | 10.3 |

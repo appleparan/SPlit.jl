@@ -41,7 +41,7 @@ three `gaussian` methods minimize.
   optimizes, so pick the kernel that matches how you will judge the split.
 
 | dataset | N | lowest energy distance | lowest MMD |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | mixture-2d | 1000 | support points · energy | kernel thinning · gaussian |
 | normal-10d | 1000 | herding · energy | herding · gaussian |
 | uniform-5d | 1000 | herding · energy | kernel thinning · energy |
@@ -125,14 +125,14 @@ twinning's time at p = 768.
 ## [How it was run](@id benchmarks-environment)
 
 | dataset | distribution | dimensions |
-|---|---|---:|
+| --- | --- | ---: |
 | mixture-2d | Gaussian mixture, 4 components | 2 |
 | normal-10d | standard normal | 10 |
 | uniform-5d | uniform on ``[0, 1]^5`` | 5 |
 | t3-3d | Student-``t``, 3 degrees of freedom (heavy-tailed) | 3 |
 
 | method | splitter | N = 1,000 | N = 10,000 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | support points · energy | `SupportPointSplitter(EnergyKernel())` | `kappa = nothing` (full data) | `kappa = 1_000` |
 | support points · gaussian | `SupportPointSplitter(GaussianKernel())` | `max_iterations = 200` | `max_iterations = 100` |
 | herding · energy | `HerdingSplitter(EnergyKernel())` | exact data term | exact data term |

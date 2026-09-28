@@ -24,7 +24,7 @@ julia -t auto --project=benchmark benchmark/estimators.jl
 ```
 
 | estimator | max abs error (worst over rows) | mean time (s) (over rows) |
-|---|---:|---:|
+| --- | ---: | ---: |
 | `Subsample(2000, 8)` (EnergyKernel) | 0.00197 | 0.208 |
 | `RandomSlices(64)` | 0.00014 | 0.0189 |
 | `RandomSlices(256)` | 7.65e-5 | 0.0835 |
@@ -69,7 +69,7 @@ julia -t auto --project=benchmark benchmark/herding_estimators.jl
 ```
 
 | kernel | estimator | selected-subset discrepancy (3 seeds) | exact herding | random | ratio to exact |
-|---|---|---:|---:|---:|---:|
+| --- | --- | ---: | ---: | ---: | ---: |
 | EnergyKernel | RandomSlices(64) | 0.0255, 0.0561, 0.0692 (mean 0.0503) | 0.000643 | 0.00713 | 78.2× |
 | EnergyKernel | RandomSlices(256) | 0.0181, 0.0222, 0.0262 (mean 0.0222) | 0.000643 | 0.00713 | 34.5× |
 | EnergyKernel | RandomSlices(2048) | 0.00467, 0.00486, 0.0108 (mean 0.00679) | 0.000643 | 0.00713 | 10.6× |
@@ -114,7 +114,7 @@ serial (Julia 1.10.12, AMD Ryzen 7 7800X3D): minimum of three runs for
 N ≤ 10,000, a single run at N = 100,000.
 
 | N | p | k-d tree (s) | brute force (s) | brute / k-d |
-|---:|---:|---:|---:|---:|
+| ---: | ---: | ---: | ---: | ---: |
 | 1000 | 2 | 0.000326 | 0.00127 | 3.9 |
 | 1000 | 10 | 0.00243 | 0.00186 | 0.768 |
 | 1000 | 50 | 0.00719 | 0.00418 | 0.581 |
@@ -170,13 +170,13 @@ First call: one warm-up per `p`, on a 500-row/100-group slice, in this
 process.
 
 | p | k-d tree first call (s) | brute tree first call (s) | matrix first call (s) |
-|---:|---:|---:|---:|
+| ---: | ---: | ---: | ---: |
 | 50 | 0.72 | 0.151 | 0.286 |
 | 200 | 1.6 | 0.179 | 0.00146 |
 | 768 | 13.5 | 0.188 | 0.0253 |
 
 | N | p | k-d tree (s) | brute tree (s) | matrix (s) | brute/matrix | kdtree/matrix |
-|---:|---:|---:|---:|---:|---:|---:|
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 1000 | 50 | 0.0081 | 0.00445 | 0.00353 | 1.26 | 2.3 |
 | 10000 | 50 | 0.632 | 0.314 | 0.323 | 0.973 | 1.95 |
 | 1000 | 200 | 0.0279 | 0.0114 | 0.00555 | 2.06 | 5.02 |
@@ -206,7 +206,7 @@ First call: one warm-up per row, on a 500-row/100-point slice, in this
 process. Query points are data rows plus N(0, 0.1) noise.
 
 | N | p | k-d tree first call (s) | matrix first call (s) | k-d tree (s) | matrix (s) | kdtree/matrix |
-|---:|---:|---:|---:|---:|---:|---:|
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10000 | 2 | 0.00499 | 7.71e-5 | 0.00262 | 0.0305 | 0.0857 |
 | 10000 | 10 | 0.335 | 0.000231 | 0.00793 | 0.0921 | 0.0861 |
 | 10000 | 50 | 0.167 | 0.000546 | 0.0411 | 0.221 | 0.185 |
@@ -237,7 +237,7 @@ so both columns are genuine first calls and include Julia startup, package
 load, and compilation, not just the search structure's own compile time:
 
 | p | twinning first call (s) | select_nearest first call (s) |
-|---:|---:|---:|
+| ---: | ---: | ---: |
 | 3072 | 1.18 | 1.84 |
 | 6144 | 1.27 | 1.82 |
 | 12288 | 1.35 | 1.85 |
@@ -274,7 +274,7 @@ what `:auto` would choose. ED is exact when N + n ≤ 20,000 and otherwise
 every column); `ED random` is the mean over three uniform random subsets.
 
 | N | p | n | n/N | auto fires | g | plain (s) | compress++ (s) | plain / compress++ | ED plain | ED compress++ | ED random |
-|---:|---:|---:|---:|:---:|---:|---:|---:|---:|---:|---:|---:|
+| ---: | ---: | ---: | ---: | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 10000 | 10 | 100 | 0.01 | yes | 4 | 1.12 | 0.826 | 1.36 | 0.0139 | 0.0146 | 0.0371 |
 | 10000 | 10 | 500 | 0.05 | yes | 4 | 1.54 | 0.804 | 1.92 | 0.00222 | 0.00237 | 0.00792 |
 | 10000 | 10 | 1000 | 0.1 | no | 5 | 1.84 | 1.62 | 1.14 | 0.000978 | 0.00102 | 0.00415 |

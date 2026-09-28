@@ -1,5 +1,5 @@
 | N | method | energy distance | seconds |
-|---:|---|---:|---:|
+| ---: | --- | ---: | ---: |
 | 10000 | twinning | 0.000934 | 0.15 |
 | 10000 | herding · energy | 0.000595 | 0.18 |
 | 10000 | support points · energy | 0.00404 | 1.9 |

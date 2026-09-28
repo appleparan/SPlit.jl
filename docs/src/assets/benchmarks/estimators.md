@@ -10,7 +10,7 @@ N = 10,000, over 5 rng seeds per (dataset, split, estimator) cell.
 ## Per-row results
 
 | dataset | split | kernel | estimator | mean abs error | max abs error | mean time (s) |
-|---|---|---|---|---:|---:|---:|
+| --- | --- | --- | --- | ---: | ---: | ---: |
 | mixture-2d | support points · energy | EnergyKernel | Subsample(2000, 8) | 0.000616 | 0.000759 | 0.408 |
 | mixture-2d | support points · energy | EnergyKernel | RandomSlices(64) | 9.18e-6 | 1.47e-5 | 0.0244 |
 | mixture-2d | support points · energy | EnergyKernel | RandomSlices(256) | 6.85e-6 | 1.66e-5 | 0.0861 |
@@ -68,7 +68,7 @@ mean-time over every row for that kernel.
 ### EnergyKernel
 
 | estimator | max abs error (worst over rows) | mean time (s) (over rows) |
-|---|---:|---:|
+| --- | ---: | ---: |
 | Subsample(2000, 8) | 0.00197 | 0.208 |
 | RandomSlices(64) | 0.00014 | 0.0189 |
 | RandomSlices(256) | 7.65e-5 | 0.0835 |
@@ -79,7 +79,7 @@ mean-time over every row for that kernel.
 ### GaussianKernel
 
 | estimator | max abs error (worst over rows) | mean time (s) (over rows) |
-|---|---:|---:|
+| --- | ---: | ---: |
 | Subsample(2000, 8) | 0.000175 | 0.298 |
 | RandomFeatures(512) | 5.36e-7 | 0.0658 |
 | RandomFeatures(2048) | 3.85e-7 | 0.325 |

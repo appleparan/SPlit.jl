@@ -201,7 +201,7 @@ Downloads, Statistics, Random, LinearAlgebra, Printf) and
   check with `splitquality`/`energydistance`), a decision table
 
   | N | n / N | weights or target? | method |
-  |---|---|---|---|
+  | --- | --- | --- | --- |
   | ≤ 10⁴ | any | any | `HerdingSplitter(EnergyKernel())` (exact, fastest); `KernelThinningSplitter` when MMD is the criterion |
   | 10⁵–10⁶ | split ratio (≥ 0.1) | no | `TwinningSplitter` (seconds to minutes) |
   | 10⁵–10⁶ | split ratio | yes | `HerdingSplitter` or `KernelThinningSplitter` (`O(N²)`, minutes to an hour) |

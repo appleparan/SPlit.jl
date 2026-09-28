@@ -29,7 +29,7 @@
 ## File structure
 
 | File | Responsibility |
-|---|---|
+| --- | --- |
 | `src/kernel_thinning.jl` (new) | `_KH_CHUNK`, `_swap_params`, `_kernel_diff_sum`, `_kernel_halving`, `_kt_split`, `_self_kernel_sum`, `_coreset_sums!`, `_kt_swap`, `kernel_thinning`, `KernelThinningSplitter`, `_with_kernel`, `_select_rows`, `show` |
 | `src/herding.jl` | `_target_data_term` extracted from `herd` |
 | `src/SPlit.jl` | `include("kernel_thinning.jl")` after `multiplet.jl`; export `KernelThinningSplitter` |

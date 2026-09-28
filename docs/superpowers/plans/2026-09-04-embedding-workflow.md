@@ -27,7 +27,7 @@
 ## File structure
 
 | File | Responsibility |
-|---|---|
+| --- | --- |
 | `src/splitter.jl` | `_raw_matrix`, `_prepare_raw`, `standardize` keyword on `_prepare`, `_select`, `selectrows`, `datasplit` |
 | `src/multiplet.jl` | forward `standardize` |
 | `src/quality.jl` | `splitquality(...; standardize)` |

@@ -30,7 +30,7 @@ one interface serves both audiences the roadmap set out to reach:
 State of the exported API at v0.6.0.
 
 | Component | Status | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `SupportPointSplitter` with `EnergyKernel` | done | MM (majorization-minimization) update minimizing energy distance (Mak & Joseph, 2018); `kappa` gives the stochastic subsampled variant of Joseph & Vakayil (2022); `select_nearest` rounds optimized points to data rows via a k-d tree. |
 | `SupportPointSplitter` with `GaussianKernel` | done | Minimizes squared MMD by projected gradient descent with Armijo backtracking on full data; `kappa` runs a mean-shift MM sweep on subsamples (roadmap M6). A `:median` bandwidth is resolved at `datasplit` time and the resolved kernel is stored in `result.method.kernel`. |
 | `HerdingSplitter` | done | Greedy kernel herding (Chen, Welling & Smola, 2010); exact `O(N^2)` data term, deterministic given the data and a numeric kernel. |
