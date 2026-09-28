@@ -1,5 +1,5 @@
 | dataset | N | method | energy distance | MMD (Gaussian, median σ) | seconds |
-|---|---:|---|---:|---:|---:|
+| --- | ---: | --- | ---: | ---: | ---: |
 | mixture-2d | 1000 | support points · energy | 0.000323 | 1.57e-6 | 0.41 |
 | mixture-2d | 1000 | support points · gaussian | 0.00264 | 3.21e-5 | 0.21 |
 | mixture-2d | 1000 | herding · energy | 0.000439 | 1.08e-5 | 0.0018 |

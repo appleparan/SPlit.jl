@@ -18,7 +18,7 @@ M = 1000 windows of length 32 (regime A share ≈ 0.7). Point-level
 per-variable mean and variance should match across regimes:
 
 | variable | mean A | mean B | var A | var B |
-|---|---:|---:|---:|---:|
+| --- | ---: | ---: | ---: | ---: |
 | 1 | 0.033 | 0.005 | 1.18 | 1.2 |
 | 2 | 0.0195 | -0.00413 | 0.663 | 0.657 |
 | 3 | 0.041 | -0.0102 | 1.88 | 1.9 |
@@ -41,7 +41,7 @@ standardized flattened windows. Random: 20 draws; stochastic
 selectors: 3 seeds.
 
 | method | energy distance | regime-proportion error | mean lag-1 autocorrelation |
-|---|---:|---:|---:|
+| --- | ---: | ---: | ---: |
 | random | 0.119 ± 0.018 | 0.036 ± 0.031 | 0.13 ± 0.0634 |
 | twinning | 0.0627 | 0.02 | 0.114 |
 | herding · energy | 0.0466 | 0 | 0.147 |
@@ -73,7 +73,7 @@ full L = 32 space (dependence length ≈ 1/(1-stay_a) ≈ 16), averaged over
 5 independently generated datasets (mean ± sd over data seeds).
 
 | L_short | ratio to random | regime-proportion error |
-|---:|---:|---:|
+| ---: | ---: | ---: |
 | 1 | 0.895 ± 0.0964 | 0.028 ± 0.0164 |
 | 2 | 0.896 ± 0.201 | 0.024 ± 0.00894 |
 | 4 | 0.854 ± 0.0793 | 0.01 ± 0.00707 |
@@ -95,7 +95,7 @@ support-point warm-up follows. This ladder runs before Contrast 1 so no ladder
 width has been compiled earlier in the process.
 
 | L | L·p | method | compile seconds | seconds | energy distance | ratio to random |
-|---:|---:|---|---:|---:|---:|---:|
+| ---: | ---: | --- | ---: | ---: | ---: | ---: |
 | 8 | 24 | random | – | – | 0.0297 | 1 |
 | 8 | 24 | twinning | 0.46 | 0.01 | 0.0112 | 0.378 |
 | 8 | 24 | support points · energy | 0.15 | 0.12 | 0.0273 | 0.918 |

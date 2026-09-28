@@ -20,7 +20,7 @@ fresh-`rng` one, or `init_ds` for the "(datasplit path)" row) out of the
 method's own subset size.
 
 | dataset | N | method | iterations | median move | continuous MMD | rows kept | test-vs-train MMD | test-vs-train energy distance |
-|---|---:|---|---:|---:|---:|---:|---:|---:|
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | mixture-2d | 1000 | random (5 seeds) | – | – | – | – | 0.00258 | 0.012 |
 | mixture-2d | 1000 | initial sample | – | – | – | – | 0.0012 | 0.00642 |
 | mixture-2d | 1000 | initial sample (datasplit path) | – | – | – | – | 0.0012 | 0.00642 |
@@ -91,7 +91,7 @@ method's own subset size.
 | t3-3d | 10000 | gaussian, heavy-jitter init | 100* | 0.465 | 0.484 | 382/2000 | 0.23 | 0.514 |
 
 | dataset | N | median nearest-neighbor spacing |
-|---|---:|---:|
+| --- | ---: | ---: |
 | mixture-2d | 1000 | 0.036 |
 | normal-10d | 1000 | 1.8 |
 | uniform-5d | 1000 | 0.621 |

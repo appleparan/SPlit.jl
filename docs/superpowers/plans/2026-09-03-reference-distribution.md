@@ -28,7 +28,7 @@
 ## File structure
 
 | File | Responsibility |
-|---|---|
+| --- | --- |
 | `src/preprocessing.jl` | `Preprocessor`, `fit_preprocessor`, `apply_preprocessor`; `preprocess` re-expressed on top of them |
 | `src/optimizer.jl` | `target`/`target_weights` on both `support_points` and the two trajectory helpers |
 | `src/herding.jl` | `target`/`target_weights` on `herd`; cross data term `_data_term(kernel, X, R, …)` |

@@ -384,7 +384,7 @@ is one divided by the square root of `p` plus one, written as `γ = 1/(√p + 1)
 A few values make the shape of that curve concrete:
 
 | `p` (parameters, intercept included) | optimal test fraction |
-|---:|---:|
+| ---: | ---: |
 | 2 | 0.41 |
 | 5 | 0.31 |
 | 10 | 0.24 |
@@ -550,7 +550,7 @@ method, result = best(comparison)   # the lowest-discrepancy pair
 ## Cheat sheet
 
 | Concept | Where it lives |
-|---|---|
+| --- | --- |
 | Energy distance | `energydistance`, `splitquality` |
 | Support points and MM optimization | `SupportPointSplitter(kernel = EnergyKernel())` |
 | Large-data stochastic mode | `kappa` |

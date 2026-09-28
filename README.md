@@ -143,7 +143,7 @@ this table; the remaining subsections document the Julia API in prose.
 ### Julia and Python names
 
 | Operation | Julia | Python |
-|---|---|---|
+| --- | --- | --- |
 | Train/test split | `datasplit(splitter, data)` | `datasplit(data, ratio, method=...)` |
 | Row selection | `selectrows(splitter, data, n)` | `select_rows(data, n, method=...)` |
 | k-fold multiplets | `multiplet(splitter, data, k; strategy)` | `multiplet(data, k, strategy=..., method=...)` |

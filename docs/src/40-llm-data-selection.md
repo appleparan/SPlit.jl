@@ -39,7 +39,7 @@ few = select_rows(E, 100, method='kernel_thinning', standardize=False)     # com
 ## Which method
 
 | N | n / N | weights or reference? | method | why |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | ≤ 10⁴ | any | any | `HerdingSplitter(EnergyKernel())` | lowest energy distance under all three measures in the example, and 1.5 s at N = 5,000; `KernelThinningSplitter` when MMD is the criterion |
 | 10⁵–10⁶ | split ratio | no | `TwinningSplitter` | `O(pN log N)`, and no kernel matrix: 140 s at N = 10⁶ against 2,100 s for herding ([Benchmarks](@ref benchmarks)) |
 | 10⁵–10⁶ | split ratio | yes | `HerdingSplitter` or `KernelThinningSplitter` | the only methods that take `weights`/`reference`; both `O(N²)`, with kernel thinning 8.6–11x herding's time at N = 10⁴ |

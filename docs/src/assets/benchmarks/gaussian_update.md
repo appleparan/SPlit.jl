@@ -1,5 +1,5 @@
 | dataset | N | method | time (s) | iterations | MMD selected | MMD random |
-|---|---:|---|---:|---:|---:|---:|
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
 | mixture-2d | 1000 | armijo | 0.05 | 15.0 | 2.83e-6 | 0.000173 |
 | mixture-2d | 1000 | mm | 0.13 | 200.0 | 2.6e-6 | 0.000173 |
 | normal-10d | 1000 | armijo | 0.37 | 78.0 | 0.00198 | 0.00127 |

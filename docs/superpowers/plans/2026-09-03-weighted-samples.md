@@ -28,7 +28,7 @@
 ## File structure
 
 | File | Responsibility |
-|---|---|
+| --- | --- |
 | `src/weights.jl` (new) | Validation and normalization helpers shared by every weighted method |
 | `src/preprocessing.jl` | `preprocess(data, weights)`: weighted standardization (new method) |
 | `src/kernels.jl` | `resolve(kernel, data, rng, weights)`: weighted median heuristic (new method) |

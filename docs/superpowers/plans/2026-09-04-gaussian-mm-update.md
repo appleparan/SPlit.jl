@@ -28,7 +28,7 @@
 ## File structure
 
 | File | Responsibility |
-|---|---|
+| --- | --- |
 | `src/optimizer.jl` | `_mm_sweep!(::EnergyKernel, …)` wrapper, `_mm_sweep!(::GaussianKernel{Float64}, …)`, one `support_points(::Union{EnergyKernel,GaussianKernel}, …)`, `_mmd_trajectory` on the sweep; Armijo helpers deleted |
 | `src/splitter.jl` | constructor accepts `kappa` with `GaussianKernel`; docstring |
 | `test/test_optimizer.jl`, `test/test_splitter.jl`, `test/test_properties.jl` | tests |

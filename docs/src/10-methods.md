@@ -16,7 +16,7 @@ Later sections reuse a couple of letters for a second, unrelated quantity;
 each such reuse is called out again where it happens.
 
 | symbol | meaning |
-|---|---|
+| --- | --- |
 | ``N`` | number of rows of the data |
 | ``p`` | number of columns (variables) |
 | ``n`` | number of rows selected, the smaller side of a split |
@@ -347,7 +347,7 @@ combination, never an `if`); an undefined combination raises an
 `ArgumentError`.
 
 | estimator | `energydistance` (`EnergyKernel`) | `mmd` (`GaussianKernel`) |
-|---|---|---|
+| --- | --- | --- |
 | `Exact` | yes, threaded | yes, threaded |
 | `Subsample(m, repeats)` | yes | yes |
 | `RandomSlices(k)` | yes | no |

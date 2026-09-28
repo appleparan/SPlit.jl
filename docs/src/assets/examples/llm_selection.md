@@ -1,5 +1,5 @@
 | setting | method | energy distance to the optimized measure | energy distance to the data | seconds |
-|---|---|---:|---:|---:|
+| --- | --- | ---: | ---: | ---: |
 | plain | random | 0.0024 | 0.0024 | – |
 | plain | k-center greedy | 0.0228 | 0.0228 | 1.9 |
 | plain | herding · energy | 0.00107 | 0.00107 | 1.5 |

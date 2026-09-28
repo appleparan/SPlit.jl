@@ -114,12 +114,12 @@ Estimators. Each existing `_energydistance` / `_mmd` method gets a weighted
 counterpart (a new method with `weights_x, weights_y` positional arguments,
 never an `if` inside the existing one):
 
-| estimator        | weighted form                                                                 |
-|------------------|-------------------------------------------------------------------------------|
-| `Exact`          | block-wise `w_blkᵀ D v_blk` instead of `sum(D)`, with no `1/(nm)` division since the weights are normalized |
-| `Subsample`      | rows drawn uniformly as now; weights renormalized within each subsample; exact weighted statistic averaged over `repeats` |
-| `RandomSlices`   | weighted 1-D energy distance per direction from sorted samples and prefix sums of `w` and `w·a` (derivation below) |
-| `RandomFeatures` | weighted feature means `Σ w̄ᵢ z(xᵢ)`; `‖z̄_w(X) − z̄_v(Y)‖²`               |
+| estimator | weighted form |
+| --- | --- |
+| `Exact` | block-wise `w_blkᵀ D v_blk` instead of `sum(D)`, with no `1/(nm)` division since the weights are normalized |
+| `Subsample` | rows drawn uniformly as now; weights renormalized within each subsample; exact weighted statistic averaged over `repeats` |
+| `RandomSlices` | weighted 1-D energy distance per direction from sorted samples and prefix sums of `w` and `w·a` (derivation below) |
+| `RandomFeatures` | weighted feature means `Σ w̄ᵢ z(xᵢ)`; `‖z̄_w(X) − z̄_v(Y)‖²` |
 
 Weighted 1-D energy distance. For a sorted sample `a₍₁₎ ≤ … ≤ a₍ₙ₎` with
 weights `w₍ᵢ₎`, prefix sums `Wᵢ = Σ_{l ≤ i} w₍ₗ₎` and `Aᵢ = Σ_{l ≤ i} w₍ₗ₎ a₍ₗ₎`:

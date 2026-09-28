@@ -134,7 +134,7 @@ energy distance on the standardized flattened windows. Full table:
 [`assets/examples/time_series_windows.md`](assets/examples/time_series_windows.md).
 
 | method | energy distance | regime-proportion error |
-|---|---:|---:|
+| --- | ---: | ---: |
 | random | 0.119 ± 0.018 | 0.036 ± 0.031 |
 | twinning | 0.0627 | 0.02 |
 | herding · energy | 0.0466 | 0 |
@@ -157,7 +157,7 @@ each length-32 segment and evaluated in the full `L = 32` space, averaged
 over 5 independently generated datasets:
 
 | L_short | ratio to random | regime-proportion error |
-|---:|---:|---:|
+| ---: | ---: | ---: |
 | 1 | 0.895 ± 0.0964 | 0.028 ± 0.0164 |
 | 2 | 0.896 ± 0.201 | 0.024 ± 0.00894 |
 | 4 | 0.854 ± 0.0793 | 0.01 ± 0.00707 |
@@ -178,7 +178,7 @@ Flattening trades window length for column count: `L*p` columns per row.
 `M = 2000`, `n = 200`, `p = 3`:
 
 | L·p | method | compile s | run s | ratio to random |
-|---:|---|---:|---:|---:|
+| ---: | --- | ---: | ---: | ---: |
 | 24 | twinning | 0.46 | 0.01 | 0.378 |
 | 24 | support points | 0.15 | 0.12 | 0.918 |
 | 192 | twinning | 8.2e-05 | 0.012 | 0.595 |
