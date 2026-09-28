@@ -104,7 +104,7 @@ let
   )
   println(io, "per-variable mean and variance should match across regimes:\n")
   println(io, "| variable | mean A | mean B | var A | var B |")
-  println(io, "|---|---:|---:|---:|---:|")
+  println(io, "| --- | ---: | ---: | ---: | ---: |")
   for v = 1:P_MAIN
     @printf(
       io,
@@ -252,7 +252,7 @@ let
     io,
     "| method | energy distance | regime-proportion error | mean lag-1 autocorrelation |",
   )
-  println(io, "|---|---:|---:|---:|")
+  println(io, "| --- | ---: | ---: | ---: |")
   for r in eachrow(main_rows)
     @printf(
       io,
@@ -424,7 +424,7 @@ contrast2_text = let
     io,
     "| L | L·p | method | compile seconds | seconds | energy distance | ratio to random |",
   )
-  println(io, "|---:|---:|---|---:|---:|---:|---:|")
+  println(io, "| ---: | ---: | --- | ---: | ---: | ---: | ---: |")
   for r in eachrow(rows)
     @printf(
       io,
@@ -501,7 +501,7 @@ contrast1_text = let
     "$DATA_SEEDS_CONTRAST1 independently generated datasets (mean ± sd over data seeds).\n",
   )
   println(io, "| L_short | ratio to random | regime-proportion error |")
-  println(io, "|---:|---:|---:|")
+  println(io, "| ---: | ---: | ---: |")
   for r in eachrow(rows)
     @printf(io, "| %d | %s | %s |\n", r.L_short, r.ratio_to_random, r.regime_prop_error)
   end

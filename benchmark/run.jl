@@ -109,7 +109,7 @@ function markdown_table(df)
     io,
     "| dataset | N | method | energy distance | MMD (Gaussian, median σ) | seconds |",
   )
-  println(io, "|---|---:|---|---:|---:|---:|")
+  println(io, "| --- | ---: | --- | ---: | ---: | ---: |")
   for r in eachrow(df)
     println(
       io,

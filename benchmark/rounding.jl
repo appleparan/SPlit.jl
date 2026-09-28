@@ -389,7 +389,7 @@ function markdown_table(rows)
     io,
     "| dataset | N | method | iterations | median move | continuous MMD | rows kept | test-vs-train MMD | test-vs-train energy distance |",
   )
-  println(io, "|---|---:|---|---:|---:|---:|---:|---:|---:|")
+  println(io, "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |")
   for r in rows
     println(
       io,
@@ -402,7 +402,7 @@ end
 function spacing_table(spacings)
   io = IOBuffer()
   println(io, "| dataset | N | median nearest-neighbor spacing |")
-  println(io, "|---|---:|---:|")
+  println(io, "| --- | ---: | ---: |")
   for s in spacings
     println(io, "| $(s.dataset) | $(s.N) | $(fmt(s.nn_spacing)) |")
   end

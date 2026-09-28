@@ -32,7 +32,7 @@ end
 
 io = IOBuffer()
 println(io, "| N | p | k-d tree (s) | brute force (s) | brute / k-d |")
-println(io, "|---:|---:|---:|---:|---:|")
+println(io, "| ---: | ---: | ---: | ---: | ---: |")
 for N in SIZES, p in DIMS
   X = SPlit.preprocess(randn(MersenneTwister(1000 * p + round(Int, log10(N))), N, p))
   t_kd = timed(X, N, false)
