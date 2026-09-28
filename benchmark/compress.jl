@@ -48,7 +48,10 @@ println(
   io,
   "| N | p | n | n/N | auto fires | g | plain (s) | compress++ (s) | plain / compress++ | ED plain | ED compress++ | ED random |",
 )
-println(io, "|---:|---:|---:|---:|:---:|---:|---:|---:|---:|---:|---:|---:|")
+println(
+  io,
+  "| ---: | ---: | ---: | ---: | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+)
 for (N, p) in CELLS
   X = randn(MersenneTwister(1000 * p + round(Int, log10(N))), N, p)
   for r in RATIOS

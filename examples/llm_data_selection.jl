@@ -154,7 +154,7 @@ println(
   io,
   "| setting | method | energy distance to the optimized measure | energy distance to the data | seconds |",
 )
-println(io, "|---|---|---:|---:|---:|")
+println(io, "| --- | --- | ---: | ---: | ---: |")
 for r in eachrow(rows)
   @printf(
     io,

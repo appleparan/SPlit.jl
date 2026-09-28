@@ -76,7 +76,7 @@ open(joinpath(OUT, "weighted_kappa.md"), "w") do io
     io,
     "| dataset | profile | kappa | rule | weighted ED (mean ± se, 5 seeds) | mean seconds |",
   )
-  println(io, "|---|---|---:|---|---:|---:|")
+  println(io, "| --- | --- | ---: | --- | ---: | ---: |")
   for r in eachrow(rows)
     println(
       io,

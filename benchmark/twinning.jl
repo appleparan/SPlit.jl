@@ -70,7 +70,7 @@ end
 
 io = IOBuffer()
 println(io, "| N | method | energy distance | seconds |")
-println(io, "|---:|---|---:|---:|")
+println(io, "| ---: | --- | ---: | ---: |")
 for r in eachrow(rows)
   println(
     io,

@@ -501,7 +501,7 @@ def _rows_to_markdown(rows: list[ScoreRow]) -> str:
         '| setting | method | energy distance to the optimized measure '
         '| energy distance to the data | seconds |'
     )
-    sep = '|---|---|---:|---:|---:|'
+    sep = '| --- | --- | ---: | ---: | ---: |'
     lines = [header, sep]
     for row in rows:
         seconds = '-' if row.seconds is None else f'{row.seconds:.2g}'

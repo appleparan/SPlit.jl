@@ -104,7 +104,7 @@ end
 
 io = IOBuffer()
 println(io, "| dataset | N | method | time (s) | iterations | MMD selected | MMD random |")
-println(io, "|---|---:|---|---:|---:|---:|---:|")
+println(io, "| --- | ---: | --- | ---: | ---: | ---: | ---: |")
 for N in SIZES
   max_iter = N >= 10_000 ? 100 : 200
   n = round(Int, 0.2N)

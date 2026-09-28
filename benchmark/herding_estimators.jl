@@ -149,7 +149,7 @@ end
 fmt(x) = string(round(x; sigdigits = 3))
 lines = [
   "| kernel | estimator | selected-subset discrepancy (3 seeds) | exact herding | random | ratio to exact |",
-  "|---|---|---|---:|---:|---:|",
+  "| --- | --- | --- | ---: | ---: | ---: |",
 ]
 for r in rows
   qs_str = join(fmt.(r.qs), ", ")

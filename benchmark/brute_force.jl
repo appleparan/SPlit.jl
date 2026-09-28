@@ -88,7 +88,7 @@ function run_table1()
   emit(
     "| p | k-d tree first call (s) | brute tree first call (s) | matrix first call (s) |",
   )
-  emit("|---:|---:|---:|---:|")
+  emit("| ---: | ---: | ---: | ---: |")
   for p in T1_DIMS
     Xwarm = SPlit.preprocess(randn(MersenneTwister(1000 * p), 500, p))
     firsts = [
@@ -102,7 +102,7 @@ function run_table1()
   emit(
     "| N | p | k-d tree (s) | brute tree (s) | matrix (s) | brute/matrix | kdtree/matrix |",
   )
-  emit("|---:|---:|---:|---:|---:|---:|---:|")
+  emit("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for p in T1_DIMS, N in T1_SIZES
     X = SPlit.preprocess(randn(MersenneTwister(1000 * p + round(Int, log10(N))), N, p))
     t_kd, t_bt, t_mx = (twin_time(X, N, search) for search in T1_SEARCHES)
@@ -163,7 +163,7 @@ function run_table2()
   emit(
     "| N | p | k-d tree first call (s) | matrix first call (s) | k-d tree (s) | matrix (s) | kdtree/matrix |",
   )
-  emit("|---:|---:|---:|---:|---:|---:|---:|")
+  emit("| ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
   for p in T2_DIMS
     rng = MersenneTwister(2000 * p)
     data = SPlit.preprocess(randn(rng, T2_N, p))
@@ -217,7 +217,7 @@ function run_table3()
   )
   emit("")
   emit("| p | twinning first call (s) | select_nearest first call (s) |")
-  emit("|---:|---:|---:|")
+  emit("| ---: | ---: | ---: |")
   for p in T3_DIMS
     script = """
     using SPlit, Random

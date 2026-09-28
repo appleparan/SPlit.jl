@@ -101,7 +101,7 @@ function markdown_table(df)
     io,
     "| dataset | split | kernel | estimator | mean abs error | max abs error | mean time (s) |",
   )
-  println(io, "|---|---|---|---|---:|---:|---:|")
+  println(io, "| --- | --- | --- | --- | ---: | ---: | ---: |")
   for r in eachrow(df)
     println(
       io,
@@ -146,7 +146,7 @@ end
 function markdown_agg(agg)
   io = IOBuffer()
   println(io, "| estimator | max abs error (worst over rows) | mean time (s) (over rows) |")
-  println(io, "|---|---:|---:|")
+  println(io, "| --- | ---: | ---: |")
   for r in eachrow(agg)
     println(
       io,
