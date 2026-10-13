@@ -24,7 +24,7 @@ jobs:
           version: "1"
         if: steps.julia_in_path.outcome != 'success'
       - name: Use Julia cache
-        uses: julia-actions/cache@e32267b41e0fa7df82a3d53e8c7273620d52c586 # v3.4.0
+        uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
       - name: "Add the General registry via Git"
         run: |
           import Pkg
